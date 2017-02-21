@@ -20,6 +20,17 @@ def normalized_cross_prod(a,b):
         res = res/LA.norm(res)
     return res
 
+def normalized_cross_prod_optimize(a,b):
+    res = np.zeros(3, dtype = "float")
+    if (LA.norm(a) == 0.0 or LA.norm(b) == 0.0):
+        return res
+    a = a/LA.norm(a)
+    b = b/LA.norm(b)
+    res = np.cross(a,b)
+    if (LA.norm(res) > 0.0):
+        res = res/LA.norm(res)
+    return res
+
 #Nurbs class to handle NURBS curves (Non-uniform rational B-spline)
 class RGBD():
 
@@ -71,9 +82,42 @@ class RGBD():
                     x = d*(j - self.intrinsic[0,2])/self.intrinsic[0,0]
                     y = d*(i - self.intrinsic[1,2])/self.intrinsic[1,1]
                     self.Vtx[i,j] = (x, y, d)
-        
+    
+    def Vmap_optimize(self): # Create the vertex image from the depth image and intrinsic matrice
+        self.Vtx = np.zeros(self.Size, np.float32)
+        d = self.depth_image[0:self.Size[0]][0:self.Size[1]]
+        x = np.zeros([self.Size[0],self.Size[1]] , np.float32)
+        y = np.zeros([self.Size[0],self.Size[1]] , np.float32)
+        d_pos = (d > 0.0)
+        x_raw = np.zeros([self.Size[0],self.Size[1]], np.float32)
+        y_raw = np.zeros([self.Size[0],self.Size[1]], np.float32)
+        # change the matrix so that the first row is on all rows for x respectively colunm for y.
+        x_raw[0:-1,:] = ( np.arange(self.Size[1]) - self.intrinsic[0,2])/self.intrinsic[0,0]
+        y_raw[:,0:-1] = np.tile( ( np.arange(self.Size[0]) - self.intrinsic[1,2])/self.intrinsic[1,1],(1,1)).transpose()
+        # multiply point by point d_pos and raw matrices
+        x[0:self.Size[0]][0:self.Size[1]] = d_pos* x_raw
+        y[0:self.Size[0]][0:self.Size[1]] = d_pos* y_raw
+        d.reshape(424,512,1)
+        x.reshape(424,512,1)
+        y.reshape(424,512,1)
+        self.Vtx[0:self.Size[0]][0:self.Size[1]] = np.concatenate((x, y, d),2)
+    
+                
     ##### Compute normals
     def NMap(self):
+        self.Nmls = np.zeros(self.Size, np.float32)
+        for i in range(1,self.Size[0]-1):
+            for j in range(1, self.Size[1]-1):
+                nmle1 = normalized_cross_prod(self.Vtx[i+1, j]-self.Vtx[i, j], self.Vtx[i, j+1]-self.Vtx[i, j])
+                nmle2 = normalized_cross_prod(self.Vtx[i, j+1]-self.Vtx[i, j], self.Vtx[i-1, j]-self.Vtx[i, j])
+                nmle3 = normalized_cross_prod(self.Vtx[i-1, j]-self.Vtx[i, j], self.Vtx[i, j-1]-self.Vtx[i, j])
+                nmle4 = normalized_cross_prod(self.Vtx[i, j-1]-self.Vtx[i, j], self.Vtx[i+1, j]-self.Vtx[i, j])
+                nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
+                if (LA.norm(nmle) > 0.0):
+                    nmle = nmle/LA.norm(nmle)
+                self.Nmls[i, j] = (nmle[0], nmle[1], nmle[2])
+                
+    def NMap_optimize(self):
         self.Nmls = np.zeros(self.Size, np.float32)
         for i in range(1,self.Size[0]-1):
             for j in range(1, self.Size[1]-1):
@@ -116,7 +160,39 @@ class RGBD():
                             result[line_index, column_index] = (int((nmle[0] + 1.0)*(255./2.)), int((nmle[1] + 1.0)*(255./2.)), int((nmle[2] + 1.0)*(255./2.)))
 
         return result
-    
+
+
+    def Draw_optimize(self, Pose, s, color = 0) :
+        result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
+        line_index = 0
+        column_index = 0
+        pix = np.array([0., 0., 1.])
+        pt = np.array([0., 0., 0., 1.])
+        nmle = np.array([0., 0., 0.])
+        for i in range(self.Size[0]/s):
+            for j in range(self.Size[1]/s):
+                pt[0] = self.Vtx[i*s,j*s][0]
+                pt[1] = self.Vtx[i*s,j*s][1]
+                pt[2] = self.Vtx[i*s,j*s][2]
+                pt = np.dot(Pose, pt)
+                nmle[0] = self.Nmls[i*s,j*s][0]
+                nmle[1] = self.Nmls[i*s,j*s][1]
+                nmle[2] = self.Nmls[i*s,j*s][2]
+                nmle = np.dot(Pose[0:3,0:3], nmle)
+                if (pt[2] != 0.0):
+                    pix[0] = pt[0]/pt[2]
+                    pix[1] = pt[1]/pt[2]
+                    pix = np.dot(self.intrinsic, pix)
+                    column_index = int(round(pix[0]))
+                    line_index = int(round(pix[1]))
+                    if (column_index > -1 and column_index < self.Size[1] and line_index > -1 and line_index < self.Size[0]):
+                        if (color == 0):
+                            result[line_index, column_index] = (self.color_image[i*s,j*s][2], self.color_image[i*s,j*s][1], self.color_image[i*s,j*s][0])
+                        else:
+                            result[line_index, column_index] = (int((nmle[0] + 1.0)*(255./2.)), int((nmle[1] + 1.0)*(255./2.)), int((nmle[2] + 1.0)*(255./2.)))
+
+        return result
+        
 ##################################################################
 ###################Bilateral Smooth Funtion#######################
 ##################################################################
