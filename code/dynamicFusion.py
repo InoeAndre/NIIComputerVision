@@ -3,6 +3,8 @@ import sys
 import cv2
 import scipy.io
 import numpy as np
+import Tkinter as tk
+import imp
 
 '''Self made modules to structures the project'''
 #==============================================================================
@@ -14,27 +16,20 @@ import numpy as np
 #==============================================================================
 
 def main():
-    '''loading data'''
-    print '''Choose your data
-    By default Test2Box.mat will be select
-    Enter 1 for FixedPose.mat
-    '''
-    select = raw_input()
-    condition = select=='1'
-    if condition:
-        name = 'FixedPose.mat'
-    else:
-        name = 'Test2Box.mat'
-    mat = scipy.io.loadmat('../data/'+ name)
-    '''display the video stream'''
-    lImages = mat['DepthImg']
-    numbImages = len(lImages.transpose())
-    for x in range(0,numbImages):
-        cv2.imshow(name,lImages[0][x])  
-        cv2.waitKey(0)
-    cv2.destroyAllWindows()   
+    ''' Create Menu to load data '''
+    M = imp.load_source('Menu', './lib/Menu.py')
+    root = tk.Tk()
+    menu_app = M.Menu(root)
+    menu_app.mainloop()
+    
+    A = imp.load_source('Menu', './lib/Application.py')
+    root = tk.Tk()
+    app = A.Application(menu_app.filename, root)
+    app.mainloop()
+    
     return 0
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    main()
+    exit(0)
