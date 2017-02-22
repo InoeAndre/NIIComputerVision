@@ -123,7 +123,6 @@ class Application(tk.Frame):
         self.RGBD.LoadMat(self.lImages)
         self.RGBD.ReadFromMat()
         self.RGBD.BilateralFilter(-1, 0.02, 3)
-        #self.RGBD.Vmap()
         self.RGBD.Vmap_optimize()
         self.RGBD.NMap()
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])

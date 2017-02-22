@@ -86,21 +86,16 @@ class RGBD():
     def Vmap_optimize(self): # Create the vertex image from the depth image and intrinsic matrice
         self.Vtx = np.zeros(self.Size, np.float32)
         d = self.depth_image[0:self.Size[0]][0:self.Size[1]]
-        x = np.zeros([self.Size[0],self.Size[1]] , np.float32)
-        y = np.zeros([self.Size[0],self.Size[1]] , np.float32)
-        d_pos = (d > 0.0)
+        d_pos = d * (d > 0.0)
         x_raw = np.zeros([self.Size[0],self.Size[1]], np.float32)
         y_raw = np.zeros([self.Size[0],self.Size[1]], np.float32)
         # change the matrix so that the first row is on all rows for x respectively colunm for y.
         x_raw[0:-1,:] = ( np.arange(self.Size[1]) - self.intrinsic[0,2])/self.intrinsic[0,0]
         y_raw[:,0:-1] = np.tile( ( np.arange(self.Size[0]) - self.intrinsic[1,2])/self.intrinsic[1,1],(1,1)).transpose()
         # multiply point by point d_pos and raw matrices
-        x[0:self.Size[0]][0:self.Size[1]] = d_pos* x_raw
-        y[0:self.Size[0]][0:self.Size[1]] = d_pos* y_raw
-        d.reshape(424,512,1)
-        x.reshape(424,512,1)
-        y.reshape(424,512,1)
-        self.Vtx[0:self.Size[0]][0:self.Size[1]] = np.concatenate((x, y, d),2)
+        x = d_pos * x_raw
+        y = d_pos * y_raw
+        self.Vtx = np.dstack((x, y,d))#.shape#np.concatenate((x, y, d),2)   [0:self.Size[0]][0:self.Size[1]]
     
                 
     ##### Compute normals
@@ -117,18 +112,25 @@ class RGBD():
                     nmle = nmle/LA.norm(nmle)
                 self.Nmls[i, j] = (nmle[0], nmle[1], nmle[2])
                 
-    def NMap_optimize(self):
-        self.Nmls = np.zeros(self.Size, np.float32)
-        for i in range(1,self.Size[0]-1):
-            for j in range(1, self.Size[1]-1):
-                nmle1 = normalized_cross_prod(self.Vtx[i+1, j]-self.Vtx[i, j], self.Vtx[i, j+1]-self.Vtx[i, j])
-                nmle2 = normalized_cross_prod(self.Vtx[i, j+1]-self.Vtx[i, j], self.Vtx[i-1, j]-self.Vtx[i, j])
-                nmle3 = normalized_cross_prod(self.Vtx[i-1, j]-self.Vtx[i, j], self.Vtx[i, j-1]-self.Vtx[i, j])
-                nmle4 = normalized_cross_prod(self.Vtx[i, j-1]-self.Vtx[i, j], self.Vtx[i+1, j]-self.Vtx[i, j])
-                nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
-                if (LA.norm(nmle) > 0.0):
-                    nmle = nmle/LA.norm(nmle)
-                self.Nmls[i, j] = (nmle[0], nmle[1], nmle[2])
+#==============================================================================
+#     def NMap_optimize(self):
+#         self.Nmls = np.zeros(self.Size, np.float32)
+#         nmle1 = normalized_cross_prod_optimize(self.Vtx[2:self.Size[0]  ][1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1], \
+#                                                self.Vtx[1:self.Size[1]-1][2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1])
+#         nmle2 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1], \
+#                                       self.Vtx[0:self.Size[0]-2][1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1])
+#         nmle3 = normalized_cross_prod_optimize(self.Vtx[0:self.Size[0]-2][1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1], \
+#                                       self.Vtx[1:self.Size[0]-1][0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1])
+#         nmle4 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1], \
+#                                       self.Vtx[2:self.Size[0]  ][1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1])
+#         nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
+#         if (LA.norm(nmle[0:self.Size[0]]) > 0.0):
+#             nmle[1:self.Size[0]-1][1:self.Size[1]-1]= nmle[1:self.Size[0]-1][1:self.Size[1]-1]/LA.norm(nmle[1:self.Size[0]-1][1:self.Size[1]-1])
+#             self.Nmls[1:self.Size[0]-1][1:self.Size[1]-1] = (nmle[1:self.Size[0]-1][1:self.Size[1]-1][0],\
+#                                                              nmle[1:self.Size[0]-1][1:self.Size[1]-1][1],\
+#                                                              nmle[1:self.Size[0]-1][1:self.Size[1]-1][2])      
+#==============================================================================
+ 
 
     def Draw(self, Pose, s, color = 0) :
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
