@@ -21,14 +21,35 @@ def normalized_cross_prod(a,b):
     return res
 
 def normalized_cross_prod_optimize(a,b):
-    res = np.zeros(3, dtype = "float")
-    if (LA.norm(a) == 0.0 or LA.norm(b) == 0.0):
-        return res
-    a = a/LA.norm(a)
-    b = b/LA.norm(b)
+    #res = np.zeros(a.Size, dtype = "float")
+    norm_mat_a = np.sqrt(np.sum(a*a,axis=2))
+    norm_mat_b = np.sqrt(np.sum(b*b,axis=2))
+    # compute a/ norm_mat_a and put every vqlue divided by 0 at 0 instead of divided it (respectively b)
+    for i in range(3):
+        with np.errstate(divide='ignore', invalid='ignore'):
+            # compute a/ norm of a and put every vqlue divided by 0 at 0 instead of divided it
+            a[:,:,i] = np.true_divide(a[:,:,i],norm_mat_a)
+            a[:,:,i][a[:,:,i] == np.inf] = 0
+            a[:,:,i] = np.nan_to_num(a[:,:,i])
+            # same for b
+            b[:,:,i] = np.true_divide(b[:,:,i],norm_mat_b)
+            b[:,:,i][b[:,:,i] == np.inf] = 0
+            b[:,:,i] = np.nan_to_num(b[:,:,i])
+            #a[:,:,i] = a[:,:,i]/norm_mat_a
+            #a[norm_mat_a == 0][i]=0
+            #b[:,:,i] = b[:,:,i]/norm_mat_b
+            #b[norm_mat_b == 0][i]=0
+    #compute cross product with matrix
     res = np.cross(a,b)
-    if (LA.norm(res) > 0.0):
-        res = res/LA.norm(res)
+    norm_mat_res = np.sqrt(np.sum(res*res,axis=2))
+    #res[:,:,i] = res[:,:,i]/norm_mat_res
+    #res[norm_mat_res == 0][i]=0
+    #norm division same as a and b
+    for i in range(3):
+        with np.errstate(divide='ignore', invalid='ignore'):
+            res[:,:,i] = np.true_divide(res[:,:,i],norm_mat_res)
+            res[:,:,i][res[:,:,i] == np.inf] = 0
+            res[:,:,i] = np.nan_to_num(res[:,:,i])
     return res
 
 #Nurbs class to handle NURBS curves (Non-uniform rational B-spline)
@@ -95,7 +116,7 @@ class RGBD():
         # multiply point by point d_pos and raw matrices
         x = d_pos * x_raw
         y = d_pos * y_raw
-        self.Vtx = np.dstack((x, y,d))#.shape#np.concatenate((x, y, d),2)   [0:self.Size[0]][0:self.Size[1]]
+        self.Vtx = np.dstack((x, y,d))
     
                 
     ##### Compute normals
@@ -112,25 +133,26 @@ class RGBD():
                     nmle = nmle/LA.norm(nmle)
                 self.Nmls[i, j] = (nmle[0], nmle[1], nmle[2])
                 
-#==============================================================================
-#     def NMap_optimize(self):
-#         self.Nmls = np.zeros(self.Size, np.float32)
-#         nmle1 = normalized_cross_prod_optimize(self.Vtx[2:self.Size[0]  ][1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1], \
-#                                                self.Vtx[1:self.Size[1]-1][2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1])
-#         nmle2 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1], \
-#                                       self.Vtx[0:self.Size[0]-2][1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1])
-#         nmle3 = normalized_cross_prod_optimize(self.Vtx[0:self.Size[0]-2][1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1], \
-#                                       self.Vtx[1:self.Size[0]-1][0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1])
-#         nmle4 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1], \
-#                                       self.Vtx[2:self.Size[0]  ][1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][1:self.Size[1]-1])
-#         nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
-#         if (LA.norm(nmle[0:self.Size[0]]) > 0.0):
-#             nmle[1:self.Size[0]-1][1:self.Size[1]-1]= nmle[1:self.Size[0]-1][1:self.Size[1]-1]/LA.norm(nmle[1:self.Size[0]-1][1:self.Size[1]-1])
-#             self.Nmls[1:self.Size[0]-1][1:self.Size[1]-1] = (nmle[1:self.Size[0]-1][1:self.Size[1]-1][0],\
-#                                                              nmle[1:self.Size[0]-1][1:self.Size[1]-1][1],\
-#                                                              nmle[1:self.Size[0]-1][1:self.Size[1]-1][2])      
-#==============================================================================
- 
+    def NMap_optimize(self):
+        self.Nmls = np.zeros(self.Size, np.float32)        
+        nmle1 = normalized_cross_prod_optimize(self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+                                               self.Vtx[1:self.Size[0]-1][:,2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])        
+        nmle2 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+                                               self.Vtx[0:self.Size[0]-2][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
+        nmle3 = normalized_cross_prod_optimize(self.Vtx[0:self.Size[0]-2][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+                                               self.Vtx[1:self.Size[0]-1][:,0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
+        nmle4 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+                                               self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
+        nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
+        if (LA.norm(nmle) > 0.0):
+            #nmle[1:self.Size[0]-1][:,1:self.Size[1]-1]= nmle[1:self.Size[0]-1][:,1:self.Size[1]-1]/LA.norm(nmle[1:self.Size[0]-1][:,1:self.Size[1]-1])
+        #self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] =np.dstack((nmle[1:self.Size[0]-1][:,1:self.Size[1]-1][0],\
+        #                                                            nmle[1:self.Size[0]-1][:,1:self.Size[1]-1][1],\
+        #                                                            nmle[1:self.Size[0]-1][:,1:self.Size[1]-1][2]) ) 
+        #
+        #[0:self.Size[0]][:,1:self.Size[1]-1]
+            nmle = nmle/LA.norm(nmle)
+        self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
 
     def Draw(self, Pose, s, color = 0) :
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
@@ -164,35 +186,39 @@ class RGBD():
         return result
 
 
-    def Draw_optimize(self, Pose, s, color = 0) :
+    def Draw_optimize(self, Pose, s, color = 0) :      
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         line_index = 0
         column_index = 0
-        pix = np.array([0., 0., 1.])
+        pix = np.array([np.zeros(self.Size[0],np.float32), np.zeros(self.Size[1],np.float32), np.ones(self.Size[2],np.float32)])
         pt = np.array([0., 0., 0., 1.])
         nmle = np.array([0., 0., 0.])
-        for i in range(self.Size[0]/s):
-            for j in range(self.Size[1]/s):
-                pt[0] = self.Vtx[i*s,j*s][0]
-                pt[1] = self.Vtx[i*s,j*s][1]
-                pt[2] = self.Vtx[i*s,j*s][2]
-                pt = np.dot(Pose, pt)
-                nmle[0] = self.Nmls[i*s,j*s][0]
-                nmle[1] = self.Nmls[i*s,j*s][1]
-                nmle[2] = self.Nmls[i*s,j*s][2]
-                nmle = np.dot(Pose[0:3,0:3], nmle)
-                if (pt[2] != 0.0):
-                    pix[0] = pt[0]/pt[2]
-                    pix[1] = pt[1]/pt[2]
-                    pix = np.dot(self.intrinsic, pix)
-                    column_index = int(round(pix[0]))
-                    line_index = int(round(pix[1]))
-                    if (column_index > -1 and column_index < self.Size[1] and line_index > -1 and line_index < self.Size[0]):
-                        if (color == 0):
-                            result[line_index, column_index] = (self.color_image[i*s,j*s][2], self.color_image[i*s,j*s][1], self.color_image[i*s,j*s][0])
-                        else:
-                            result[line_index, column_index] = (int((nmle[0] + 1.0)*(255./2.)), int((nmle[1] + 1.0)*(255./2.)), int((nmle[2] + 1.0)*(255./2.)))
-
+        pt[0] = self.Vtx[0:self.Size[0]][0:self.Size[1]][0]
+        pt[1] = self.Vtx[0:self.Size[0]][0:self.Size[1]][1]
+        pt[2] = self.Vtx[0:self.Size[0]][0:self.Size[1]][2]
+        pt = np.dot(Pose, pt)
+        nmle[0] = self.Nmls[0:self.Size[0]][0:self.Size[1]][0]
+        nmle[1] = self.Nmls[0:self.Size[0]][0:self.Size[1]][1]
+        nmle[2] = self.Nmls[0:self.Size[0]][0:self.Size[1]][2]
+        nmle = np.dot(Pose[0:3,0:3], nmle)
+        if (pt[2] != 0.0):
+            pix[0] = pt[0]/pt[2]
+            pix[1] = pt[1]/pt[2]
+            pix = np.dot(self.intrinsic, pix)
+            column_index = int(round(pix[0]))
+            line_index = int(round(pix[1]))
+#==============================================================================
+#             if (column_index > -1 and column_index < self.Size[1] and line_index > -1 and line_index < self.Size[0]):
+#                 if (color == 0):
+#                     result[0:line_index][0:column_index] = np.dstack((self.color_image[0:self.Size[0]][0:self.Size[1][2], \
+#                                                                       self.color_image[0:self.Size[0]][0:self.Size[1][1], \
+#                                                                       self.color_image[0:self.Size[0]][0:self.Size[1][0]))
+#                 else:
+#                     result[0:line_index][1:column_index] = np.dstack((int((nmle[0] + 1.0)*(255./2.)), \
+#                                                                       int((nmle[1] + 1.0)*(255./2.)), \
+#                                                                       int((nmle[2] + 1.0)*(255./2.))))
+#==============================================================================
+                            
         return result
         
 ##################################################################
