@@ -27,36 +27,33 @@ def in_mat_zero2one(mat):
     res = mat * mat_tmp + ~mat_tmp
     return res
 
-
+def division_by_norm(mat,norm):
+    """This fonction divide a n by m by p=3 matrix, point by point, by the norm made through the p dimension>
+    It ignores division that makes infinite values or overflow to replace it by the former mat values or by 0"""
+    for i in range(3):
+        with np.errstate(divide='ignore', invalid='ignore'):
+            mat[:,:,i] = np.true_divide(mat[:,:,i],norm)
+            mat[:,:,i][mat[:,:,i] == np.inf] = 0
+            mat[:,:,i] = np.nan_to_num(mat[:,:,i])
+    return mat
+                
 def normalized_cross_prod_optimize(a,b):
     #res = np.zeros(a.Size, dtype = "float")
     norm_mat_a = np.sqrt(np.sum(a*a,axis=2))
     norm_mat_b = np.sqrt(np.sum(b*b,axis=2))
-    # compute a/ norm_mat_a
     #changing every 0 to 1 in the matrix so that the division does not generate nan or infinite values
     norm_mat_a = in_mat_zero2one(norm_mat_a)
     norm_mat_b = in_mat_zero2one(norm_mat_b)
-    for i in range(3):
-        with np.errstate(divide='ignore', invalid='ignore'):
-            # compute a/ norm of a and put every value divided by 0 at 0 instead of divided it
-            a[:,:,i] = np.true_divide(a[:,:,i],norm_mat_a)
-            a[:,:,i][a[:,:,i] == np.inf] = 0
-            a[:,:,i] = np.nan_to_num(a[:,:,i])
-            # same for b
-            b[:,:,i] = np.true_divide(b[:,:,i],norm_mat_b)
-            b[:,:,i][b[:,:,i] == np.inf] = 0
-            b[:,:,i] = np.nan_to_num(b[:,:,i])
+    # compute a/ norm_mat_a
+    a = division_by_norm(a,norm_mat_a)
+    b = division_by_norm(b,norm_mat_b)
     #compute cross product with matrix
     res = np.cross(a,b)
     #compute the norm of res using the same method for a and b 
     norm_mat_res = np.sqrt(np.sum(res*res,axis=2))
     norm_mat_res = in_mat_zero2one(norm_mat_res)
-    #norm division same as a and b
-    for i in range(3):
-        with np.errstate(divide='ignore', invalid='ignore'):
-            res[:,:,i] = np.true_divide(res[:,:,i],norm_mat_res)
-            res[:,:,i][res[:,:,i] == np.inf] = 0
-            res[:,:,i] = np.nan_to_num(res[:,:,i])
+    #norm division
+    res = division_by_norm(res,norm_mat_res)
     return res
 
 #Nurbs class to handle NURBS curves (Non-uniform rational B-spline)
@@ -151,22 +148,10 @@ class RGBD():
         nmle4 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
         nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
-        #if (LA.norm(nmle) > 0.0):
-        #    nmle = nmle/LA.norm(nmle)
-            #nmle[1:self.Size[0]-1][:,1:self.Size[1]-1]= nmle[1:self.Size[0]-1][:,1:self.Size[1]-1]/LA.norm(nmle[1:self.Size[0]-1][:,1:self.Size[1]-1])
-        #self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] =np.dstack((nmle[1:self.Size[0]-1][:,1:self.Size[1]-1][0],\
-        #                                                            nmle[1:self.Size[0]-1][:,1:self.Size[1]-1][1],\
-        #                                                            nmle[1:self.Size[0]-1][:,1:self.Size[1]-1][2]) ) 
-        #
-        #[0:self.Size[0]][:,1:self.Size[1]-1]
         norm_mat_nmle = np.sqrt(np.sum(nmle*nmle,axis=2))
         norm_mat_nmle = in_mat_zero2one(norm_mat_nmle)
-        #norm division same as a and b
-        for i in range(3):
-            with np.errstate(divide='ignore', invalid='ignore'):
-                nmle[:,:,i] = np.true_divide(nmle[:,:,i],norm_mat_nmle)
-                nmle[:,:,i][nmle[:,:,i] == np.inf] = 0
-                nmle[:,:,i] = np.nan_to_num(nmle[:,:,i])
+        #norm division 
+        nmle = division_by_norm(nmle,norm_mat_nmle)
         self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
 
     def Draw(self, Pose, s, color = 0) :
