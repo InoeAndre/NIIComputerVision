@@ -20,14 +20,25 @@ def normalized_cross_prod(a,b):
         res = res/LA.norm(res)
     return res
 
+
+def in_mat_zero2one(mat):
+    """This fonction replace in the matrix all the 0 to 1"""
+    mat_tmp = (mat > 0.0)
+    res = mat * mat_tmp + ~mat_tmp
+    return res
+
+
 def normalized_cross_prod_optimize(a,b):
     #res = np.zeros(a.Size, dtype = "float")
     norm_mat_a = np.sqrt(np.sum(a*a,axis=2))
     norm_mat_b = np.sqrt(np.sum(b*b,axis=2))
-    # compute a/ norm_mat_a and put every vqlue divided by 0 at 0 instead of divided it (respectively b)
+    # compute a/ norm_mat_a
+    #changing every 0 to 1 in the matrix so that the division does not generate nan or infinite values
+    norm_mat_a = in_mat_zero2one(norm_mat_a)
+    norm_mat_b = in_mat_zero2one(norm_mat_b)
     for i in range(3):
         with np.errstate(divide='ignore', invalid='ignore'):
-            # compute a/ norm of a and put every vqlue divided by 0 at 0 instead of divided it
+            # compute a/ norm of a and put every value divided by 0 at 0 instead of divided it
             a[:,:,i] = np.true_divide(a[:,:,i],norm_mat_a)
             a[:,:,i][a[:,:,i] == np.inf] = 0
             a[:,:,i] = np.nan_to_num(a[:,:,i])
@@ -35,15 +46,11 @@ def normalized_cross_prod_optimize(a,b):
             b[:,:,i] = np.true_divide(b[:,:,i],norm_mat_b)
             b[:,:,i][b[:,:,i] == np.inf] = 0
             b[:,:,i] = np.nan_to_num(b[:,:,i])
-            #a[:,:,i] = a[:,:,i]/norm_mat_a
-            #a[norm_mat_a == 0][i]=0
-            #b[:,:,i] = b[:,:,i]/norm_mat_b
-            #b[norm_mat_b == 0][i]=0
     #compute cross product with matrix
     res = np.cross(a,b)
+    #compute the norm of res using the same method for a and b 
     norm_mat_res = np.sqrt(np.sum(res*res,axis=2))
-    #res[:,:,i] = res[:,:,i]/norm_mat_res
-    #res[norm_mat_res == 0][i]=0
+    norm_mat_res = in_mat_zero2one(norm_mat_res)
     #norm division same as a and b
     for i in range(3):
         with np.errstate(divide='ignore', invalid='ignore'):
@@ -144,14 +151,22 @@ class RGBD():
         nmle4 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
         nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
-        if (LA.norm(nmle) > 0.0):
+        #if (LA.norm(nmle) > 0.0):
+        #    nmle = nmle/LA.norm(nmle)
             #nmle[1:self.Size[0]-1][:,1:self.Size[1]-1]= nmle[1:self.Size[0]-1][:,1:self.Size[1]-1]/LA.norm(nmle[1:self.Size[0]-1][:,1:self.Size[1]-1])
         #self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] =np.dstack((nmle[1:self.Size[0]-1][:,1:self.Size[1]-1][0],\
         #                                                            nmle[1:self.Size[0]-1][:,1:self.Size[1]-1][1],\
         #                                                            nmle[1:self.Size[0]-1][:,1:self.Size[1]-1][2]) ) 
         #
         #[0:self.Size[0]][:,1:self.Size[1]-1]
-            nmle = nmle/LA.norm(nmle)
+        norm_mat_nmle = np.sqrt(np.sum(nmle*nmle,axis=2))
+        norm_mat_nmle = in_mat_zero2one(norm_mat_nmle)
+        #norm division same as a and b
+        for i in range(3):
+            with np.errstate(divide='ignore', invalid='ignore'):
+                nmle[:,:,i] = np.true_divide(nmle[:,:,i],norm_mat_nmle)
+                nmle[:,:,i][nmle[:,:,i] == np.inf] = 0
+                nmle[:,:,i] = np.nan_to_num(nmle[:,:,i])
         self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
 
     def Draw(self, Pose, s, color = 0) :
