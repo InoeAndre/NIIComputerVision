@@ -23,7 +23,7 @@ def normalized_cross_prod(a,b):
 
 def in_mat_zero2one(mat):
     """This fonction replace in the matrix all the 0 to 1"""
-    mat_tmp = (mat > 0.0)
+    mat_tmp = (mat != 0.0)
     res = mat * mat_tmp + ~mat_tmp
     return res
 
@@ -188,37 +188,35 @@ class RGBD():
 
     def Draw_optimize(self, Pose, s, color = 0) :      
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-        line_index = 0
-        column_index = 0
-        pix = np.array([np.zeros(self.Size[0],np.float32), np.zeros(self.Size[1],np.float32), np.ones(self.Size[2],np.float32)])
-        pt = np.array([0., 0., 0., 1.])
-        nmle = np.array([0., 0., 0.])
-        pt[0] = self.Vtx[0:self.Size[0]][0:self.Size[1]][0]
-        pt[1] = self.Vtx[0:self.Size[0]][0:self.Size[1]][1]
-        pt[2] = self.Vtx[0:self.Size[0]][0:self.Size[1]][2]
-        pt = np.dot(Pose, pt)
-        nmle[0] = self.Nmls[0:self.Size[0]][0:self.Size[1]][0]
-        nmle[1] = self.Nmls[0:self.Size[0]][0:self.Size[1]][1]
-        nmle[2] = self.Nmls[0:self.Size[0]][0:self.Size[1]][2]
-        nmle = np.dot(Pose[0:3,0:3], nmle)
-        if (pt[2] != 0.0):
-            pix[0] = pt[0]/pt[2]
-            pix[1] = pt[1]/pt[2]
-            pix = np.dot(self.intrinsic, pix)
-            column_index = int(round(pix[0]))
-            line_index = int(round(pix[1]))
-#==============================================================================
-#             if (column_index > -1 and column_index < self.Size[1] and line_index > -1 and line_index < self.Size[0]):
-#                 if (color == 0):
-#                     result[0:line_index][0:column_index] = np.dstack((self.color_image[0:self.Size[0]][0:self.Size[1][2], \
-#                                                                       self.color_image[0:self.Size[0]][0:self.Size[1][1], \
-#                                                                       self.color_image[0:self.Size[0]][0:self.Size[1][0]))
-#                 else:
-#                     result[0:line_index][1:column_index] = np.dstack((int((nmle[0] + 1.0)*(255./2.)), \
-#                                                                       int((nmle[1] + 1.0)*(255./2.)), \
-#                                                                       int((nmle[2] + 1.0)*(255./2.))))
-#==============================================================================
-                            
+        stack = np.ones((self.Size[0]/s, self.Size[1]/s), dtype = np.float32)
+        pix = np.zeros((self.Size[0]/s, self.Size[1]/s,2), dtype = np.float32)
+        pix = np.dstack((pix,stack)) 
+        pt = np.dstack((self.Vtx[ ::s, ::s,:],stack)) 
+        pt = np.dot(Pose, pt.transpose(0,2,1)).transpose(1,2,0)  #[0:self.Size[0]][:,0:self.Size[1]][:]
+        nmle = np.zeros((self.Size[0]/s, self.Size[1]/s), dtype = np.float32)
+        nmle = self.Nmls[ 0:self.Size[0]:s, 0:self.Size[1]:s,:]
+        nmle = np.dot(Pose[0:3,0:3], nmle.transpose(0,2,1)).transpose(1,2,0)  #[0:self.Size[0]/s][0:self.Size[1]/s]
+        #if (pt[2] != 0.0):
+        lpt = np.dsplit(pt,4)
+        lpt[2] = in_mat_zero2one(lpt[2])
+        # if in 1D pix[0] = pt[0]/pt[2]
+        lpt[0] = lpt[0]/lpt[2]
+        # if in 1D pix[1] = pt[1]/pt[2]
+        lpt[1] = lpt[1]/lpt[2]
+        pix = np.dot(self.intrinsic, pix[0:self.Size[0]/s,0:self.Size[1]/s].transpose(0,2,1)).transpose(1,2,0)
+        column_index = (np.round(lpt[0])).astype(int)
+        line_index = (np.round(lpt[1])).astype(int)
+        # create a matrix that have 0 when the conditions are not verified and 1 otherwise
+        cdt_column = (column_index > -1) * (column_index < self.Size[1])
+        cdt_line = (line_index > -1) * (line_index < self.Size[0])
+        if (color == 0):
+            result = np.dstack((self.color_image[ ::s, ::s,2], \
+                               self.color_image[ ::s, ::s,1]*cdt_line, \
+                               self.color_image[ ::s, ::s,0]*cdt_column) )
+        else:
+            result= np.dstack( ( ((nmle[:,:,0]+1.0)*(255./2.))*cdt_column.reshape(self.Size[0]/s, self.Size[1]/s), \
+                               ((nmle[:,:,1]+1.0)*(255./2.))*cdt_line.reshape(self.Size[0]/s, self.Size[1]/s), \
+                               (nmle[:,:,2]+1.0)*(255./2.) ) ).astype(int)
         return result
         
 ##################################################################

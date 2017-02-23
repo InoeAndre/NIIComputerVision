@@ -39,7 +39,7 @@ class Application(tk.Frame):
 
         if (event.keysym != 'Escape'):
             self.Pose = np.dot(self.Pose, Transfo)
-            rendering = self.RGBD.Draw(self.Pose, self.w.get(), self.color_tag)
+            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -84,7 +84,7 @@ class Application(tk.Frame):
                             [0., 0., 0., 1.]])
             self.Pose = np.dot(self.Pose, RotX)
             
-            rendering = self.RGBD.Draw(self.Pose, self.w.get(), self.color_tag)
+            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -126,7 +126,7 @@ class Application(tk.Frame):
         self.RGBD.Vmap_optimize()
         self.RGBD.NMap_optimize()
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])
-        rendering = self.RGBD.Draw(self.Pose, 1, self.color_tag)
+        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
         
         
         img = Image.fromarray(rendering, 'RGB')
