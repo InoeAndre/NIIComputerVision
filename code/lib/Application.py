@@ -12,6 +12,7 @@ from tkFileDialog import askdirectory
 from PIL import Image, ImageTk
 import imp
 import scipy.io
+import time
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 
@@ -123,11 +124,18 @@ class Application(tk.Frame):
         self.RGBD.LoadMat(self.lImages)
         self.RGBD.ReadFromMat()
         self.RGBD.BilateralFilter(-1, 0.02, 3)
+        start_time = time.time()
         self.RGBD.Vmap_optimize()
+        elapsed_time = time.time() - start_time
+        print "Vmap_optimize: %f" % (elapsed_time)
         self.RGBD.NMap_optimize()
+        elapsed_time2 = time.time() - start_time - elapsed_time
+        print "Nmap_optimize: %f" % (elapsed_time2)
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])
+        start_time2 = time.time()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        
+        elapsed_time3 = time.time() - start_time2
+        print "Draw_optimize: %f" % (elapsed_time3)
         
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
