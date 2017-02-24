@@ -193,7 +193,7 @@ class RGBD():
         stack = np.ones((self.Size[0]/s, self.Size[1]/s), dtype = np.float32)
         pix = np.zeros((self.Size[0]/s, self.Size[1]/s,2), dtype = np.float32)
         pix = np.dstack((pix,stack))
-        pt = np.dstack((self.Vtx[ ::s, ::s,:],stack))
+        pt = np.dstack((self.Vtx[ ::s, ::s, :],stack))
         pt = np.dot(pt,Pose)
         nmle = np.zeros((self.Size[0]/s, self.Size[1]/s), dtype = np.float32)
         nmle = np.dot(self.Nmls[ ::s, ::s,:],Pose[0:3,0:3])
@@ -211,13 +211,13 @@ class RGBD():
         cdt_column = (column_index > -1) * (column_index < self.Size[1])
         cdt_line = (line_index > -1) * (line_index < self.Size[0])
         if (color == 0):
-            result = np.dstack((self.color_image[ ::s, ::s,2], \
-                               self.color_image[ ::s, ::s,1]*cdt_line, \
-                               self.color_image[ ::s, ::s,0]*cdt_column) )
+            result[line_index[:][:], column_index[:][:]]= np.dstack((self.color_image[ ::s, ::s,2], \
+                                                                     self.color_image[ ::s, ::s,1]*cdt_line, \
+                                                                     self.color_image[ ::s, ::s,0]*cdt_column) )
         else:
-            result= np.dstack( ( ((nmle[ ::s, ::s,0]+1.0)*(255./2.))*cdt_column.reshape(self.Size[0]/s, self.Size[1]/s), \
-                               ((nmle[ ::s, ::s,1]+1.0)*(255./2.))*cdt_line.reshape(self.Size[0]/s, self.Size[1]/s), \
-                               (nmle[ ::s, ::s,2]+1.0)*(255./2.) ) ).astype(int)
+            result[line_index[:][:], column_index[:][:]]= np.dstack( ( ((nmle[ ::s, ::s,0]+1.0)*(255./2.)), \
+                                                                       ((nmle[ ::s, ::s,1]+1.0)*(255./2.))*cdt_line, \
+                                                                       ((nmle[ ::s, ::s,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
 #==============================================================================
 #         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
 #         stack = np.ones((self.Size[0], self.Size[1]), dtype = np.float32)
