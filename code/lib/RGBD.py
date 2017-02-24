@@ -187,36 +187,70 @@ class RGBD():
 
 
     def Draw_optimize(self, Pose, s, color = 0) :      
+#==============================================================================
+#         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
+#         stack = np.ones((self.Size[0]/s, self.Size[1]/s), dtype = np.float32)
+#         pix = np.zeros((self.Size[0]/s, self.Size[1]/s,2), dtype = np.float32)
+#         pix = np.dstack((pix,stack)) 
+#         pt = np.dstack((self.Vtx[ ::s, ::s,:],stack)) 
+#         pt = np.dot(Pose, pt.transpose(0,2,1)).transpose(1,2,0)  
+#         nmle = np.zeros((self.Size[0]/s, self.Size[1]/s), dtype = np.float32)
+#         nmle = self.Nmls[ ::s, ::s,:]
+#         nmle = np.dot(Pose[0:3,0:3], nmle.transpose(0,2,1)).transpose(1,2,0)  
+#         #if (pt[2] != 0.0):
+#         lpt = np.dsplit(pt,4)
+#         lpt[2] = in_mat_zero2one(lpt[2])
+#         # if in 1D pix[0] = pt[0]/pt[2]
+#         pix[:,:,0] = (lpt[0]/lpt[2]).reshape(self.Size[0]/s, self.Size[1]/s)
+#         # if in 1D pix[1] = pt[1]/pt[2]
+#         pix[:,:,1] = (lpt[1]/lpt[2]).reshape(self.Size[0]/s, self.Size[1]/s)
+#         pix = np.dot(self.intrinsic, pix[0:self.Size[0]/s,0:self.Size[1]/s].transpose(0,2,1)).transpose(1,2,0)
+#         column_index = (np.round(pix[:,:,0])).astype(int)
+#         line_index = (np.round(pix[:,:,1])).astype(int)
+#         # create matrix that have 0 when the conditions are not verified and 1 otherwise
+#         cdt_column = (column_index > -1) * (column_index < self.Size[1])
+#         cdt_line = (line_index > -1) * (line_index < self.Size[0])
+#         if (color == 0):
+#             result = np.dstack((self.color_image[ ::s, ::s,2], \
+#                                self.color_image[ ::s, ::s,1]*cdt_line, \
+#                                self.color_image[ ::s, ::s,0]*cdt_column) )
+#         else:
+#             result= np.dstack( ( ((nmle[:,:,0]+1.0)*(255./2.))*cdt_column.reshape(self.Size[0]/s, self.Size[1]/s), \
+#                                ((nmle[:,:,1]+1.0)*(255./2.))*cdt_line.reshape(self.Size[0]/s, self.Size[1]/s), \
+#                                (nmle[:,:,2]+1.0)*(255./2.) ) ).astype(int)     
+#==============================================================================
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-        stack = np.ones((self.Size[0]/s, self.Size[1]/s), dtype = np.float32)
-        pix = np.zeros((self.Size[0]/s, self.Size[1]/s,2), dtype = np.float32)
+        stack = np.ones((self.Size[0], self.Size[1]), dtype = np.float32)
+        pix = np.zeros((self.Size[0], self.Size[1],2), dtype = np.float32)
         pix = np.dstack((pix,stack)) 
-        pt = np.dstack((self.Vtx[ ::s, ::s,:],stack)) 
-        pt = np.dot(Pose, pt.transpose(0,2,1)).transpose(1,2,0)  #[0:self.Size[0]][:,0:self.Size[1]][:]
-        nmle = np.zeros((self.Size[0]/s, self.Size[1]/s), dtype = np.float32)
-        nmle = self.Nmls[ 0:self.Size[0]:s, 0:self.Size[1]:s,:]
-        nmle = np.dot(Pose[0:3,0:3], nmle.transpose(0,2,1)).transpose(1,2,0)  #[0:self.Size[0]/s][0:self.Size[1]/s]
-        #if (pt[2] != 0.0):
+        pt = np.dstack((self.Vtx,stack)) 
+        pt = np.dot(Pose, pt.transpose(0,2,1)).transpose(1,2,0)  
+        nmle = np.zeros((self.Size[0], self.Size[1]), dtype = np.float32)
+        nmle = np.dot(Pose[0:3,0:3], self.Nmls.transpose(0,2,1)).transpose(1,2,0)  
+        #split the third axis of pt into 4 so that there are 4 matrix in a list of pt lpt.
         lpt = np.dsplit(pt,4)
+        #make sure there are no 0 in the matrix so that the division elementwise is possible.
         lpt[2] = in_mat_zero2one(lpt[2])
         # if in 1D pix[0] = pt[0]/pt[2]
-        lpt[0] = lpt[0]/lpt[2]
+        pix[:,:,0] = (lpt[0]/lpt[2]).reshape(self.Size[0]/s, self.Size[1]/s)
         # if in 1D pix[1] = pt[1]/pt[2]
-        lpt[1] = lpt[1]/lpt[2]
-        pix = np.dot(self.intrinsic, pix[0:self.Size[0]/s,0:self.Size[1]/s].transpose(0,2,1)).transpose(1,2,0)
-        column_index = (np.round(lpt[0])).astype(int)
-        line_index = (np.round(lpt[1])).astype(int)
-        # create a matrix that have 0 when the conditions are not verified and 1 otherwise
+        pix[:,:,1] = (lpt[1]/lpt[2]).reshape(self.Size[0]/s, self.Size[1]/s)
+        pix = np.dot(self.intrinsic, pix.transpose(0,2,1)).transpose(1,2,0)
+        column_index = (np.round(pix[:,:,0])).astype(int)
+        line_index = (np.round(pix[:,:,1])).astype(int)
+        # create matrix that have 0 when the conditions are not verified and 1 otherwise
         cdt_column = (column_index > -1) * (column_index < self.Size[1])
         cdt_line = (line_index > -1) * (line_index < self.Size[0])
         if (color == 0):
-            result = np.dstack((self.color_image[ ::s, ::s,2], \
-                               self.color_image[ ::s, ::s,1]*cdt_line, \
-                               self.color_image[ ::s, ::s,0]*cdt_column) )
+            result = np.dstack((self.color_image[:,:,2], \
+                               self.color_image[:,:,1]*cdt_line, \
+                               self.color_image[:,:,0]*cdt_column) )
         else:
-            result= np.dstack( ( ((nmle[:,:,0]+1.0)*(255./2.))*cdt_column.reshape(self.Size[0]/s, self.Size[1]/s), \
-                               ((nmle[:,:,1]+1.0)*(255./2.))*cdt_line.reshape(self.Size[0]/s, self.Size[1]/s), \
+            result= np.dstack( ( ((nmle[:,:,0]+1.0)*(255./2.))*cdt_column.reshape(self.Size[0], self.Size[1]), \
+                               ((nmle[:,:,1]+1.0)*(255./2.))*cdt_line.reshape(self.Size[0], self.Size[1]), \
                                (nmle[:,:,2]+1.0)*(255./2.) ) ).astype(int)
+        #subsampling
+        result = cv2.resize(result, (0,0), fx=s, fy=s) 
         return result
         
 ##################################################################
