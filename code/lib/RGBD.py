@@ -67,11 +67,12 @@ class RGBD():
         self.intrinsic = intrinsic
         self.fact = fact
         
-    def LoadMat(self, Images):
+    def LoadMat(self, Images,Pos_2D,BodyConnection):
         self.lImages = Images
         self.numbImages = len(self.lImages.transpose())
         self.Index = -1
-        
+        self.pos2d = Pos_2D
+        self.connection = BodyConnection
         
     def ReadFromDisk(self): #Read an RGB-D image from the disk
         print(self.depthname)
@@ -98,6 +99,19 @@ class RGBD():
         for i in range(self.Size[0]): # line index (i.e. vertical y axis)
             for j in range(self.Size[1]):
                 self.depth_image[i,j] = float(depth_in[i,j]) / self.fact
+
+    def DrawSkeleton(self, idx = -1):
+        #this function draw the Skeleton of a human and make connections between each part
+        if (idx == -1):
+            self.Index = self.Index + 1
+        else:
+            self.Index = idx
+        pos = self.pos2d[0][self.Index]
+        for i in range(24):
+            pts1 = (pos[self.connection[i,0]-1,0],pos[self.connection[i,0]-1,1])
+            pts2 = (pos[self.connection[i,1]-1,0],pos[self.connection[i,1]-1,1])
+            cv2.line( self.depth_image,pts1,pts2,(0,255,255),2) # color space = BGR
+
 
     def Vmap(self): # Create the vertex image from the depth image and intrinsic matrice
         self.Vtx = np.zeros(self.Size, np.float32)
@@ -221,6 +235,8 @@ class RGBD():
                                                                        ((nmle[ ::s, ::s,1]+1.0)*(255./2.))*cdt_line, \
                                                                        ((nmle[ ::s, ::s,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
+    
+    
         
 ##################################################################
 ###################Bilateral Smooth Funtion#######################

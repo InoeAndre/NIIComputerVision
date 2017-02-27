@@ -114,16 +114,20 @@ class Application(tk.Frame):
         print self.intrinsic
     
         mat = scipy.io.loadmat(self.path + '/FixedPose.mat')
+        connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
         self.lImages = mat['DepthImg']
+        self.pos2d = mat['Pos2D']
+        self.connection = connectionMat['SkeletonConnectionMap']
         
         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()
         
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
         #self.RGBD.ReadFromDisk()
-        self.RGBD.LoadMat(self.lImages)
+        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection)
         self.RGBD.ReadFromMat()
         self.RGBD.BilateralFilter(-1, 0.02, 3)
+        self.RGBD.DrawSkeleton()
         start_time = time.time()
         self.RGBD.Vmap_optimize()
         elapsed_time = time.time() - start_time
