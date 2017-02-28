@@ -111,9 +111,11 @@ class RGBD():
             self.Index = idx
         pos = self.pos2d[0][self.Index]
         for i in range(24):
-            pts1 = (pos[self.connection[i,0]-1,0],pos[self.connection[i,0]-1,1])
-            pts2 = (pos[self.connection[i,1]-1,0],pos[self.connection[i,1]-1,1])
-            cv2.line( self.depth_image,pts1,pts2,(0,255,255),2) # color space = BGR
+            pt1 = (pos[self.connection[i,0]-1,0],pos[self.connection[i,0]-1,1])
+            pt2 = (pos[self.connection[i,1]-1,0],pos[self.connection[i,1]-1,1])
+            cv2.line( self.depth_image,pt1,pt2,(0,0,255),2) # color space = BGR
+            cv2.circle(self.depth_image,pt1,1,(0,0,255),2)
+            cv2.circle(self.depth_image,pt2,1,(0,0,255),2)
 
 
     def Vmap(self): # Create the vertex image from the depth image and intrinsic matrice
