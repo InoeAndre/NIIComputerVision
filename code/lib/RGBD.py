@@ -110,7 +110,7 @@ class RGBD():
         else:
             self.Index = idx
         pos = self.pos2d[0][self.Index]
-        for i in range(24):
+        for i in range(np.size(self.connection,0)):
             pt1 = (pos[self.connection[i,0]-1,0],pos[self.connection[i,0]-1,1])
             pt2 = (pos[self.connection[i,1]-1,0],pos[self.connection[i,1]-1,1])
             cv2.line( self.depth_image,pt1,pt2,(0,0,255),2) # color space = BGR
@@ -250,6 +250,12 @@ class RGBD():
     def BilateralFilter(self, d, sigma_color, sigma_space):
         self.depth_image = cv2.bilateralFilter(self.depth_image, d, sigma_color, sigma_space)
     
-    
+
+
+##################################################################
+################### Segmentation Function #######################
+##################################################################
+    def BodySegmentation(self):
+        return 0
     
                 
