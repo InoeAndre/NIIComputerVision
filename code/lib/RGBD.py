@@ -96,9 +96,12 @@ class RGBD():
         size_depth = depth_in.shape
         self.Size = (size_depth[0], size_depth[1], 3)
         self.depth_image = np.zeros((self.Size[0], self.Size[1]), np.float32)
-        for i in range(self.Size[0]): # line index (i.e. vertical y axis)
-            for j in range(self.Size[1]):
-                self.depth_image[i,j] = float(depth_in[i,j]) / self.fact
+        self.depth_image = depth_in.astype(np.float32) / self.fact
+#==============================================================================
+#         for i in range(self.Size[0]): # line index (i.e. vertical y axis)
+#             for j in range(self.Size[1]):
+#                 self.depth_image[i,j] = float(depth_in[i,j]) / self.fact
+#==============================================================================
 
     def DrawSkeleton(self, idx = -1):
         #this function draw the Skeleton of a human and make connections between each part
@@ -204,21 +207,22 @@ class RGBD():
 
     def Draw_optimize(self, Pose, s, color = 0) :   
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-        stack = np.ones((self.Size[0]/s, self.Size[1]/s), dtype = np.float32)
-        pix = np.zeros((self.Size[0]/s, self.Size[1]/s,2), dtype = np.float32)
-        pix = np.dstack((pix,stack))
-        pt = np.dstack((self.Vtx[ ::s, ::s, :],stack))
+        stack_pix = np.ones((self.Size[0], self.Size[1]), dtype = np.float32)
+        stack_pt = np.ones((np.size(self.Vtx[ ::s, ::s,:],0), np.size(self.Vtx[ ::s, ::s,:],1)), dtype = np.float32)
+        pix = np.zeros((self.Size[0], self.Size[1],2), dtype = np.float32)
+        pix = np.dstack((pix,stack_pix))
+        pt = np.dstack((self.Vtx[ ::s, ::s, :],stack_pt))
         pt = np.dot(Pose,pt.transpose(0,2,1)).transpose(1,2,0)
-        nmle = np.zeros((self.Size[0]/s, self.Size[1]/s), dtype = np.float32)
-        nmle = np.dot(Pose[0:3,0:3],self.Nmls[ ::s, ::s,:].transpose(0,2,1)).transpose(1,2,0)
+        nmle = np.zeros((self.Size[0], self.Size[1],self.Size[2]), dtype = np.float32)
+        nmle[ ::s, ::s,:] = np.dot(Pose[0:3,0:3],self.Nmls[ ::s, ::s,:].transpose(0,2,1)).transpose(1,2,0)
         #if (pt[2] != 0.0):
         lpt = np.dsplit(pt,4)
         lpt[2] = in_mat_zero2one(lpt[2])
         # if in 1D pix[0] = pt[0]/pt[2]
-        pix[:,:,0] = (lpt[0]/lpt[2]).reshape(self.Size[0]/s, self.Size[1]/s)
+        pix[ ::s, ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(self.Vtx[ ::s, ::s,:],0), np.size(self.Vtx[ ::s, ::s,:],1))
         # if in 1D pix[1] = pt[1]/pt[2]
-        pix[:,:,1] = (lpt[1]/lpt[2]).reshape(self.Size[0]/s, self.Size[1]/s)
-        pix = np.dot(self.intrinsic,pix[0:self.Size[0]/s,0:self.Size[1]/s].transpose(0,2,1)).transpose(1,2,0)
+        pix[ ::s, ::s,1] = (lpt[1]/lpt[2]).reshape(np.size(self.Vtx[ ::s, ::s,:],0), np.size(self.Vtx[ ::s, ::s,:],1))
+        pix = np.dot(self.intrinsic,pix[0:self.Size[0],0:self.Size[1]].transpose(0,2,1)).transpose(1,2,0)
         column_index = (np.round(pix[:,:,0])).astype(int)
         line_index = (np.round(pix[:,:,1])).astype(int)
         # create matrix that have 0 when the conditions are not verified and 1 otherwise
@@ -231,9 +235,9 @@ class RGBD():
                                                                      self.color_image[ ::s, ::s,1]*cdt_line, \
                                                                      self.color_image[ ::s, ::s,0]*cdt_column) )
         else:
-            result[line_index[:][:], column_index[:][:]]= np.dstack( ( ((nmle[ ::s, ::s,0]+1.0)*(255./2.)), \
-                                                                       ((nmle[ ::s, ::s,1]+1.0)*(255./2.))*cdt_line, \
-                                                                       ((nmle[ ::s, ::s,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
+            result[line_index[:][:], column_index[:][:]]= np.dstack( ( (nmle[ :, :,0]+1.0)*(255./2.), \
+                                                                       ((nmle[ :, :,1]+1.0)*(255./2.))*cdt_line, \
+                                                                       ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
     
     
