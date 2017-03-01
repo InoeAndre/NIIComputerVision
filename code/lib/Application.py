@@ -114,16 +114,16 @@ class Application(tk.Frame):
         print self.intrinsic
     
         mat = scipy.io.loadmat(self.path + '/FixedPose.mat')
-        # in mat there is
+        # in mat dictionary there are the following words
         #   
-        # 'Bodies'
+        # 'Bodies'           is only used to create Pos2D
         # 'DepthImg'         image of a depth for 233 different frame taken each at a time
-        # 'DepthImg_after'
+        # 'DepthImg_after'   depthmap image after bilateral filterring
         # 'Pos2D'            contain the coordination in the depthmap of the different part of the body
-        # 'bw'
-        # 'h1'
-        # 'tform'        
-        # 'xyzP'
+        # 'bw'               binary image
+        # 'h1'               ss
+        # 'tform'            transform matrix
+        # 'xyzP'             pointcloud
         connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
         self.lImages = mat['DepthImg']
         self.pos2d = mat['Pos2D']
