@@ -5,8 +5,9 @@ import cv2
 import numpy as np
 from numpy import linalg as LA
 import random
+import imp
 
-
+segm = imp.load_source('segmentation', './lib/segmentation.py')
 
 def normalized_cross_prod(a,b):
     res = np.zeros(3, dtype = "float")
@@ -255,7 +256,16 @@ class RGBD():
 ##################################################################
 ################### Segmentation Function #######################
 ##################################################################
-    def BodySegmentation(self):
-        return 0
+    def BodySegmentation(self, idx = -1):
+        #this function calls the function in segmentation.py to process the segmentation of the body
+        if (idx == -1):
+            self.Index = self.Index + 1
+        else:
+            self.Index = idx
+        self.segm
+#==============================================================================
+#         markers = self.pos2d[0][self.Index]
+#         self.depth_image = cv2.watershed(self.depth_image,markers)
+#==============================================================================
     
                 
