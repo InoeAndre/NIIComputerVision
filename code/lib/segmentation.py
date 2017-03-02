@@ -26,7 +26,7 @@ class Segmentation():
         a = diffX/dist
         b = diffY/dist
         c = -a*A[0]-b*A[1]
-        return [a,b,c]
+        return np.array([a,b,c])
     
     def inferedPoint(A,a,b,c,point,T=100):
         process_y = abs(a) > abs(b) 
@@ -165,17 +165,18 @@ class Segmentation():
         pt4D_bis = [intersection_wrist[0],intersection_elbow[0],intersection_elbow[1],intersection_wrist[1]]
         finalSlope=findSlopes(pt4D,pt4D_bis)
         x = np.isnan(finalSlope[0])
-        finalSlope[0][x]=[]
-        finalSlope[1][x]=[]
-        finalSlope[2][x]=[]
+        #erase all nan in the array
+        finalSlope[0]=finalSlope[0][~np.isnan(finalSlope[0])]
+        finalSlope[1]=finalSlope[1][~np.isnan(finalSlope[1])]
+        finalSlope[2]=finalSlope[2][~np.isnan(finalSlope[2])]
         midpoint = [(pos2D[5,0]+pos2D[6,0])/2, (pos2D[5,1]+pos2D[6,1])/2]
-        ref= (finalSlope[0]*midpoint[0] + finalSlope[1]*midpoint[1] + finalSlope[2]).astype(np.float32)
+        ref= np.array([finalSlope[0]*midpoint[0] + finalSlope[1]*midpoint[1] + finalSlope[2]]).astype(np.float32)
         bw_up = A*polygon(kernel,a,b,c,ref,4-sum(x))>0
         
         # pos2D[2] = Shoulder_Center
         # pos2D[3] = Head
         
-        #co;pute slopes
+        #compute slopes
         slopesSH=findSlope(pos2D[2],pos2D[3])
         a_pen = slopesSH[1]
         b_pen = - slopesSH[0]
@@ -212,11 +213,11 @@ class Segmentation():
             intersection_elbow[1] = slopes215[2]
 
         
-        B = and(~A,polygonOutline(pos2D([6 5 21 1],:)));
+        B =  np.logical_and( (A==0),polygonOutline(pos2D[[5, 4, 20, 0],:]));
         f=find(B)# [fy,fx];
-        [~,d] = min(sum( ([pos2D[20,0]-f[1] pos2D[20,1]-f[0]].transpose())*([pos2D[20,0]-f[1] pos2D[20,1]-f[0]].transpose())  ))
-        peakArmpit = [fx(d) fy(d)];
-        ptA = [left;lefts;lefth;peakArmpit;right];
-        bw_upper = A.*polygonOutline(ptA)>0;
-        return [bw_up,bw_upper] 
+        d = np.argmin(np.sum( np.array([pos2D[20,0]-f[1], pos2D[20,1]-f[0]]).transpose()*np.array([pos2D[20,0]-f[1], pos2D[20,1]-f[0]]).transpose()  ))
+        peakArmpit = np.array([f[1][d],fy[0][d]])
+        ptA = np.concatenate((intersection_elbow[0],intersection215[0],intersection_head[0],peakArmpit,intersection_elbow[1]))
+        bw_upper = A*polygonOutline(ptA)>0
+        return np.array([bw_up,bw_upper])
     
