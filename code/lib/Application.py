@@ -121,12 +121,15 @@ class Application(tk.Frame):
         # 'DepthImg_after'   depthmap image after bilateral filterring
         # 'Pos2D'            contain the coordination in the depthmap of the different part of the body
         # 'bw'               binary image
-        # 'h1'               ss
+        # 'h1'               cell array that contains binary image of body parts
         # 'tform'            transform matrix
         # 'xyzP'             pointcloud
         connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
         self.lImages = mat['DepthImg']
+        self.lImages_filtered = mat['DepthImg_after']
+        self.binBody = mat['h1']
         self.pos2d = mat['Pos2D']
+        self.binImage = mat['bw']
         self.connection = connectionMat['SkeletonConnectionMap']
         
         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
@@ -134,7 +137,7 @@ class Application(tk.Frame):
         
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
         #self.RGBD.ReadFromDisk()
-        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection)
+        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.binBody,self.binImage)
         self.RGBD.ReadFromMat()
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.BodySegmentation()

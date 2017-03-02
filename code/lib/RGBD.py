@@ -1,4 +1,5 @@
 # File created by Diego Thomas the 16-11-2016
+# improved by Inoe Andre 02-2017
 
 # Define functions to manipulate RGB-D data
 import cv2
@@ -6,6 +7,7 @@ import numpy as np
 from numpy import linalg as LA
 import random
 import imp
+import time
 
 segm = imp.load_source('segmentation', './lib/segmentation.py')
 
@@ -68,12 +70,14 @@ class RGBD():
         self.intrinsic = intrinsic
         self.fact = fact
         
-    def LoadMat(self, Images,Pos_2D,BodyConnection):
+    def LoadMat(self, Images,Pos_2D,BodyConnection,binaryBodyPart,binImage):
         self.lImages = Images
         self.numbImages = len(self.lImages.transpose())
         self.Index = -1
         self.pos2d = Pos_2D
         self.connection = BodyConnection
+        self.binBody = binaryBodyPart
+        self.bw = binImage
         
     def ReadFromDisk(self): #Read an RGB-D image from the disk
         print(self.depthname)
@@ -253,16 +257,112 @@ class RGBD():
     
 
 
+
 ##################################################################
 ################### Segmentation Function #######################
 ##################################################################
+    def removeBG(binaryImage):
+        # You need to choose 4 or 8 for connectivity type
+        connectivity = 4  
+        # Perform the operation
+        output = cv2.connectedComponentsWithStats(binaryImage, connectivity, cv2.CV_32S)
+        # Get the results
+        # The first cell is the number of labels
+        num_labels = output[0]
+        # The second cell is the label matrix
+        labels = output[1]
+        # The third cell is the stat matrix
+        stats = output[2]
+        pos = np.argmin(stats[:num_labels,cv2.CC_STAT_AREA])
+        B = binaryImage-binaryImage
+        B[labels[pos]]=True
+        return B
+
+#==============================================================================
+#         function B = removeBG(A)
+# cc = bwconncomp(A,4);
+# L(cc.NumObjects)=0;
+# for i = 1:cc.NumObjects
+#    L(i) = length(cc.PixelIdxList{i}); 
+# end
+# [~,pos] = max(L);
+# B = A-A;
+# B(cc.PixelIdxList{pos})=true;
+#==============================================================================
+
+
     def BodySegmentation(self, idx = -1):
         #this function calls the function in segmentation.py to process the segmentation of the body
         if (idx == -1):
             self.Index = self.Index + 1
         else:
             self.Index = idx
-        self.segm
+        #self.segm = segm.Segmentation(self.depth_image,self.colorname,self.pos2d[0][self.Index])
+        segImg = (np.zeros([self.Size[0],self.Size[1],self.Size[2],self.numbImages])).astype(np.int8)
+        I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
+        start_time = time.time()
+        #for j  in range(self.numbImages):
+        #pose = self.pos2d[0][self.Index]
+        #depth_image = self.depth_image[0][self.Index]
+        imageWBG = self.removeBG(self.bw[0,0])
+#==============================================================================
+#         self.binBody[1] = forearmL      color=[0,0,255]
+#         self.binBody[2] = upperarmL     color=[200,200,255]
+#         self.binBody[3] = forearmR     color=[0,255,0]
+#         self.binBody[4] = upperarmR     color=[200,255,200]
+#         self.binBody[5] = thighR     color=[255,0,255]
+#         self.binBody[6] = calfR     color=[255,180,255]
+#         self.binBody[7] = thighL     color=[255,255,0]
+#         self.binBody[8] = calfL     color=[255,255,180]
+#         self.binBody[9] = headB     color=[255,0,0]
+#         self.binBody[10] = body     color=[255,255,255]
+#==============================================================================
+
+        I[(imageWBG>0)]=255
+        I[self.binBody[9]] = 255
+        I[self.binBody[1]] = 0
+        I[self.binBody[2]] = 200
+        I[self.binBody[3]] = 0
+        I[self.binBody[4]]= 200
+        I[self.binBody[7]] = 255
+        I[self.binBody[8]] = 255
+        I[self.binBody[5]] = 255
+        I[self.binBody[6]] = 255
+        I[self.binBody[10]] = 255
+        segImg[:,:,1,0]=I
+    
+        I[(imageWBG>0)]=255
+        I[self.binBody[9]] = 0
+        I[self.binBody[1]] = 0
+        I[self.binBody[2]] = 200
+        I[self.binBody[3]] = 255
+        I[self.binBody[4]] = 255
+        I[self.binBody[7]] = 255
+        I[self.binBody[8]] = 255
+        I[self.binBody[5]] = 0
+        I[self.binBody[6]] = 180
+        I[self.binBody[10]] = 255
+        segImg[:,:,2,0] = I
+    
+        I[(imageWBG>0)]=255
+        I[self.binBody[9]] = 0
+        I[self.binBody[1]] = 255
+        I[self.binBody[2]] = 255
+        I[self.binBody[3]] = 0
+        I[self.binBody[4]] = 200
+        I[self.binBody[7]] = 0
+        I[self.binBody[8]] = 180
+        I[self.binBody[5]] = 255
+        I[self.binBody[6]] = 255
+        I[self.binBody[10]] = 255
+        segImg[:,:,3,0] = I
+        #I = segImg[:,:,:,0]
+        cv2.imshow(segImg[:,:,:,0])
+        
+        
+        
+        elapsed_time = time.time() - start_time
+        print "Segmentation: %f" % (elapsed_time)
 #==============================================================================
 #         markers = self.pos2d[0][self.Index]
 #         self.depth_image = cv2.watershed(self.depth_image,markers)
