@@ -135,12 +135,15 @@ class Application(tk.Frame):
         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()
         
+        self.canvas2 = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+        self.canvas2.pack()
+        
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.binBody,self.binImage)
         self.RGBD.ReadFromMat()
         self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.BodySegmentation()
+        segm = self.RGBD.BodySegmentation()
         self.RGBD.DrawSkeleton()
         start_time = time.time()
         self.RGBD.Vmap_optimize()
@@ -158,6 +161,10 @@ class Application(tk.Frame):
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+        
+        imgSeg = Image.fromarray(segm, 'RGB')
+        self.imgTk2=ImageTk.PhotoImage(imgSeg)
+        self.canvas2.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
         
         self.root.bind("<Key>", self.key)
         self.root.bind("<Button-1>", self.mouse_press)

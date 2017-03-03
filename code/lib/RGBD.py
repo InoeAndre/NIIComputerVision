@@ -261,7 +261,7 @@ class RGBD():
 ##################################################################
 ################### Segmentation Function #######################
 ##################################################################
-    def removeBG(binaryImage):
+    def removeBG(self,binaryImage):
         # You need to choose 4 or 8 for connectivity type
         connectivity = 4  
         # Perform the operation
@@ -306,63 +306,62 @@ class RGBD():
         #depth_image = self.depth_image[0][self.Index]
         imageWBG = self.removeBG(self.bw[0,0])
 #==============================================================================
-#         self.binBody[1] = forearmL      color=[0,0,255]
-#         self.binBody[2] = upperarmL     color=[200,200,255]
-#         self.binBody[3] = forearmR     color=[0,255,0]
-#         self.binBody[4] = upperarmR     color=[200,255,200]
-#         self.binBody[5] = thighR     color=[255,0,255]
-#         self.binBody[6] = calfR     color=[255,180,255]
-#         self.binBody[7] = thighL     color=[255,255,0]
-#         self.binBody[8] = calfL     color=[255,255,180]
-#         self.binBody[9] = headB     color=[255,0,0]
-#         self.binBody[10] = body     color=[255,255,255]
+#         self.binBody[0] = forearmL      color=[0,0,255]
+#         self.binBody[1] = upperarmL     color=[200,200,255]
+#         self.binBody[2] = forearmR     color=[0,255,0]
+#         self.binBody[3] = upperarmR     color=[200,255,200]
+#         self.binBody[4] = thighR     color=[255,0,255]
+#         self.binBody[5] = calfR     color=[255,180,255]
+#         self.binBody[6] = thighL     color=[255,255,0]
+#         self.binBody[7] = calfL     color=[255,255,180]
+#         self.binBody[8] = headB     color=[255,0,0]
+#         self.binBody[9] = body     color=[255,255,255]
 #==============================================================================
-
-        I[(imageWBG>0)]=255
-        I[self.binBody[9]] = 255
-        I[self.binBody[1]] = 0
-        I[self.binBody[2]] = 200
-        I[self.binBody[3]] = 0
-        I[self.binBody[4]]= 200
-        I[self.binBody[7]] = 255
-        I[self.binBody[8]] = 255
-        I[self.binBody[5]] = 255
-        I[self.binBody[6]] = 255
-        I[self.binBody[10]] = 255
-        segImg[:,:,1,0]=I
+        
+        #I = 255*(self.bw[0,0]>0)
+        I = I +255*self.binBody[8,0]
+        I = I +0*self.binBody[0,0]
+        I = I +200*self.binBody[1,0]
+        I = I +0*self.binBody[2,0]
+        I = I +200*self.binBody[3,0]
+        I = I +255*self.binBody[6,0]
+        I = I +255*self.binBody[7,0]
+        I = I +255*self.binBody[4,0]
+        I = I +255*self.binBody[5,0]
+        I = I +255*self.binBody[9,0]
+        segImg[:,:,0,0]=I
     
-        I[(imageWBG>0)]=255
-        I[self.binBody[9]] = 0
-        I[self.binBody[1]] = 0
-        I[self.binBody[2]] = 200
-        I[self.binBody[3]] = 255
-        I[self.binBody[4]] = 255
-        I[self.binBody[7]] = 255
-        I[self.binBody[8]] = 255
-        I[self.binBody[5]] = 0
-        I[self.binBody[6]] = 180
-        I[self.binBody[10]] = 255
+        I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
+        #I[(self.bw[0,0]>0)]=255
+        I = I +0*self.binBody[8,0]
+        I = I +0*self.binBody[0,0]
+        I = I +200*self.binBody[1,0]
+        I = I +255*self.binBody[2,0]
+        I = I +255*self.binBody[3,0]
+        I = I +255*self.binBody[6,0]
+        I = I +255*self.binBody[7,0]
+        I = I +0*self.binBody[4,0]
+        I = I +180*self.binBody[5,0]
+        I = I +255*self.binBody[9,0]
+        segImg[:,:,1,0] = I
+    
+        I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)#I[(self.bw[0,0]>0)]=255
+        I = I +0*self.binBody[8,0]
+        I = I +255*self.binBody[0,0]
+        I = I +255*self.binBody[1,0]
+        I = I +0*self.binBody[2,0]
+        I = I +200*self.binBody[3,0]
+        I = I +0*self.binBody[6,0]
+        I = I +180*self.binBody[7,0]
+        I = I +255*self.binBody[4,0]
+        I = I +255*self.binBody[5,0]
+        I = I +255*self.binBody[9,0]
         segImg[:,:,2,0] = I
-    
-        I[(imageWBG>0)]=255
-        I[self.binBody[9]] = 0
-        I[self.binBody[1]] = 255
-        I[self.binBody[2]] = 255
-        I[self.binBody[3]] = 0
-        I[self.binBody[4]] = 200
-        I[self.binBody[7]] = 0
-        I[self.binBody[8]] = 180
-        I[self.binBody[5]] = 255
-        I[self.binBody[6]] = 255
-        I[self.binBody[10]] = 255
-        segImg[:,:,3,0] = I
         #I = segImg[:,:,:,0]
-        cv2.imshow(segImg[:,:,:,0])
-        
-        
-        
+    
         elapsed_time = time.time() - start_time
         print "Segmentation: %f" % (elapsed_time)
+        return segImg[:,:,:,0]
 #==============================================================================
 #         markers = self.pos2d[0][self.Index]
 #         self.depth_image = cv2.watershed(self.depth_image,markers)
