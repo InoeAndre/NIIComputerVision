@@ -140,11 +140,12 @@ class Application(tk.Frame):
         
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
         #self.RGBD.ReadFromDisk()
-        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.binBody,self.binImage)
-        self.RGBD.ReadFromMat()
+        self.RGBD.LoadMat(self.lImages,self.lImages_filtered,self.pos2d,self.connection,self.binBody,self.binImage)
+        idx = 0
+        self.RGBD.ReadFromMat(idx)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
-        segm = self.RGBD.BodySegmentation()
-        self.RGBD.DrawSkeleton()
+        segm = self.RGBD.BodySegmentation(idx)
+        self.RGBD.DrawSkeleton(idx)
         start_time = time.time()
         self.RGBD.Vmap_optimize()
         elapsed_time = time.time() - start_time
