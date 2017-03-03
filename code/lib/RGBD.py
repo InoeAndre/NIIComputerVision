@@ -275,9 +275,7 @@ class RGBD():
         # The third cell is the stat matrix
         stats = output[2]
         pos = np.argmin(stats[:num_labels,cv2.CC_STAT_AREA])
-        B = binaryImage-binaryImage
-        B[labels[pos]]=True
-        return B
+        return labels[pos]
 
 #==============================================================================
 #         function B = removeBG(A)
