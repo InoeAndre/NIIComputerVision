@@ -8,6 +8,7 @@ from numpy import linalg as LA
 import random
 import imp
 import time
+import scipy.ndimage.measurements as spm
 
 segm = imp.load_source('segmentation', './lib/segmentation.py')
 
@@ -263,19 +264,17 @@ class RGBD():
 ################### Segmentation Function #######################
 ##################################################################
     def removeBG(self,binaryImage):
-        # You need to choose 4 or 8 for connectivity type
-        connectivity = 4  
-        # Perform the operation
-        output = cv2.connectedComponentsWithStats(binaryImage, connectivity, cv2.CV_32S)
-        # Get the results
-        # The first cell is the number of labels
-        num_labels = output[0]
-        # The second cell is the label matrix
-        labels = output[1]
-        # The third cell is the stat matrix
-        stats = output[2]
-        pos = np.argmin(stats[:num_labels,cv2.CC_STAT_AREA])
-        return labels[pos]
+        ''' This function delete all the little group unwanted from the binary image'''
+        labeled, n = spm.label(binaryImage)
+        size = np.bincount(labeled.ravel())
+        #do not consider the background
+        size2 = np.delete(size,0)
+        threshold = max(size2)-1
+        keep_labels = size >= threshold
+        # Make sure the background is left as 0/False
+        keep_labels[0] = 0
+        filtered_labeled = keep_labels[labeled]
+        return filtered_labeled
 
 #==============================================================================
 #         function B = removeBG(A)
@@ -296,14 +295,18 @@ class RGBD():
             self.Index = self.Index + 1
         else:
             self.Index = idx
-        #self.segm = segm.Segmentation(self.depth_image,self.colorname,self.pos2d[0][self.Index])
+        self.segm = segm.Segmentation(self.depth_image,self.colorname,self.pos2d[0][self.Index])
         segImg = (np.zeros([self.Size[0],self.Size[1],self.Size[2],self.numbImages])).astype(np.int8)
         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
         start_time = time.time()
         #for j  in range(self.numbImages):
-        #pose = self.pos2d[0][self.Index]
+        pose = self.pos2d[0][self.Index]
         #depth_image = self.depth_image[0][self.Index]
-        #imageWBG = self.removeBG(self.bw[0][self.Index])
+        imageWBG = self.removeBG(self.bw[0][self.Index])
+        B = self.lImages_filtered[0][self.Index]
+        arm = self.segm.forearmLeft(imageWBG,B);
+        
+
 #==============================================================================
 #         self.binBody[0] = forearmL      color=[0,0,255]
 #         self.binBody[1] = upperarmL     color=[200,200,255]
@@ -319,8 +322,8 @@ class RGBD():
         
         #I = 255*(self.bw[0,0]>0)
         I = I +255*self.binBody[8][self.Index]
-        I = I +0*self.binBody[0][self.Index]
-        I = I +200*self.binBody[1][self.Index]
+        #I = I +0*self.binBody[0][self.Index]
+        #I = I +200*self.binBody[1][self.Index]
         I = I +0*self.binBody[2][self.Index]
         I = I +200*self.binBody[3][self.Index]
         I = I +255*self.binBody[6][self.Index]
@@ -328,13 +331,15 @@ class RGBD():
         I = I +255*self.binBody[4][self.Index]
         I = I +255*self.binBody[5][self.Index]
         I = I +255*self.binBody[9][self.Index]
+        I = I +0*arm[0]
+        I = I +200*arm[1]
         segImg[:,:,0,self.Index]=I
     
         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
         #I[(self.bw[0,0]>0)]=255
         I = I +0*self.binBody[8][self.Index]
-        I = I +0*self.binBody[0][self.Index]
-        I = I +200*self.binBody[1][self.Index]
+        #I = I +0*self.binBody[0][self.Index]
+        #I = I +200*self.binBody[1][self.Index]
         I = I +255*self.binBody[2][self.Index]
         I = I +255*self.binBody[3][self.Index]
         I = I +255*self.binBody[6][self.Index]
@@ -342,6 +347,8 @@ class RGBD():
         I = I +0*self.binBody[4][self.Index]
         I = I +180*self.binBody[5][self.Index]
         I = I +255*self.binBody[9][self.Index]
+        I = I +0*arm[0]
+        I = I +200*arm[1]
         segImg[:,:,1,self.Index] = I
     
         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)#I[(self.bw[0,0]>0)]=255
@@ -355,6 +362,8 @@ class RGBD():
         I = I +255*self.binBody[4][self.Index]
         I = I +255*self.binBody[5][self.Index]
         I = I +255*self.binBody[9][self.Index]
+        I = I +255*arm[0]
+        I = I +255*arm[1]
         segImg[:,:,2,self.Index] = I
         #I = segImg[:,:,:,0]
     
