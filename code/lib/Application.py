@@ -113,7 +113,6 @@ class Application(tk.Frame):
     
         print self.intrinsic
     
-        mat = scipy.io.loadmat(self.path + '/FixedPose.mat')
         # in mat dictionary there are the following words
         #   
         # 'Bodies'           is only used to create Pos2D
@@ -124,12 +123,13 @@ class Application(tk.Frame):
         # 'h1'               cell array that contains binary image of body parts
         # 'tform'            transform matrix
         # 'xyzP'             pointcloud
-        connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
+        mat = scipy.io.loadmat(self.path + '/FixedPose.mat')
         self.lImages = mat['DepthImg']
         self.lImages_filtered = mat['DepthImg_after']
         self.binBody = mat['h1']
         self.pos2d = mat['Pos2D']
         self.binImage = mat['bw']
+        connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
         self.connection = connectionMat['SkeletonConnectionMap']
         
         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])

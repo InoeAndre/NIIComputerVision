@@ -152,7 +152,7 @@ class Segmentation(object):
         /arg points : array of points which are the corners of the polygon to find'''
         line = self.depthImage.shape[0]
         col = self.depthImage.shape[1]
-        im_out = np.zeros([line,col],np.bool)
+        im_out = np.zeros([line,col],np.uint8)
         points = points.astype(np.float64)
         n = points.shape[0]
         i = 2
@@ -170,7 +170,7 @@ class Segmentation(object):
         ptB[-1]=points[0]
         for i in range(0,points.shape[0]-1):
             ptB[i] = points[i+1]
-        M = np.zeros([line,col])
+        M = np.zeros([line,col],np.uint8)
 
         for i in range(n-d):        
             A = points[i,:]
@@ -181,7 +181,7 @@ class Segmentation(object):
                     tmp = B
                     B = A 
                     A = tmp
-                for y in range(int(A[1]),int(B[1]):
+                for y in range(int(A[1]),int(B[1])):
                     x = np.round(-(slopes[1]*y+slopes[2])/slopes[0])
                     M[y,x]= 1
             else : 
@@ -189,11 +189,12 @@ class Segmentation(object):
                     tmp = B
                     B = A 
                     A = tmp
-                for x in range(int(A[0]),int(B[0]):
+                for x in range(int(A[0]),int(B[0])):
                     y = np.round(-(slopes[0]*x+slopes[2])/slopes[1])
                     M[y,x]= 1  
         # Copy the thresholded image.
         im_floodfill = M.copy()
+        im_floodfill = im_floodfill.astype(np.uint8)
          
         # Mask used to flood filling.
         # Notice the size needs to be 2 pixels than the image.
@@ -201,7 +202,7 @@ class Segmentation(object):
         mask = np.zeros((h+2, w+2), np.uint8)
          
         # Floodfill from point (0, 0)
-        cv2.floodFill(im_floodfill, mask, (0,0), 255);
+        cv2.floodFill(im_floodfill, mask, (0,0), 255)
          
         # Invert floodfilled image
         im_floodfill_inv = cv2.bitwise_not(im_floodfill)
@@ -315,7 +316,7 @@ class Segmentation(object):
         f = np.nonzero(B1)# [fy,fx];
         d = np.argmin(np.sum( np.square(np.array([pos2D[20,0]-f[1], pos2D[20,1]-f[0]]).transpose()) ))
         peakArmpit = np.array([f[1][d],f[0][d]])
-        ptA = np.concatenate((intersection_elbow[0],intersection215[0],intersection_head[0],peakArmpit,intersection_elbow[1]))
+        ptA = np.stack((intersection_elbow[0],intersection215[0],intersection_head[0],peakArmpit,intersection_elbow[1]))
         bw_upper = (A*self.polygonOutline(ptA)>0)
         return np.array([bw_up,bw_upper])
     
