@@ -276,18 +276,6 @@ class RGBD():
         filtered_labeled = keep_labels[labeled]
         return filtered_labeled
 
-#==============================================================================
-#         function B = removeBG(A)
-# cc = bwconncomp(A,4);
-# L(cc.NumObjects)=0;
-# for i = 1:cc.NumObjects
-#    L(i) = length(cc.PixelIdxList{i}); 
-# end
-# [~,pos] = max(L);
-# B = A-A;
-# B(cc.PixelIdxList{pos})=true;
-#==============================================================================
-
 
     def BodySegmentation(self, idx = -1):
         #this function calls the function in segmentation.py to process the segmentation of the body
@@ -303,7 +291,7 @@ class RGBD():
         pose = self.pos2d[0][self.Index]
         #depth_image = self.depth_image[0][self.Index]
         imageWBG = self.removeBG(self.bw[0][self.Index])
-        B = self.lImages[0][self.Index]
+        B = self.lImages_filtered[0][self.Index]
         arm = self.segm.forearmLeft(imageWBG,B);
         
 
@@ -322,56 +310,50 @@ class RGBD():
         
         # For Channel color R
         #I = 255*(self.bw[0,0]>0)
-#==============================================================================
-#         I = I +255*self.binBody[8][self.Index]
-#         I = I +0*self.binBody[0][self.Index]
-#         I = I +200*self.binBody[1][self.Index]
-#         I = I +0*self.binBody[2][self.Index]
-#         I = I +200*self.binBody[3][self.Index]
-#         I = I +255*self.binBody[6][self.Index]
-#         I = I +255*self.binBody[7][self.Index]
-#         I = I +255*self.binBody[4][self.Index]
-#         I = I +255*self.binBody[5][self.Index]
-#         I = I +255*self.binBody[9][self.Index]
-#==============================================================================
-        #I = I +0*arm[0]
+        I = I +255*self.binBody[8][self.Index]
+        #I = I +0*self.binBody[0][self.Index]
+        #I = I +200*self.binBody[1][self.Index]
+        I = I +0*self.binBody[2][self.Index]
+        I = I +200*self.binBody[3][self.Index]
+        I = I +255*self.binBody[6][self.Index]
+        I = I +255*self.binBody[7][self.Index]
+        I = I +255*self.binBody[4][self.Index]
+        I = I +255*self.binBody[5][self.Index]
+        I = I +255*self.binBody[9][self.Index]
+        I = I +0*arm[0]
         I = I +200*arm[1]
         segImg[:,:,0,self.Index]=I
     
         # For Channel color G
         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
         #I[(self.bw[0,0]>0)]=255
-#==============================================================================
-#         I = I +0*self.binBody[8][self.Index]
-#         #I = I +0*self.binBody[0][self.Index]
-#         #I = I +200*self.binBody[1][self.Index]
-#         I = I +255*self.binBody[2][self.Index]
-#         I = I +255*self.binBody[3][self.Index]
-#         I = I +255*self.binBody[6][self.Index]
-#         I = I +255*self.binBody[7][self.Index]
-#         I = I +0*self.binBody[4][self.Index]
-#         I = I +180*self.binBody[5][self.Index]
-#         I = I +255*self.binBody[9][self.Index]
-#==============================================================================
-        #I = I +0*arm[0]
+        I = I +0*self.binBody[8][self.Index]
+        #I = I +0*self.binBody[0][self.Index]
+        #I = I +200*self.binBody[1][self.Index]
+        I = I +255*self.binBody[2][self.Index]
+        I = I +255*self.binBody[3][self.Index]
+        I = I +255*self.binBody[6][self.Index]
+        I = I +255*self.binBody[7][self.Index]
+        I = I +0*self.binBody[4][self.Index]
+        I = I +180*self.binBody[5][self.Index]
+        I = I +255*self.binBody[9][self.Index]
+        I = I +0*arm[0]
         I = I +200*arm[1]
         segImg[:,:,1,self.Index] = I
     
         # For Channel color B
         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)#I[(self.bw[0,0]>0)]=255
-#==============================================================================
-#         I = I +0*self.binBody[8][self.Index]
-#         #I = I +255*self.binBody[0][self.Index]
-#         #I = I +255*self.binBody[1][self.Index]
-#         I = I +0*self.binBody[2][self.Index]
-#         I = I +200*self.binBody[3][self.Index]
-#         I = I +0*self.binBody[6][self.Index]
-#         I = I +180*self.binBody[7][self.Index]
-#         I = I +255*self.binBody[4][self.Index]
-#         I = I +255*self.binBody[5][self.Index]
-#         I = I +255*self.binBody[9][self.Index]
-#==============================================================================
-        #I = I +255*arm[0]
+        I = I +0*self.binBody[8][self.Index]
+        #I = I +255*self.binBody[0][self.Index]
+        #I = I +255*self.binBody[1][self.Index]
+        I = I +0*self.binBody[2][self.Index]
+        I = I +200*self.binBody[3][self.Index]
+        I = I +0*self.binBody[6][self.Index]
+        I = I +180*self.binBody[7][self.Index]
+        I = I +255*self.binBody[4][self.Index]
+        I = I +255*self.binBody[5][self.Index]
+        I = I +255*self.binBody[9][self.Index]
+        I = I +255*arm[0]
         I = I +255*arm[1]
         segImg[:,:,2,self.Index] = I
         #I = segImg[:,:,:,0]
