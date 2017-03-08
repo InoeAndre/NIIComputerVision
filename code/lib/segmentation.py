@@ -140,7 +140,7 @@ class Segmentation(object):
                    alpha[0][k] = (slopes[0][k]*i+slopes[1][k]*j+slopes[2][k])*ref[0,k]
                alpha_positif = (alpha >= 0)
                if alpha_positif.all():
-                   res[i,j]=True
+                   res[j,i]=True
 
        return res
         
@@ -248,6 +248,7 @@ class Segmentation(object):
         A1 = B*(B>(min(p1,p2)-50)) * (B<(max(p1,p2)+50))
         
         # compute the intersection between the slope and the extremety of the body
+        # Qnd get two corners of the segmented body parts
         intersection_elbow=self.inferedPoint(A1,a_pen,b_pen,c_pen,pos2D[5],0.5*bone)#[left,right];
         vect_elbow = intersection_elbow[0]-pos2D[5]
         
