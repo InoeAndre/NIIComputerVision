@@ -289,7 +289,8 @@ class RGBD():
         #depth_image = self.depth_image[0][self.Index]
         imageWBG = (self.bw[0][self.Index]>0)#self.removeBG(self.bw[0][self.Index])
         B = self.lImages_filtered[0][self.Index]
-        arm = self.segm.forearmLeft(imageWBG,B)
+        armLeft = self.segm.forearmLeft(imageWBG,B)
+        armRight = self.segm.forearmRight(imageWBG,B)
         
 
 #==============================================================================
@@ -308,8 +309,8 @@ class RGBD():
         # For Channel color R
 #==============================================================================
 #         I = I +255*self.binBody[8][self.Index]
-#         #I = I +0*self.binBody[0][self.Index]
-#         #I = I +200*self.binBody[1][self.Index]
+#         I = I +0*self.binBody[0][self.Index]
+#         I = I +200*self.binBody[1][self.Index]
 #         I = I +0*self.binBody[2][self.Index]
 #         I = I +200*self.binBody[3][self.Index]
 #         I = I +255*self.binBody[6][self.Index]
@@ -318,16 +319,18 @@ class RGBD():
 #         I = I +255*self.binBody[5][self.Index]
 #         I = I +255*self.binBody[9][self.Index]
 #==============================================================================
-        I = I +0*arm[0]
-        I = I +200*arm[1]
+        I = I +0*armLeft[0]
+        I = I +200*armLeft[1]
+        I = I +0*armRight[0]
+        I = I +200*armRight[1]
         segImg[:,:,0,self.Index]=I
     
         # For Channel color G
         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
 #==============================================================================
 #         I = I +0*self.binBody[8][self.Index]
-#         #I = I +0*self.binBody[0][self.Index]
-#         #I = I +200*self.binBody[1][self.Index]
+#         I = I +0*self.binBody[0][self.Index]
+#         I = I +200*self.binBody[1][self.Index]
 #         I = I +255*self.binBody[2][self.Index]
 #         I = I +255*self.binBody[3][self.Index]
 #         I = I +255*self.binBody[6][self.Index]
@@ -336,16 +339,18 @@ class RGBD():
 #         I = I +180*self.binBody[5][self.Index]
 #         I = I +255*self.binBody[9][self.Index]
 #==============================================================================
-        I = I +0*arm[0]
-        I = I +200*arm[1]
+        I = I +0*armLeft[0]
+        I = I +200*armLeft[1]
+        I = I +255*armRight[0]
+        I = I +255*armRight[1]
         segImg[:,:,1,self.Index] = I
     
         # For Channel color B
         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)#I[(self.bw[0,0]>0)]=255
 #==============================================================================
 #         I = I +0*self.binBody[8][self.Index]
-#         #I = I +255*self.binBody[0][self.Index]
-#         #I = I +255*self.binBody[1][self.Index]
+#         I = I +255*self.binBody[0][self.Index]
+#         I = I +255*self.binBody[1][self.Index]
 #         I = I +0*self.binBody[2][self.Index]
 #         I = I +200*self.binBody[3][self.Index]
 #         I = I +0*self.binBody[6][self.Index]
@@ -354,17 +359,16 @@ class RGBD():
 #         I = I +255*self.binBody[5][self.Index]
 #         I = I +255*self.binBody[9][self.Index]
 #==============================================================================
-        I = I +255*arm[0]
-        I = I +255*arm[1]
+        I = I +255*armLeft[0]
+        I = I +255*armLeft[1]
+        I = I +0*armRight[0]
+        I = I +200*armRight[1]
         segImg[:,:,2,self.Index] = I
         #I = segImg[:,:,:,0]
     
         elapsed_time = time.time() - start_time
         print "Segmentation: %f" % (elapsed_time)
         return segImg[:,:,:,self.Index]
-#==============================================================================
-#         markers = self.pos2d[0][self.Index]
-#         self.depth_image = cv2.watershed(self.depth_image,markers)
-#==============================================================================
+
     
                 
