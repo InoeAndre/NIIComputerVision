@@ -154,6 +154,7 @@ class Segmentation(object):
         n = points.shape[0]
         i = 2
         d = 0
+        #delete point that are NaN
 #==============================================================================
 #         newPts = np.zeros([points[:,:][~np.isnan(points[:,:])].shape[0]],[points[:,:][~np.isnan(points[:,:])].shape[1]])
 #         while i<=n-d:
@@ -163,6 +164,7 @@ class Segmentation(object):
 #             else:
 #                 i = i+1
 #==============================================================================
+        # trace the segment        
         ptB = np.zeros(points.shape)
         ptB[-1]=points[0]
         for i in range(0,points.shape[0]-1):
@@ -189,7 +191,9 @@ class Segmentation(object):
                 for x in range(int(A[0]),int(B[0])):
                     y = np.round(-(slopes[0]*x+slopes[2])/slopes[1])
                     M[int(y),int(x)]= 1  
+        ## Fill the polygon
         # Copy the thresholded image.
+        return M;
         im_floodfill = M.copy()
         im_floodfill = im_floodfill.astype(np.uint8)
          
@@ -199,7 +203,7 @@ class Segmentation(object):
         mask = np.zeros((h+2, w+2), np.uint8)
          
         # Floodfill from point (0, 0)
-        cv2.floodFill(im_floodfill, mask, (0,0), 255)
+        cv2.floodFill(im_floodfill, mask, (0,0), 1)
          
         # Invert floodfilled image
         im_floodfill_inv = cv2.bitwise_not(im_floodfill)
@@ -312,9 +316,10 @@ class Segmentation(object):
 
         B1 = np.logical_and( (A==0),self.polygonOutline(pos2D[[5, 4, 20, 0],:]))
         f = np.nonzero(B1)# [fy,fx];
-        d = np.argmin(np.sum( np.square(np.array([pos2D[20,0]-f[1], pos2D[20,1]-f[0]]).transpose()) ))
+        d = np.argmin(np.sum( np.square(np.array([pos2D[20,0]-f[1], pos2D[20,1]-f[0]]).transpose()),axis=1 ))
         peakArmpit = np.array([f[1][d],f[0][d]])
         ptA = np.stack((intersection_elbow[0],intersection215[0],intersection_head[0],peakArmpit,intersection_elbow[1]))
-        bw_upper = (self.polygonOutline(ptA)>0)#A*
+        bw_upper = (self.polygonOutline(ptA)>0)#A*   (self.polygonOutline(pos2D[[5, 4, 20, 0],:])>0)#
+
         return np.array([bw_up,bw_upper])
     
