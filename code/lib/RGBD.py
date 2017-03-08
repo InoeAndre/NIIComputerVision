@@ -105,11 +105,6 @@ class RGBD():
         self.depth_image = np.zeros((self.Size[0], self.Size[1]), np.float32)
         self.depth_image = depth_in.astype(np.float32) / self.fact
         self.skel = self.depth_image.copy()
-#==============================================================================
-#         for i in range(self.Size[0]): # line index (i.e. vertical y axis)
-#             for j in range(self.Size[1]):
-#                 self.depth_image[i,j] = float(depth_in[i,j]) / self.fact
-#==============================================================================
 
     def DrawSkeleton(self, idx = -1):
         #this function draw the Skeleton of a human and make connections between each part
@@ -322,8 +317,8 @@ class RGBD():
 #         I = I +255*self.binBody[4][self.Index]
 #         I = I +255*self.binBody[5][self.Index]
 #         I = I +255*self.binBody[9][self.Index]
-#         I = I +0*arm[0]
 #==============================================================================
+        I = I +0*arm[0]
         I = I +200*arm[1]
         segImg[:,:,0,self.Index]=I
     
@@ -340,8 +335,8 @@ class RGBD():
 #         I = I +0*self.binBody[4][self.Index]
 #         I = I +180*self.binBody[5][self.Index]
 #         I = I +255*self.binBody[9][self.Index]
-#         I = I +0*arm[0]
 #==============================================================================
+        I = I +0*arm[0]
         I = I +200*arm[1]
         segImg[:,:,1,self.Index] = I
     
@@ -358,8 +353,8 @@ class RGBD():
 #         I = I +255*self.binBody[4][self.Index]
 #         I = I +255*self.binBody[5][self.Index]
 #         I = I +255*self.binBody[9][self.Index]
-#         I = I +255*arm[0]
 #==============================================================================
+        I = I +255*arm[0]
         I = I +255*arm[1]
         segImg[:,:,2,self.Index] = I
         #I = segImg[:,:,:,0]

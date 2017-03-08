@@ -180,7 +180,7 @@ class Segmentation(object):
                     tmp = B
                     B = A 
                     A = tmp
-                for y in range(int(A[1]),int(B[1])):
+                for y in range(int(A[1]),int(B[1])+1):
                     x = np.round(-(slopes[1]*y+slopes[2])/slopes[0])
                     M[int(y),int(x)]= 1
             else : 
@@ -188,12 +188,11 @@ class Segmentation(object):
                     tmp = B
                     B = A 
                     A = tmp
-                for x in range(int(A[0]),int(B[0])):
+                for x in range(int(A[0]),int(B[0])+1):
                     y = np.round(-(slopes[0]*x+slopes[2])/slopes[1])
                     M[int(y),int(x)]= 1  
         ## Fill the polygon
         # Copy the thresholded image.
-        return M;
         im_floodfill = M.copy()
         im_floodfill = im_floodfill.astype(np.uint8)
          
@@ -203,7 +202,7 @@ class Segmentation(object):
         mask = np.zeros((h+2, w+2), np.uint8)
          
         # Floodfill from point (0, 0)
-        cv2.floodFill(im_floodfill, mask, (0,0), 1)
+        cv2.floodFill(im_floodfill, mask, (260,250), 255)
          
         # Invert floodfilled image
         im_floodfill_inv = cv2.bitwise_not(im_floodfill)
@@ -211,7 +210,7 @@ class Segmentation(object):
         # Combine the two images to get the foreground.
         im_out = M | im_floodfill_inv 
         return im_out
-    
+        #return im_floodfill
     
     def forearmLeft(self,A,B):
         '''this function segment the left arm
@@ -274,7 +273,7 @@ class Segmentation(object):
         polygonSlope[2]=finalSlope[2][~np.isnan(finalSlope[2])]
         midpoint = [(pos2D[5,0]+pos2D[6,0])/2, (pos2D[5,1]+pos2D[6,1])/2]
         ref= np.array([polygonSlope[0]*midpoint[0] + polygonSlope[1]*midpoint[1] + polygonSlope[2]]).astype(np.float32)
-        bw_up = ( A*self.polygon(polygonSlope,ref,x.shape[0]-sum(x)) > 0 )
+        bw_up = ( self.polygon(polygonSlope,ref,x.shape[0]-sum(x)) > 0 )#A*
         
         # pos2D[2] = Shoulder_Center
         # pos2D[3] = Head
@@ -314,12 +313,14 @@ class Segmentation(object):
             intersection_elbow[0] = intersection_elbow[1]
             intersection_elbow[1] = finalSlope[2]
 
+        #the upper arm need a fifth point -> Let us find it by considering it as the center of the left part of the body
         B1 = np.logical_and( (A==0),self.polygonOutline(pos2D[[5, 4, 20, 0],:]))
-        f = np.nonzero(B1)# [fy,fx];
+        f = np.nonzero(B1)
         d = np.argmin(np.sum( np.square(np.array([pos2D[20,0]-f[1], pos2D[20,1]-f[0]]).transpose()),axis=1 ))
         peakArmpit = np.array([f[1][d],f[0][d]])
+        # create the upperarm polygon out the five point defining it
         ptA = np.stack((intersection_elbow[0],intersection215[0],intersection_head[0],peakArmpit,intersection_elbow[1]))
-        bw_upper = (self.polygonOutline(ptA)>0)#A*   (self.polygonOutline(pos2D[[5, 4, 20, 0],:])>0)#
+        bw_upper = (A*self.polygonOutline(ptA)>0)
 
         return np.array([bw_up,bw_upper])
     
