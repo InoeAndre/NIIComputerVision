@@ -1,8 +1,4 @@
 """Script to do dynamic fusion with topological changes."""
-import sys
-import cv2
-import scipy.io
-import numpy as np
 import Tkinter as tk
 import imp
 
