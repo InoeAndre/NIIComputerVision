@@ -246,166 +246,66 @@ class Segmentation(object):
 # 
 #==============================================================================
     
-    def forearmLeft(self,A,B):
+    def armSeg(self,A,B,side):
         '''this function segment the left arm
         /arg A is the depthImag
-        /arg B is the depthImg after bilateral filtering'''
+        /arg B is the depthImg after bilateral filtering
+        /arg side if side = 0 the segmentation will be done for the right leg 
+                  otherwise it will be for the left leg'''
         
         # pos2D[4] = Shoulder_Left
         # pos2D[5] = Elbow_Left
         # pos2D[6] = Wrist_Left
-        pos2D = self.pos2D.astype(np.float64)-1
-        # First let us see the down limit thanks to the elbow and the wrist (left side)
-        # FindSlopes give the slope of a line made by two point
-        slopes0=self.findSlope(pos2D[5],pos2D[6])
-        a_pen67 = -slopes0[1]#-b67;
-        b_pen67 = slopes0[0]#a67;
-        
-        slopes1=self.findSlope(pos2D[5],pos2D[4])#[a65,b65,~];
-        
-        a_pen = slopes0[0] + slopes1[0]#a67+a65;
-        b_pen = slopes0[1] + slopes1[1]#b67+b65;
-        if (a_pen == b_pen) and (a_pen==0):
-            a_pen = slopes1[1]#b65;
-            b_pen =-slopes1[0]#a65;
-
-        c_pen = -(a_pen*pos2D[5,0]+b_pen*pos2D[5,1])
-        
-        
-        # find 2 points elbow
-        bone1 = LA.norm(pos2D[5]-pos2D[6])#sqrt( sum( (pos2D(6,:)-pos2D(7,:)).^2 ) );
-        bone2 = LA.norm(pos2D[5]-pos2D[4])#sqrt( sum( (pos2D(6,:)-pos2D(5,:)).^2 ) );
-        bone = max(bone1,bone2);
-        p1=B[int(pos2D[5,1]),int(pos2D[5,0])]#(pos2D(6,2),pos2D(6,1));
-        p2=B[int(pos2D[6,1]),int(pos2D[6,0])]#(pos2D(7,2),pos2D(7,1));
-        #threshold the image to get just the interesting part of the body
-        A1 = B*(B>(min(p1,p2)-50)) * (B<(max(p1,p2)+50))
-        
-        # compute the intersection between the slope and the extremety of the body
-        # Qnd get two corners of the segmented body parts
-        intersection_elbow=self.inferedPoint(A1,a_pen,b_pen,c_pen,pos2D[5],0.5*bone)#[left,right];
-        vect_elbow = intersection_elbow[0]-pos2D[5]
-        
-        # find 2 points wrist
-        c_pen67=-(a_pen67*pos2D[6,0]+b_pen67*pos2D[6,1])
-        intersection_wrist=self.inferedPoint(A1,a_pen67,b_pen67,c_pen67,pos2D[6],bone/3)
-        vect_wrist = intersection_wrist[0]-pos2D[6]
-        vect67 = pos2D[6]-pos2D[5]
-        vect67_pen = np.array([vect67[1], -vect67[0]])
-        if sum(vect67_pen*vect_elbow)*sum(vect67_pen*vect_wrist)<0:
-           x = intersection_elbow[0]
-           intersection_elbow[0] = intersection_elbow[1]
-           intersection_elbow[1] = x
-
-        pt4D = np.array([intersection_elbow[0],intersection_elbow[1],intersection_wrist[1],intersection_wrist[0]])
-        pt4D_bis = np.array([intersection_wrist[0],intersection_elbow[0],intersection_elbow[1],intersection_wrist[1]])
-        finalSlope=self.findSlope(pt4D.transpose(),pt4D_bis.transpose())
-        x = np.isnan(finalSlope[0])
-        #erase all NaN in the array
-        polygonSlope = np.zeros([3,finalSlope[0][~np.isnan(finalSlope[0])].shape[0]])
-        polygonSlope[0]=finalSlope[0][~np.isnan(finalSlope[0])]
-        polygonSlope[1]=finalSlope[1][~np.isnan(finalSlope[1])]
-        polygonSlope[2]=finalSlope[2][~np.isnan(finalSlope[2])]
-        midpoint = [(pos2D[5,0]+pos2D[6,0])/2, (pos2D[5,1]+pos2D[6,1])/2]
-        ref= np.array([polygonSlope[0]*midpoint[0] + polygonSlope[1]*midpoint[1] + polygonSlope[2]]).astype(np.float32)
-        bw_up = ( A*self.polygon(polygonSlope,ref,x.shape[0]-sum(x)) > 0 )
-        
-        # pos2D[2] = Shoulder_Center
-        # pos2D[3] = Head
-        
-        #compute slopes
-        slopesSH=self.findSlope(pos2D[2],pos2D[3])
-        a_pen = slopesSH[1]
-        b_pen = - slopesSH[0]
-        c_pen = -(a_pen*pos2D[2,0]+b_pen*pos2D[2,1])
-        
-        # compute the intersection between the slope and the extremety of the body
-        intersection_head=self.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[2])
-        
-        slopes215=self.findSlope(pos2D[20],pos2D[4])
-        
-        a_pen = slopes215[0]+slopes1[0]
-        b_pen = slopes215[1]+slopes1[1]
-        if (a_pen == b_pen) and (a_pen==0):
-            a_pen = slopes215[1]
-            b_pen = -slopes215[0]
-
-        c_pen = -(a_pen*pos2D[4,0]+b_pen*pos2D[4,1])
-        
-        intersection215=self.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[4])
-        vect65 = pos2D[4]-pos2D[5]
-        
-        #vect_elbow = intersection_elbow[0]-pos2D[5]
-        vect_215 = intersection215[0]-pos2D[4]  
-        #cross product 
-        t = np.cross(np.insert(vect_elbow, vect_elbow.shape[0],0),np.insert(vect65, vect65.shape[0],0))
-        t1 = np.cross(np.insert(vect_215,vect_215.shape[0],0),np.insert(-vect65,vect65.shape[0],0))
-        if t1[2]>0:
-            intersection215[0] = intersection215[1]
-
-        if t[2]<0:
-            tmp = intersection_elbow[0]
-            intersection_elbow[0] = intersection_elbow[1]
-            intersection_elbow[1] = tmp
-
-        #the upper arm need a fifth point -> Let us find it by considering it as the center of the left part of the body
-        B1 = np.logical_and( (A==0),self.polygonOutline(pos2D[[5, 4, 20, 0],:]))
-        f = np.nonzero(B1)
-        d = np.argmin(np.sum( np.square(np.array([pos2D[20,0]-f[1], pos2D[20,1]-f[0]]).transpose()),axis=1 ))
-        peakArmpit = np.array([f[1][d],f[0][d]])
-        # create the upperarm polygon out the five point defining it
-        ptA = np.stack((intersection_elbow[0],intersection215[0],intersection_head[0],peakArmpit,intersection_elbow[1]))
-        bw_upper = (A*self.polygonOutline(ptA)>0)
-
-        return np.array([bw_up,bw_upper])
-    
-    
-    
-    def forearmRight(self,A,B):
-        '''this function segment the right arm
-        /arg A is the depthImag
-        /arg B is the depthImg after bilateral filtering'''
-        
         # pos2D[8] = Shoulder_Right
         # pos2D[9] = Elbow_Right
         # pos2D[10] = Wrist_Right
         pos2D = self.pos2D.astype(np.float64)-1
+        if side == 0 :
+            shoulder =4
+            elbow = 5
+            wrist = 6
+        else :
+            shoulder =8
+            elbow = 9
+            wrist = 10
+        
+
         # First let us see the down limit thanks to the elbow and the wrist (left side)
         # FindSlopes give the slope of a line made by two point
-        slopes0=self.findSlope(pos2D[9],pos2D[10])
-        a_pen67 = -slopes0[1]#-b67;
-        b_pen67 = slopes0[0]#a67;
+        slopes0=self.findSlope(pos2D[elbow],pos2D[wrist])
+        a_pen67 = -slopes0[1]
+        b_pen67 = slopes0[0]
         
-        slopes1=self.findSlope(pos2D[9],pos2D[8])#[a65,b65,~];
+        slopes1=self.findSlope(pos2D[elbow],pos2D[shoulder])
         
-        a_pen = slopes0[0] + slopes1[0]#a67+a65;
-        b_pen = slopes0[1] + slopes1[1]#b67+b65;
+        a_pen = slopes0[0] + slopes1[0]
+        b_pen = slopes0[1] + slopes1[1]
         if (a_pen == b_pen) and (a_pen==0):
-            a_pen = slopes1[1]#b65;
-            b_pen =-slopes1[0]#a65;
+            a_pen = slopes1[1]
+            b_pen =-slopes1[0]
 
-        c_pen = -(a_pen*pos2D[9,0]+b_pen*pos2D[9,1])
+        c_pen = -(a_pen*pos2D[elbow,0]+b_pen*pos2D[elbow,1])
         
-        
+
         # find 2 points elbow
-        bone1 = LA.norm(pos2D[9]-pos2D[10])#sqrt( sum( (pos2D(6,:)-pos2D(7,:)).^2 ) );
-        bone2 = LA.norm(pos2D[9]-pos2D[8])#sqrt( sum( (pos2D(6,:)-pos2D(5,:)).^2 ) );
+        bone1 = LA.norm(pos2D[elbow]-pos2D[wrist])
+        bone2 = LA.norm(pos2D[elbow]-pos2D[shoulder])
         bone = max(bone1,bone2);
-        p1=B[int(pos2D[9,1]),int(pos2D[9,0])]#(pos2D(6,2),pos2D(6,1));
-        p2=B[int(pos2D[10,1]),int(pos2D[10,0])]#(pos2D(7,2),pos2D(7,1));
+        p1=B[int(pos2D[elbow,1]),int(pos2D[elbow,0])]
+        p2=B[int(pos2D[wrist,1]),int(pos2D[wrist,0])]
         #threshold the image to get just the interesting part of the body
         A1 = B*(B>(min(p1,p2)-50)) * (B<(max(p1,p2)+50))
         
         # compute the intersection between the slope and the extremety of the body
         # Qnd get two corners of the segmented body parts
-        intersection_elbow=self.inferedPoint(A1,a_pen,b_pen,c_pen,pos2D[9],0.5*bone)#[left,right];
-        vect_elbow = intersection_elbow[0]-pos2D[5]
-        
+        intersection_elbow=self.inferedPoint(A1,a_pen,b_pen,c_pen,pos2D[elbow],0.5*bone)
+        vect_elbow = intersection_elbow[0]-pos2D[elbow]
+              
         # find 2 points wrist
-        c_pen67=-(a_pen67*pos2D[10,0]+b_pen67*pos2D[6,1])
-        intersection_wrist=self.inferedPoint(A1,a_pen67,b_pen67,c_pen67,pos2D[10],bone/3)
-        vect_wrist = intersection_wrist[0]-pos2D[6]
-        vect67 = pos2D[10]-pos2D[9]
+        c_pen67=-(a_pen67*pos2D[wrist,0]+b_pen67*pos2D[wrist,1])
+        intersection_wrist=self.inferedPoint(A1,a_pen67,b_pen67,c_pen67,pos2D[wrist],bone/3)
+        vect_wrist = intersection_wrist[0]-pos2D[wrist]
+        vect67 = pos2D[wrist]-pos2D[elbow]
         vect67_pen = np.array([vect67[1], -vect67[0]])
         if sum(vect67_pen*vect_elbow)*sum(vect67_pen*vect_wrist)<0:
            x = intersection_elbow[0]
@@ -421,7 +321,7 @@ class Segmentation(object):
         polygonSlope[0]=finalSlope[0][~np.isnan(finalSlope[0])]
         polygonSlope[1]=finalSlope[1][~np.isnan(finalSlope[1])]
         polygonSlope[2]=finalSlope[2][~np.isnan(finalSlope[2])]
-        midpoint = [(pos2D[9,0]+pos2D[10,0])/2, (pos2D[9,1]+pos2D[10,1])/2]
+        midpoint = [(pos2D[elbow,0]+pos2D[wrist,0])/2, (pos2D[elbow,1]+pos2D[wrist,1])/2]
         ref= np.array([polygonSlope[0]*midpoint[0] + polygonSlope[1]*midpoint[1] + polygonSlope[2]]).astype(np.float32)
         bw_up = ( A*self.polygon(polygonSlope,ref,x.shape[0]-sum(x)) > 0 )
         
@@ -437,7 +337,7 @@ class Segmentation(object):
         # compute the intersection between the slope and the extremety of the body
         intersection_head=self.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[2])
         
-        slopes215=self.findSlope(pos2D[20],pos2D[8])
+        slopes215=self.findSlope(pos2D[20],pos2D[shoulder])
         
         a_pen = slopes215[0]+slopes1[0]
         b_pen = slopes215[1]+slopes1[1]
@@ -445,13 +345,13 @@ class Segmentation(object):
             a_pen = slopes215[1]
             b_pen = -slopes215[0]
 
-        c_pen = -(a_pen*pos2D[8,0]+b_pen*pos2D[8,1])
+        c_pen = -(a_pen*pos2D[shoulder,0]+b_pen*pos2D[shoulder,1])
         
-        intersection215=self.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[8])
-        vect65 = pos2D[8]-pos2D[9]
+        intersection215=self.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[shoulder])
+        vect65 = pos2D[shoulder]-pos2D[elbow]
         
         #vect_elbow = intersection_elbow[0]-pos2D[5]
-        vect_215 = intersection215[0]-pos2D[8]  
+        vect_215 = intersection215[0]-pos2D[shoulder]  
         #cross product 
         t = np.cross(np.insert(vect_elbow, vect_elbow.shape[0],0),np.insert(vect65, vect65.shape[0],0))
         t1 = np.cross(np.insert(vect_215,vect_215.shape[0],0),np.insert(-vect65,vect65.shape[0],0))
@@ -464,12 +364,15 @@ class Segmentation(object):
             intersection_elbow[1] = tmp
 
         #the upper arm need a fifth point -> Let us find it by considering it as the center of the left part of the body
-        B1 = np.logical_and( (A==0),self.polygonOutline(pos2D[[9, 8, 20, 0],:]))
+        B1 = np.logical_and( (A==0),self.polygonOutline(pos2D[[elbow, shoulder, 20, 0],:]))
         f = np.nonzero(B1)
         d = np.argmin(np.sum( np.square(np.array([pos2D[20,0]-f[1], pos2D[20,1]-f[0]]).transpose()),axis=1 ))
         peakArmpit = np.array([f[1][d],f[0][d]])
         # create the upperarm polygon out the five point defining it
-        ptA = np.stack((intersection_elbow[0],intersection215[1],intersection_head[1],peakArmpit,intersection_elbow[1]))
+        if side == 0 :
+            ptA = np.stack((intersection_elbow[0],intersection215[0],intersection_head[0],peakArmpit,intersection_elbow[1]))
+        else:
+            ptA = np.stack((intersection_elbow[1],intersection215[1],intersection_head[1],peakArmpit,intersection_elbow[0]))
         bw_upper = (A*self.polygonOutline(ptA)>0)
 
         return np.array([bw_up,bw_upper])

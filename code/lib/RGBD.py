@@ -289,10 +289,11 @@ class RGBD():
         #depth_image = self.depth_image[0][self.Index]
         imageWBG = (self.bw[0][self.Index]>0)#self.removeBG(self.bw[0][self.Index])
         B = self.lImages_filtered[0][self.Index]
-        armLeft = self.segm.forearmLeft(imageWBG,B)
-        armRight = self.segm.forearmRight(imageWBG,B)
+        
         right = 0
         left = 1
+        armLeft = self.segm.armSeg(imageWBG,B,left)
+        armRight = self.segm.armSeg(imageWBG,B,right)
         legRight = self.segm.legSeg(imageWBG,right)
         legLeft = self.segm.legSeg(imageWBG,left)
         
