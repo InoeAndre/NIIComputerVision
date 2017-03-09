@@ -5,6 +5,7 @@ import sys
 import cv2
 from math import *
 import numpy as np
+from numpy import linalg as LA
 from numpy.matlib import rand,zeros,ones,empty,eye
 import Tkinter as tk
 import tkMessageBox
@@ -13,8 +14,10 @@ from PIL import Image, ImageTk
 import imp
 import scipy.io
 import time
+import random
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
+TrackManager = imp.load_source('TrackManager', './lib/tracking.py')
 
 class Application(tk.Frame):
     ## Function to handle keyboard inputs
@@ -127,7 +130,7 @@ class Application(tk.Frame):
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection)
         self.RGBD.ReadFromMat()
         self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.DrawSkeleton()
+        #self.RGBD.DrawSkeleton()
         start_time = time.time()
         self.RGBD.Vmap_optimize()
         elapsed_time = time.time() - start_time
@@ -140,6 +143,33 @@ class Application(tk.Frame):
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
         elapsed_time3 = time.time() - start_time2
         print "Draw_optimize: %f" % (elapsed_time3)
+        
+        '''
+        Test Register
+        '''
+        ImageTest = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
+        ImageTest.LoadMat(self.lImages,self.pos2d,self.connection)
+        ImageTest.ReadFromMat()
+        ImageTest.BilateralFilter(-1, 0.02, 3)
+        ImageTest.Vmap_optimize()
+        ImageTest.NMap_optimize()
+        test_v = np.array([0.01, 0.02,0.015, 0.01, 0.02, 0.03]) #[random.random()/10 for _ in range(6)])
+        A = TrackManager.Exponential(test_v)
+        R = LA.inv(A[0:3,0:3])
+        tra = -np.dot(R,A[0:3,3])
+        print A
+        print R
+        print tra
+        ImageTest.Transform(A)
+        
+        Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
+        Tracker.RegisterRGBD_optimize(ImageTest, self.RGBD)
+        
+        #Tracker = TrackManager.Tracker(0.1, 0.2, 1, [10], 0.001)
+        #Tracker.RegisterRGBD(ImageTest, self.RGBD)
+        '''
+        End test
+        '''
         
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)

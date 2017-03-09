@@ -141,7 +141,7 @@ class RGBD():
         # multiply point by point d_pos and raw matrices
         x = d_pos * x_raw
         y = d_pos * y_raw
-        self.Vtx = np.dstack((x, y,d))
+        self.Vtx = np.dstack((x, y,d_pos))
     
                 
     ##### Compute normals
@@ -248,7 +248,18 @@ class RGBD():
 ###################Bilateral Smooth Funtion#######################
 ##################################################################
     def BilateralFilter(self, d, sigma_color, sigma_space):
-        self.depth_image = cv2.bilateralFilter(self.depth_image, d, sigma_color, sigma_space)
+        self.depth_image = (self.depth_image[:,:] > 0.0) * cv2.bilateralFilter(self.depth_image, d, sigma_color, sigma_space)
+        
+        
+##################################################################
+###################Transformation Funtion#######################
+##################################################################
+    def Transform(self, Pose):
+        stack_pt = np.ones((np.size(self.Vtx,0), np.size(self.Vtx,1)), dtype = np.float32)
+        pt = np.dstack((self.Vtx, stack_pt))
+        self.Vtx = np.dot(Pose,pt.transpose(0,2,1)).transpose(1,2,0)[:, :, 0:3]
+        self.Nmls = np.dot(Pose[0:3,0:3],self.Nmls.transpose(0,2,1)).transpose(1,2,0)
+        
     
     
     
