@@ -7,6 +7,7 @@ from numpy import linalg as LA
 import imp
 import scipy as sp
 import scipy.ndimage
+import math
 
 
 class Segmentation(object):
@@ -210,7 +211,40 @@ class Segmentation(object):
         # Combine the two images to get the foreground.
         im_out = M | im_floodfill_inv 
         return im_out
-        #return im_floodfill
+   
+    def nearestPeak(self,A,hipLeft,hipRight,knee_right):
+        if (int(hipLeft[0])<int(hipRight[0])):
+            if (int(hipLeft[1])<int(knee_right)):
+                region = A[int(hipLeft[1]):int(knee_right),int(hipLeft[0]):int(hipRight[0])]
+            else:
+                region = A[int(knee_right):int(hipLeft[1]),int(hipLeft[0]):int(hipRight[0])]
+        else:
+            if (int(hipRight[1])<int(knee_right)):
+                region = A[int(hipLeft[1]):int(knee_right),int(hipRight[0]):int(hipLeft[0])]
+            else:
+                region = A[int(knee_right):int(hipLeft[1]),int(hipRight[0]):int(hipLeft[0])]
+        f = np.nonzero( (region==0) )
+        d = np.argmin(f[0])
+        return np.array([f[1][d]-1+hipLeft[0],f[1][d]-1+hipLeft[1]])
+        
+#==============================================================================
+# function x = nearestPeak(A,hipLeft,hipRight,knee_right)
+# x_left = left(1);
+# y_left = left(2);
+# x_right = right(1);
+# y_kr = knee_right(2);
+# 
+# region = A(y_left:y_kr,x_left:x_right);
+# [fy,fx]=find(~region);
+# [~,pos] = min(fy);
+# if isempty(pos)
+#     x = [];
+# else
+#     x(1) = fx(pos)-1+x_left;
+#     x(2) = fy(pos)-1+y_left;
+# end
+# 
+#==============================================================================
     
     def forearmLeft(self,A,B):
         '''this function segment the left arm
@@ -274,7 +308,7 @@ class Segmentation(object):
         polygonSlope[2]=finalSlope[2][~np.isnan(finalSlope[2])]
         midpoint = [(pos2D[5,0]+pos2D[6,0])/2, (pos2D[5,1]+pos2D[6,1])/2]
         ref= np.array([polygonSlope[0]*midpoint[0] + polygonSlope[1]*midpoint[1] + polygonSlope[2]]).astype(np.float32)
-        bw_up = ( self.polygon(polygonSlope,ref,x.shape[0]-sum(x)) > 0 )#A*
+        bw_up = ( A*self.polygon(polygonSlope,ref,x.shape[0]-sum(x)) > 0 )
         
         # pos2D[2] = Shoulder_Center
         # pos2D[3] = Head
@@ -389,7 +423,7 @@ class Segmentation(object):
         polygonSlope[2]=finalSlope[2][~np.isnan(finalSlope[2])]
         midpoint = [(pos2D[9,0]+pos2D[10,0])/2, (pos2D[9,1]+pos2D[10,1])/2]
         ref= np.array([polygonSlope[0]*midpoint[0] + polygonSlope[1]*midpoint[1] + polygonSlope[2]]).astype(np.float32)
-        bw_up = ( self.polygon(polygonSlope,ref,x.shape[0]-sum(x)) > 0 )#A*
+        bw_up = ( A*self.polygon(polygonSlope,ref,x.shape[0]-sum(x)) > 0 )
         
         # pos2D[2] = Shoulder_Center
         # pos2D[3] = Head
@@ -441,67 +475,65 @@ class Segmentation(object):
         return np.array([bw_up,bw_upper])
 
 
-    def legRight(self,A):
+    def legSeg(self,A,side):
         '''this function segment the right leg
-        /arg A is the depthImag'''
+        /arg A is the depthImag
+        /arg side if side = 0 the segmentation will be done for the right leg 
+                  otherwise it will be for the left leg'''
         
         pos2D = self.pos2D.astype(np.float64)-1
-        #check the order which point have higher values
+        if side == 0 :
+            knee =17
+            hip = 16
+            ankle = 18
+        else :
+            knee =13
+            hip = 12
+            ankle = 14
+        
+        #check which knee is higher
         if pos2D[17,1] > pos2D[13,1]:
             P = pos2D[17,1]
         else:
             P = pos2D[13,1]
-        # find the fifth point that can not be deduce simply with Slopes or intersection    
+        ## Find the Thigh
+        # find the fifth point that can not be deduce simply with Slopes or intersection using the entier hip
         peak1 = self.nearestPeak(A,pos2D[12],pos2D[16],P)
         # compute slopes related to the leg position
-        slopeThigh = self.findSlope(pos2D[16],pos2D[17])
-        slopeCalf = self.findSlope(pos2D[18],pos2D[17])
+        slopeThigh = self.findSlope(pos2D[hip],pos2D[knee])
+        slopeCalf = self.findSlope(pos2D[ankle],pos2D[knee])
         a_pen = slopeThigh[0] + slopeCalf[0]
         b_pen = slopeThigh[1] + slopeCalf[1]
         if (a_pen == b_pen) and (a_pen==0):
             a_pen = slopeThigh[1]
             b_pen =-slopeThigh[0]
-        c_pen = -(a_pen*pos2D[17,0]+b_pen*pos2D[17,1])    
+        c_pen = -(a_pen*pos2D[knee,0]+b_pen*pos2D[knee,1])    
         # find 2 points corner of the knee
-        intersection_knee=self.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[17])
+        intersection_knee=self.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[knee])
         # find right side of the hip rsh
-        c_rsh = -(slopeThigh[1]*pos2D[16,0]-slopeThigh[0]*pos2D[16,1])
-        intersection_rsh=self.inferedPoint(A,slopeThigh[1],-slopeThigh[0],c_rsh,pos2D[16])
-        v1 = pos2D[17] - pos2D[16]
-        v2 = pos2D[0] - pos2D[16]
-        alpha = np.arccos(np.sum(v1*v2)/(np.sqrt(sum(v1*v1))*np.sqrt(sum(v2*v2)) ))/pi*180
-        if abs(alpha-90)>45:
-            B = np.logical_and( (A==0),self.polygonOutline(pos2D[[20, 0, 17],:]))
-            f = np.nonzero(B)
-            d = np.argmin(np.sum( np.square(np.array([pos2D[16,0]-f[1], pos2D[16,1]-f[0]]).transpose()),axis=1 ))
-            intersection_rsh[1] = np.array([f[1][d],f[0][d]])
-        ptA = np.stack((pos2D[0],intersection_rsh[1],intersection_knee[1],intersection_knee[0],peak1))   
+        c_rsh = -(slopeThigh[1]*pos2D[hip,0]-slopeThigh[0]*pos2D[hip,1])
+        intersection_rsh=self.inferedPoint(A,slopeThigh[1],-slopeThigh[0],c_rsh,pos2D[hip])
+        if side == 0:
+            v1 = pos2D[knee] - pos2D[hip]
+            v2 = pos2D[0] - pos2D[hip]
+            alpha = np.arccos(np.sum(v1*v2)/(np.sqrt(sum(v1*v1))*np.sqrt(sum(v2*v2)) ))/math.pi*180
+            if abs(alpha-90)>45:
+                B = np.logical_and( (A==0),self.polygonOutline(pos2D[[20, 0, knee],:]))
+                f = np.nonzero(B)
+                d = np.argmin(np.sum( np.square(np.array([pos2D[hip,0]-f[1], pos2D[hip,1]-f[0]]).transpose()),axis=1 ))
+                intersection_rsh[1] = np.array([f[1][d],f[0][d]])
+            ptA = np.stack((pos2D[0],intersection_rsh[1],intersection_knee[1],intersection_knee[0],peak1))   
+        else :
+            ptA = np.stack((pos2D[0],intersection_rsh[0],intersection_knee[0],intersection_knee[1],peak1))   
         bw_up = ( (A*self.polygonOutline(ptA))>0 )
         
-        
+        ## Find Calf
+        # Define slopes
+        a_pen = slopeCalf[1]
+        b_pen = -slopeCalf[0]
+        c_pen = -(a_pen*pos2D[ankle,0]+b_pen*pos2D[ankle,1])   
+        # find 2 points corner of the ankle
+        intersection_ankle=self.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[ankle])  
+        ptA = np.stack((intersection_ankle[1],intersection_ankle[0],intersection_knee[0],intersection_knee[1]))  
+        bw_down = (A*self.polygonOutline(ptA)>0)
         return np.array([bw_up,bw_down])
-#==============================================================================
-# function [thigh,bw_down] = thighRight(A,pos2D,kernel)
-
-# [a,b,~]=linearEQ(pos2D(19,:),pos2D(18,:));
-# a_pen = b;
-# b_pen = -a;
-# c_pen = -(a_pen*pos2D(18,1)+b_pen*pos2D(19,2));
-# % find 2 points
-# [left,right]=inferedPoint(A,a_pen,b_pen,c_pen,pos2D(19,:));
-# x_left_bot = left(1);y_left_bot = left(2);
-# x_right_bot = right(1);y_right_bot = right(2);
-# 
-# % [a,b,c]=linearEQ([[x_right_bot y_right_bot];[x_left_bot y_left_bot];[x_left y_left];[x_right y_right];],...
-# %     [[x_right y_right];[x_right_bot y_right_bot];[x_left_bot y_left_bot];[x_left y_left];]);
-# % 
-# % midpoint = [(pos2D(19,1)+pos2D(18,1))/2 (pos2D(19,2)+pos2D(18,2))/2];
-# % ref=zeros([4 1]);
-# % for i = 1:4
-# %     ref(i) = double(a(i)*midpoint(1) + b(i)*midpoint(2) + c(i));
-# % end
-# % bw_down = A.*polygon(kernel,a,b,c,ref,4)>0;
-# ptA = [[x_right_bot y_right_bot];[x_left_bot y_left_bot];[x_left y_left];[x_right y_right];];
-# M = polygonOutline(ptA);
-# bw_down = (A.*M)>0;   
-#==============================================================================

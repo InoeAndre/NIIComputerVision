@@ -275,7 +275,7 @@ class RGBD():
 
 
     def BodySegmentation(self, idx = -1):
-        #this function calls the function in segmentation.py to process the segmentation of the body
+        '''this function calls the function in segmentation.py to process the segmentation of the body'''
         if (idx == -1):
             self.Index = self.Index + 1
         else:
@@ -291,6 +291,10 @@ class RGBD():
         B = self.lImages_filtered[0][self.Index]
         armLeft = self.segm.forearmLeft(imageWBG,B)
         armRight = self.segm.forearmRight(imageWBG,B)
+        right = 0
+        left = 1
+        legRight = self.segm.legSeg(imageWBG,right)
+        legLeft = self.segm.legSeg(imageWBG,left)
         
 
 #==============================================================================
@@ -323,6 +327,10 @@ class RGBD():
         I = I +200*armLeft[1]
         I = I +0*armRight[0]
         I = I +200*armRight[1]
+        I = I +255*legRight[0]
+        I = I +255*legRight[1]
+        I = I +255*legLeft[0]
+        I = I +255*legLeft[1]
         segImg[:,:,0,self.Index]=I
     
         # For Channel color G
@@ -343,6 +351,10 @@ class RGBD():
         I = I +200*armLeft[1]
         I = I +255*armRight[0]
         I = I +255*armRight[1]
+        I = I +0*legRight[0]
+        I = I +180*legRight[1]
+        I = I +255*legLeft[0]
+        I = I +255*legLeft[1]
         segImg[:,:,1,self.Index] = I
     
         # For Channel color B
@@ -363,6 +375,10 @@ class RGBD():
         I = I +255*armLeft[1]
         I = I +0*armRight[0]
         I = I +200*armRight[1]
+        I = I +255*legRight[0]
+        I = I +255*legRight[1]
+        I = I +0*legLeft[0]
+        I = I +180*legLeft[1]
         segImg[:,:,2,self.Index] = I
         #I = segImg[:,:,:,0]
     
