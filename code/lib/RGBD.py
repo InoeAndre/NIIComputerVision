@@ -296,6 +296,7 @@ class RGBD():
         armRight = self.segm.armSeg(imageWBG,B,right)
         legRight = self.segm.legSeg(imageWBG,right)
         legLeft = self.segm.legSeg(imageWBG,left)
+        head = self.segm.headSeg(imageWBG)
         
 
 #==============================================================================
@@ -332,6 +333,7 @@ class RGBD():
         I = I +255*legRight[1]
         I = I +255*legLeft[0]
         I = I +255*legLeft[1]
+        I = I +255*head
         segImg[:,:,0,self.Index]=I
     
         # For Channel color G
@@ -356,6 +358,7 @@ class RGBD():
         I = I +180*legRight[1]
         I = I +255*legLeft[0]
         I = I +255*legLeft[1]
+        I = I +0*head
         segImg[:,:,1,self.Index] = I
     
         # For Channel color B
@@ -380,6 +383,7 @@ class RGBD():
         I = I +255*legRight[1]
         I = I +0*legLeft[0]
         I = I +180*legLeft[1]
+        I = I +0*head
         segImg[:,:,2,self.Index] = I
         #I = segImg[:,:,:,0]
     

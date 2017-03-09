@@ -226,25 +226,7 @@ class Segmentation(object):
         f = np.nonzero( (region==0) )
         d = np.argmin(f[0])
         return np.array([f[1][d]-1+hipLeft[0],f[1][d]-1+hipLeft[1]])
-        
-#==============================================================================
-# function x = nearestPeak(A,hipLeft,hipRight,knee_right)
-# x_left = left(1);
-# y_left = left(2);
-# x_right = right(1);
-# y_kr = knee_right(2);
-# 
-# region = A(y_left:y_kr,x_left:x_right);
-# [fy,fx]=find(~region);
-# [~,pos] = min(fy);
-# if isempty(pos)
-#     x = [];
-# else
-#     x(1) = fx(pos)-1+x_left;
-#     x(2) = fy(pos)-1+y_left;
-# end
-# 
-#==============================================================================
+
     
     def armSeg(self,A,B,side):
         '''this function segment the left arm
@@ -272,17 +254,18 @@ class Segmentation(object):
 
         # First let us see the down limit thanks to the elbow and the wrist (left side)
         # FindSlopes give the slope of a line made by two point
-        slopes0=self.findSlope(pos2D[elbow],pos2D[wrist])
-        a_pen67 = -slopes0[1]
-        b_pen67 = slopes0[0]
+        # Forearm
+        slopesForearm=self.findSlope(pos2D[elbow],pos2D[wrist])
+        a_pen67 = -slopesForearm[1]
+        b_pen67 = slopesForearm[0]
+        # Upperarm
+        slopesUpperarm=self.findSlope(pos2D[elbow],pos2D[shoulder])
         
-        slopes1=self.findSlope(pos2D[elbow],pos2D[shoulder])
-        
-        a_pen = slopes0[0] + slopes1[0]
-        b_pen = slopes0[1] + slopes1[1]
+        a_pen = slopesForearm[0] + slopesUpperarm[0]
+        b_pen = slopesForearm[1] + slopesUpperarm[1]
         if (a_pen == b_pen) and (a_pen==0):
-            a_pen = slopes1[1]
-            b_pen =-slopes1[0]
+            a_pen = slopesUpperarm[1]
+            b_pen =-slopesUpperarm[0]
 
         c_pen = -(a_pen*pos2D[elbow,0]+b_pen*pos2D[elbow,1])
         
@@ -328,7 +311,7 @@ class Segmentation(object):
         # pos2D[2] = Shoulder_Center
         # pos2D[3] = Head
         
-        #compute slopes
+        #compute slopes Shoulder Head (SH)spine
         slopesSH=self.findSlope(pos2D[2],pos2D[3])
         a_pen = slopesSH[1]
         b_pen = - slopesSH[0]
@@ -337,13 +320,13 @@ class Segmentation(object):
         # compute the intersection between the slope and the extremety of the body
         intersection_head=self.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[2])
         
-        slopes215=self.findSlope(pos2D[20],pos2D[shoulder])
+        slopesTorso=self.findSlope(pos2D[20],pos2D[shoulder])
         
-        a_pen = slopes215[0]+slopes1[0]
-        b_pen = slopes215[1]+slopes1[1]
+        a_pen = slopesTorso[0]+slopesUpperarm[0]
+        b_pen = slopesTorso[1]+slopesUpperarm[1]
         if (a_pen == b_pen) and (a_pen==0):
-            a_pen = slopes215[1]
-            b_pen = -slopes215[0]
+            a_pen = slopesTorso[1]
+            b_pen = -slopesTorso[0]
 
         c_pen = -(a_pen*pos2D[shoulder,0]+b_pen*pos2D[shoulder,1])
         
@@ -440,3 +423,45 @@ class Segmentation(object):
         ptA = np.stack((intersection_ankle[1],intersection_ankle[0],intersection_knee[0],intersection_knee[1]))  
         bw_down = (A*self.polygonOutline(ptA)>0)
         return np.array([bw_up,bw_down])
+    
+    def headSeg(self,A):
+        '''this function segment the head
+        /arg A is the depthImag'''
+        
+        pos2D = self.pos2D.astype(np.float64)-1    
+        
+        #compute slopes Shoulder Head (SH)spine
+        slopesSH=self.findSlope(pos2D[2],pos2D[3])
+        a_pen = slopesSH[1]
+        b_pen = - slopesSH[0]
+        c_pen = -(a_pen*pos2D[2,0]+b_pen*pos2D[2,1])
+
+        # find left
+        x = int(pos2D[2,0])
+        while 1:
+            x = x-1
+            y =int(np.round(-(a_pen*x+c_pen)/b_pen))
+            if A[y,x]==0:
+                headLeft = np.array([x,y])
+                break
+            
+        # find right
+        x = int(pos2D[2,0])
+        while 1:
+            x = x+1
+            y =int(np.round(-(a_pen*x+c_pen)/b_pen))
+            if A[y,x]==0:
+                headRight = np.array([x,y])
+                break
+        
+        h = pos2D[2,1]-pos2D[3,1]
+        headUp_right = np.array([pos2D[8,0],h])
+        headUp_left = np.array([pos2D[5,0],h])
+        pt4D = np.array([headUp_right,headUp_left,headLeft,headRight])
+        pt4D_bis = np.array([headUp_left,headLeft,headRight,headUp_right])
+        HeadSlope=self.findSlope(pt4D.transpose(),pt4D_bis.transpose())
+        midpoint = [pos2D[3,0], pos2D[3,1]]
+        ref= np.array([HeadSlope[0]*midpoint[0] + HeadSlope[1]*midpoint[1] + HeadSlope[2]]).astype(np.float32)
+        bw_head = ( A*self.polygon(HeadSlope,ref,HeadSlope.shape[0]) > 0 )  
+        return bw_head
+
