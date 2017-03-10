@@ -287,6 +287,9 @@ class RGBD():
         #for j  in range(self.numbImages):
         pose = self.pos2d[0][self.Index]
         #depth_image = self.depth_image[0][self.Index]
+        #mini = np.argmin(depth_image[(pos2D[connection[:,0]-1,0]-1,pos2D[connection[:,0]-1,1]-1)])
+        #maxi = np.argmax(depth_image[(pos2D[connection[:,0]-1,0]-1,pos2D[connection[:,0]-1,1]-1)])
+        #bw0 = cv2.inRange(depth_image,mini,maxi) #fin = ( (depth_image > mini) * (depth_image<maxi) ) #fin = np.bitwise_not(depth_image, bw0)
         imageWBG = (self.bw[0][self.Index]>0)#self.removeBG(self.bw[0][self.Index])
         B = self.lImages_filtered[0][self.Index]
         

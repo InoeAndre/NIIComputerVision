@@ -8,7 +8,8 @@ import imp
 import scipy as sp
 import scipy.ndimage
 import math
-
+import time
+import itertools
 
 class Segmentation(object):
     
@@ -129,8 +130,9 @@ class Segmentation(object):
     
 
     def polygon(self,slopes,ref,  limit  ):
-       ''' This function test the sign of alpha = a[k]*j+b[k]*i+c[k])*ref[k] 
+       ''' This function test the sign of alpha = (a[k]*j+b[k]*i+c[k])*ref[k] 
         to know whether a point is within a polygon or not'''
+       start_time = time.time()
        line = self.depthImage.shape[0]
        col = self.depthImage.shape[1]
        res = np.zeros([line,col],np.bool)
@@ -142,8 +144,35 @@ class Segmentation(object):
                alpha_positif = (alpha >= 0)
                if alpha_positif.all():
                    res[j,i]=True
-
+       elapsed_time = time.time() - start_time
+       print "polygon: %f" % (elapsed_time)
        return res
+   
+    def polygon_optimize(self,slopes,ref,  limit  ):
+        ''' This function test the sign of alpha = (a[k]*j+b[k]*i+c[k])*ref[k] 
+        to know whether a point is within a polygon or not'''
+        start_time = time.time()
+        line = self.depthImage.shape[0]
+        col = self.depthImage.shape[1]
+        res = np.ones([line,col])
+        
+        #create a matrix containing in each pixel its indices
+        lineIdx = np.array([np.arange(line) for _ in range(col)]).reshape(col,line).transpose()
+        colIdx = np.array([np.arange(col) for _ in range(line)]).reshape(line,col)
+        depthIdx = np.ones([line,col])
+        ind = np.stack( (lineIdx,colIdx,depthIdx), axis = 2)
+        
+        alpha = np.zeros([line,col,limit])
+        alpha= np.dot(ind,slopes)
+        # for each k (line) if the points (ref and the current point in alpha) are on the same then the operation is positiv
+        for k in range(limit):
+            alpha[:,:,k]=( (np.dot(alpha[:,:,k],ref[0][k])) >= 0)
+        # make sure that each point are on the same side as the reference for all line of the polygon
+        for k in range(limit):
+            res *= alpha[:,:,k ] 
+        elapsed_time = time.time() - start_time
+        print "polygon_optimize: %f" % (elapsed_time)
+        return res
         
     def polygonOutline(self,points):
         '''Find a polygon on the image through the points given in points
@@ -155,16 +184,6 @@ class Segmentation(object):
         n = points.shape[0]
         i = 2
         d = 0
-        #delete point that are NaN
-#==============================================================================
-#         newPts = np.zeros([points[:,:][~np.isnan(points[:,:])].shape[0]],[points[:,:][~np.isnan(points[:,:])].shape[1]])
-#         while i<=n-d:
-#             if points[i,:] == points[i-1,:]:
-#                 newPts[i,:]=points[i,:][~np.isnan(points[i,:])]
-#                 d=d+1
-#             else:
-#                 i = i+1
-#==============================================================================
         # trace the segment        
         ptB = np.zeros(points.shape)
         ptB[-1]=points[0]
@@ -306,7 +325,7 @@ class Segmentation(object):
         polygonSlope[2]=finalSlope[2][~np.isnan(finalSlope[2])]
         midpoint = [(pos2D[elbow,0]+pos2D[wrist,0])/2, (pos2D[elbow,1]+pos2D[wrist,1])/2]
         ref= np.array([polygonSlope[0]*midpoint[0] + polygonSlope[1]*midpoint[1] + polygonSlope[2]]).astype(np.float32)
-        bw_up = ( A*self.polygon(polygonSlope,ref,x.shape[0]-sum(x)) > 0 )
+        bw_up = ( A*self.polygon_optimize(polygonSlope,ref,x.shape[0]-sum(x)) > 0 )
         
         # pos2D[2] = Shoulder_Center
         # pos2D[3] = Head
@@ -462,6 +481,6 @@ class Segmentation(object):
         HeadSlope=self.findSlope(pt4D.transpose(),pt4D_bis.transpose())
         midpoint = [pos2D[3,0], pos2D[3,1]]
         ref= np.array([HeadSlope[0]*midpoint[0] + HeadSlope[1]*midpoint[1] + HeadSlope[2]]).astype(np.float32)
-        bw_head = ( A*self.polygon(HeadSlope,ref,HeadSlope.shape[0]) > 0 )  
+        bw_head = ( A*self.polygon_optimize(HeadSlope,ref,HeadSlope.shape[0]) > 0 )  
         return bw_head
 
