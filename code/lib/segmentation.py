@@ -140,10 +140,10 @@ class Segmentation(object):
        for i in range(line):
            for j in range(col):
                for k in range(limit):
-                   alpha[0][k] = (slopes[0][k]*i+slopes[1][k]*j+slopes[2][k])*ref[0,k]
+                   alpha[0][k] = (slopes[0][k]*j+slopes[1][k]*i+slopes[2][k])*ref[0,k]
                alpha_positif = (alpha >= 0)
                if alpha_positif.all():
-                   res[j,i]=True
+                   res[i,j]=True
        elapsed_time = time.time() - start_time
        print "polygon: %f" % (elapsed_time)
        return res
@@ -160,7 +160,7 @@ class Segmentation(object):
         lineIdx = np.array([np.arange(line) for _ in range(col)]).reshape(col,line).transpose()
         colIdx = np.array([np.arange(col) for _ in range(line)]).reshape(line,col)
         depthIdx = np.ones([line,col])
-        ind = np.stack( (lineIdx,colIdx,depthIdx), axis = 2)
+        ind = np.stack( (colIdx,lineIdx,depthIdx), axis = 2)
         
         alpha = np.zeros([line,col,limit])
         alpha= np.dot(ind,slopes)
@@ -169,7 +169,8 @@ class Segmentation(object):
             alpha[:,:,k]=( (np.dot(alpha[:,:,k],ref[0][k])) >= 0)
         # make sure that each point are on the same side as the reference for all line of the polygon
         for k in range(limit):
-            res *= alpha[:,:,k ] 
+            res = res*alpha[:,:,k ] 
+        res = (res>0)
         elapsed_time = time.time() - start_time
         print "polygon_optimize: %f" % (elapsed_time)
         return res
@@ -293,19 +294,19 @@ class Segmentation(object):
         bone1 = LA.norm(pos2D[elbow]-pos2D[wrist])
         bone2 = LA.norm(pos2D[elbow]-pos2D[shoulder])
         bone = max(bone1,bone2);
-        p1=B[int(pos2D[elbow,1]),int(pos2D[elbow,0])]
-        p2=B[int(pos2D[wrist,1]),int(pos2D[wrist,0])]
+        #p1=B[int(pos2D[elbow,1]),int(pos2D[elbow,0])]
+        #p2=B[int(pos2D[wrist,1]),int(pos2D[wrist,0])]
         #threshold the image to get just the interesting part of the body
-        A1 = B*(B>(min(p1,p2)-50)) * (B<(max(p1,p2)+50))
+        #A1 = B* ((B>(min(p1,p2)-50)) * (B<(max(p1,p2)+50)))
         
         # compute the intersection between the slope and the extremety of the body
-        # Qnd get two corners of the segmented body parts
-        intersection_elbow=self.inferedPoint(A1,a_pen,b_pen,c_pen,pos2D[elbow],0.5*bone)
+        # And get two corners of the segmented body parts
+        intersection_elbow=self.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[elbow],0.5*bone)
         vect_elbow = intersection_elbow[0]-pos2D[elbow]
               
         # find 2 points wrist
         c_pen67=-(a_pen67*pos2D[wrist,0]+b_pen67*pos2D[wrist,1])
-        intersection_wrist=self.inferedPoint(A1,a_pen67,b_pen67,c_pen67,pos2D[wrist],bone/3)
+        intersection_wrist=self.inferedPoint(A,a_pen67,b_pen67,c_pen67,pos2D[wrist],bone/3)
         vect_wrist = intersection_wrist[0]-pos2D[wrist]
         vect67 = pos2D[wrist]-pos2D[elbow]
         vect67_pen = np.array([vect67[1], -vect67[0]])

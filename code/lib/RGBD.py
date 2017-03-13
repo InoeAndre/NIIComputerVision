@@ -301,8 +301,8 @@ class RGBD():
         legLeft = self.segm.legSeg(imageWBG,left)
         head = self.segm.headSeg(imageWBG)
         
-        tmp = armLeft[0]+armLeft[1]+armRight[0]+armRight[1]+legRight[0]+legRight[1]+legRight[0]+legRight[1]+head
-        body = ( (imageWBG-(tmp>0))>0)
+        tmp = armLeft[0]+armLeft[1]+armRight[0]+armRight[1]+legRight[0]+legRight[1]+legLeft[0]+legLeft[1]+head
+        body = ( self.removeBG(imageWBG-(tmp>0))>0)
 #==============================================================================
 #         self.binBody[0] = forearmL      color=[0,0,255]
 #         self.binBody[1] = upperarmL     color=[200,200,255]
