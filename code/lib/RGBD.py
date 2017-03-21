@@ -284,24 +284,28 @@ class RGBD():
         segImg = (np.zeros([self.Size[0],self.Size[1],self.Size[2],self.numbImages])).astype(np.int8)
         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
         start_time = time.time()
-        #for j  in range(self.numbImages):
         pos2D = self.pos2d[0][self.Index]
-        self.depth_image = self.depth_image*65535
-        self.depth_image = self.depth_image.astype(np.uint16)
-        bdyVals = self.depth_image[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
-        bdy = bdyVals[np.nonzero(bdyVals != 0)]
-        mini = bdy[np.argmin(bdy)]
-        print "mini: %u" % (mini)
-        maxi = bdy[np.argmax(bdy)]#-1500
-        print "max: %u" % (maxi)
-        bwmin = (self.depth_image > mini-0.0075*65535) #* (self.depth_image<maxi) ) #bw0 = cv2.inRange(depth_image,mini,maxi) #
-        bwmax = (self.depth_image < maxi+0.0075*65535)
-        bw0 = bwmin*bwmax
-        #M = np.max(self.depth_image)
-        segImg[:,:,0,self.Index]=bw0*255#self.depth_image*(255./M)#
-        segImg[:,:,1,self.Index]=bw0*255#self.depth_image*(255./M)#bw0*255
-        segImg[:,:,2,self.Index]=bw0*255#self.depth_image*(255./M)#bw0*255
-        return segImg[:,:,:,self.Index]
+#==============================================================================
+#         #segmentation of the whole body 
+#         max_value = np.iinfo(np.uint16).max # = 65535 for uint16
+#         self.depth_image = self.depth_image*max_value
+#         self.depth_image = self.depth_image.astype(np.uint16)
+#         bdyVals = self.depth_image[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
+#         bdy = bdyVals[np.nonzero(bdyVals != 0)]
+#         mini = bdy[np.argmin(bdy)]
+#         print "mini: %u" % (mini)
+#         maxi = bdy[np.argmax(bdy)]
+#         print "max: %u" % (maxi)
+#         bwmin = (self.depth_image > mini-0.0075*max_value) 
+#         bwmax = (self.depth_image < maxi+0.0075*max_value)
+#         bw0 = bwmin*bwmax
+#         bw0 = ( self.removeBG(bw0)>0)
+#         #M = np.max(self.depth_image)
+#         segImg[:,:,0,self.Index]=bw0*255#self.depth_image*(255./M)#
+#         segImg[:,:,1,self.Index]=bw0*255#self.depth_image*(255./M)#bw0*255
+#         segImg[:,:,2,self.Index]=bw0*255#self.depth_image*(255./M)#bw0*255
+#         return segImg[:,:,:,self.Index]
+#==============================================================================
         imageWBG = (self.bw[0][self.Index]>0)#self.removeBG(self.bw[0][self.Index])
         B = self.lImages_filtered[0][self.Index]
         
@@ -315,18 +319,19 @@ class RGBD():
         
         tmp = armLeft[0]+armLeft[1]+armRight[0]+armRight[1]+legRight[0]+legRight[1]+legLeft[0]+legLeft[1]+head
         body = ( self.removeBG(imageWBG-(tmp>0))>0)
-#==============================================================================
-#         self.binBody[0] = forearmL      color=[0,0,255]
-#         self.binBody[1] = upperarmL     color=[200,200,255]
-#         self.binBody[2] = forearmR      color=[0,255,0]
-#         self.binBody[3] = upperarmR     color=[200,255,200]
-#         self.binBody[4] = thighR        color=[255,0,255]
-#         self.binBody[5] = calfR         color=[255,180,255]
-#         self.binBody[6] = thighL        color=[255,255,0]
-#         self.binBody[7] = calfL         color=[255,255,180]
-#         self.binBody[8] = headB         color=[255,0,0]
-#         self.binBody[9] = body          color=[255,255,255]
-#==============================================================================
+        '''
+        correspondance between number and body parts and color
+        self.binBody[0] = forearmL      color=[0,0,255]
+        self.binBody[1] = upperarmL     color=[200,200,255]
+        self.binBody[2] = forearmR      color=[0,255,0]
+        self.binBody[3] = upperarmR     color=[200,255,200]
+        self.binBody[4] = thighR        color=[255,0,255]
+        self.binBody[5] = calfR         color=[255,180,255]
+        self.binBody[6] = thighL        color=[255,255,0]
+        self.binBody[7] = calfL         color=[255,255,180]
+        self.binBody[8] = headB         color=[255,0,0]
+        self.binBody[9] = body          color=[255,255,255] 
+        '''
         
         # For Channel color R
 #==============================================================================
