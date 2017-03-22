@@ -14,9 +14,8 @@ import itertools
 class Segmentation(object):
     
         # Constructor
-    def __init__(self, depthImage, colorname, pos2D):
+    def __init__(self, depthImage, pos2D):
         self.depthImage = depthImage
-        self.colorname = colorname
         self.pos2D = pos2D
         
 #==============================================================================
@@ -190,8 +189,8 @@ class Segmentation(object):
         ptB[-1]=points[0]
         for i in range(0,points.shape[0]-1):
             ptB[i] = points[i+1]
+        
         M = np.zeros([line,col],np.uint8)
-
         for i in range(n-d):        
             A = points[i,:]
             B = ptB[i,:]

@@ -71,14 +71,12 @@ class RGBD():
         self.intrinsic = intrinsic
         self.fact = fact
         
-    def LoadMat(self, Images,Images_filtered,Pos_2D,BodyConnection,binaryBodyPart,binImage):
+    def LoadMat(self, Images,Pos_2D,BodyConnection,binImage):
         self.lImages = Images
-        self.lImages_filtered = Images_filtered
         self.numbImages = len(self.lImages.transpose())
         self.Index = -1
         self.pos2d = Pos_2D
         self.connection = BodyConnection
-        self.binBody = binaryBodyPart
         self.bw = binImage
         
     def ReadFromDisk(self): #Read an RGB-D image from the disk
@@ -106,12 +104,8 @@ class RGBD():
         self.depth_image = depth_in.astype(np.float32) / self.fact
         self.skel = self.depth_image.copy()
 
-    def DrawSkeleton(self, idx = -1):
-        #this function draw the Skeleton of a human and make connections between each part
-        if (idx == -1):
-            self.Index = self.Index + 1
-        else:
-            self.Index = idx
+    def DrawSkeleton(self):
+        '''this function draw the Skeleton of a human and make connections between each part'''
         pos = self.pos2d[0][self.Index]
         for i in range(np.size(self.connection,0)):
             pt1 = (pos[self.connection[i,0]-1,0],pos[self.connection[i,0]-1,1])
@@ -260,7 +254,7 @@ class RGBD():
 ##################################################################
 ################### Segmentation Function #######################
 ##################################################################
-    def removeBG(self,binaryImage):
+    def RemoveBG(self,binaryImage):
         ''' This function delete all the little group unwanted from the binary image'''
         labeled, n = spm.label(binaryImage)
         size = np.bincount(labeled.ravel())
@@ -273,41 +267,62 @@ class RGBD():
         filtered_labeled = keep_labels[labeled]
         return filtered_labeled
 
+    def EntireBdy(self):
+        '''this function threshold the depth image in order to to get the whole body alone'''
+        pos2D = self.pos2d[0][self.Index]
+        max_value = np.iinfo(np.uint16).max # = 65535 for uint16
+        self.depth_image = self.depth_image*max_value
+        self.depth_image = self.depth_image.astype(np.uint16)
+        
+        # Threshold according to detph of the body
+        bdyVals = self.depth_image[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
+        #only keep vales different from 0
+        bdy = bdyVals[np.nonzero(bdyVals != 0)]
+        mini = bdy[np.argmin(bdy)]
+        print "mini: %u" % (mini)
+        maxi = bdy[np.argmax(bdy)]
+        print "max: %u" % (maxi)
+        bwmin = (self.depth_image > mini-0.0075*max_value) 
+        bwmax = (self.depth_image < maxi+0.0075*max_value)
+        bw0 = bwmin*bwmax
+        
+        # Remove all stand alone object
+        bw0 = ( self.RemoveBG(bw0)>0)
+        
+#==============================================================================
+#         # threshold according to the position
+#         minIdxV = np.argmin(pos2D[self.connection[:,0]-1,1])
+#         maxIdxV = np.argmax(pos2D[self.connection[:,0]-1,1])
+#         minIdxH = np.argmin(pos2D[self.connection[:,0]-1,0])
+#         maxIdxH = np.argmax(pos2D[self.connection[:,0]-1,0])
+#         
+#         for i in range(minIdxV):
+#         
+#==============================================================================
+        # Compare with thenoised binary image given by the kinect
+        thresh2,tmp = cv2.threshold(self.bw[0,self.Index],0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        res = tmp * bw0
+        return res
 
-    def BodySegmentation(self, idx = -1):
+
+    def BodySegmentation(self):
         '''this function calls the function in segmentation.py to process the segmentation of the body'''
-        if (idx == -1):
-            self.Index = self.Index + 1
-        else:
-            self.Index = idx
-        self.segm = segm.Segmentation(self.depth_image,self.colorname,self.pos2d[0][self.Index])
+        self.segm = segm.Segmentation(self.lImages[0,self.Index],self.pos2d[0][self.Index])
         segImg = (np.zeros([self.Size[0],self.Size[1],self.Size[2],self.numbImages])).astype(np.int8)
         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
         start_time = time.time()
-        pos2D = self.pos2d[0][self.Index]
+        #segmentation of the whole body 
+        imageWBG = (self.EntireBdy()>0)
 #==============================================================================
-#         #segmentation of the whole body 
-#         max_value = np.iinfo(np.uint16).max # = 65535 for uint16
-#         self.depth_image = self.depth_image*max_value
-#         self.depth_image = self.depth_image.astype(np.uint16)
-#         bdyVals = self.depth_image[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
-#         bdy = bdyVals[np.nonzero(bdyVals != 0)]
-#         mini = bdy[np.argmin(bdy)]
-#         print "mini: %u" % (mini)
-#         maxi = bdy[np.argmax(bdy)]
-#         print "max: %u" % (maxi)
-#         bwmin = (self.depth_image > mini-0.0075*max_value) 
-#         bwmax = (self.depth_image < maxi+0.0075*max_value)
-#         bw0 = bwmin*bwmax
-#         bw0 = ( self.removeBG(bw0)>0)
+#         # Visualize the body
 #         #M = np.max(self.depth_image)
-#         segImg[:,:,0,self.Index]=bw0*255#self.depth_image*(255./M)#
-#         segImg[:,:,1,self.Index]=bw0*255#self.depth_image*(255./M)#bw0*255
-#         segImg[:,:,2,self.Index]=bw0*255#self.depth_image*(255./M)#bw0*255
+#         segImg[:,:,0,self.Index]=imageWBG*255#self.depth_image*(255./M)#
+#         segImg[:,:,1,self.Index]=imageWBG*255#self.depth_image*(255./M)#
+#         segImg[:,:,2,self.Index]=imageWBG*255#self.depth_image*(255./M)#
 #         return segImg[:,:,:,self.Index]
 #==============================================================================
-        imageWBG = (self.bw[0][self.Index]>0)#self.removeBG(self.bw[0][self.Index])
-        B = self.lImages_filtered[0][self.Index]
+        #imageWBG = (self.bw[0][self.Index]>0)#self.RemoveBG(self.bw[0][self.Index])
+        B = self.lImages[0][self.Index]
         
         right = 0
         left = 1
@@ -318,7 +333,7 @@ class RGBD():
         head = self.segm.headSeg(imageWBG)
         
         tmp = armLeft[0]+armLeft[1]+armRight[0]+armRight[1]+legRight[0]+legRight[1]+legLeft[0]+legLeft[1]+head
-        body = ( self.removeBG(imageWBG-(tmp>0))>0)
+        body = ( self.RemoveBG(imageWBG-(tmp>0))>0)
         '''
         correspondance between number and body parts and color
         self.binBody[0] = forearmL      color=[0,0,255]
@@ -334,18 +349,6 @@ class RGBD():
         '''
         
         # For Channel color R
-#==============================================================================
-#         I = I +255*self.binBody[8][self.Index]
-#         I = I +0*self.binBody[0][self.Index]
-#         I = I +200*self.binBody[1][self.Index]
-#         I = I +0*self.binBody[2][self.Index]
-#         I = I +200*self.binBody[3][self.Index]
-#         I = I +255*self.binBody[6][self.Index]
-#         I = I +255*self.binBody[7][self.Index]
-#         I = I +255*self.binBody[4][self.Index]
-#         I = I +255*self.binBody[5][self.Index]
-#         I = I +255*self.binBody[9][self.Index]
-#==============================================================================
         I = I +0*armLeft[0]
         I = I +200*armLeft[1]
         I = I +0*armRight[0]
@@ -360,18 +363,6 @@ class RGBD():
     
         # For Channel color G
         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
-#==============================================================================
-#         I = I +0*self.binBody[8][self.Index]
-#         I = I +0*self.binBody[0][self.Index]
-#         I = I +200*self.binBody[1][self.Index]
-#         I = I +255*self.binBody[2][self.Index]
-#         I = I +255*self.binBody[3][self.Index]
-#         I = I +255*self.binBody[6][self.Index]
-#         I = I +255*self.binBody[7][self.Index]
-#         I = I +0*self.binBody[4][self.Index]
-#         I = I +180*self.binBody[5][self.Index]
-#         I = I +255*self.binBody[9][self.Index]
-#==============================================================================
         I = I +0*armLeft[0]
         I = I +200*armLeft[1]
         I = I +255*armRight[0]
@@ -385,19 +376,7 @@ class RGBD():
         segImg[:,:,1,self.Index] = I
     
         # For Channel color B
-        I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)#I[(self.bw[0,0]>0)]=255
-#==============================================================================
-#         I = I +0*self.binBody[8][self.Index]
-#         I = I +255*self.binBody[0][self.Index]
-#         I = I +255*self.binBody[1][self.Index]
-#         I = I +0*self.binBody[2][self.Index]
-#         I = I +200*self.binBody[3][self.Index]
-#         I = I +0*self.binBody[6][self.Index]
-#         I = I +180*self.binBody[7][self.Index]
-#         I = I +255*self.binBody[4][self.Index]
-#         I = I +255*self.binBody[5][self.Index]
-#         I = I +255*self.binBody[9][self.Index]
-#==============================================================================
+        I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
         I = I +255*armLeft[0]
         I = I +255*armLeft[1]
         I = I +0*armRight[0]
@@ -409,7 +388,6 @@ class RGBD():
         I = I +0*head
         I = I +255*body
         segImg[:,:,2,self.Index] = I
-        #I = segImg[:,:,:,0]
     
         elapsed_time = time.time() - start_time
         print "Segmentation: %f" % (elapsed_time)

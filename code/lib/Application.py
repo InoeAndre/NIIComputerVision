@@ -123,12 +123,17 @@ class Application(tk.Frame):
         # 'h1'               cell array that contains binary image of body parts
         # 'tform'            transform matrix
         # 'xyzP'             pointcloud
-        mat = scipy.io.loadmat(self.path + '/FixedPose.mat')
+        mat = scipy.io.loadmat(self.path + '/String4b.mat')#
         self.lImages = mat['DepthImg']
-        self.lImages_filtered = mat['DepthImg_after']
-        self.binBody = mat['h1']
         self.pos2d = mat['Pos2D']
-        self.binImage = mat['bw']
+        self.bdyIdx = mat['BodyIndex']
+        #bdyIdx0 = self.bdyIdx[0,0]
+        #bdyIdx0 = np.stack((bdyIdx0,bdyIdx0,bdyIdx0),axis = 2)
+        #matNG = scipy.io.loadmat(self.path + '/FixedPose.mat')
+        #self.lImages = mat['DepthImg']
+        #self.lImages_filtered = matNG['DepthImg_after']
+        #self.binBody = matNG['h1']
+        #self.binImage = matNG['bw']
         connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
         self.connection = connectionMat['SkeletonConnectionMap']
         
@@ -140,12 +145,12 @@ class Application(tk.Frame):
         
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
         #self.RGBD.ReadFromDisk()
-        self.RGBD.LoadMat(self.lImages,self.lImages_filtered,self.pos2d,self.connection,self.binBody,self.binImage)
+        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
         idx = 0
         self.RGBD.ReadFromMat(idx)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
-        segm = self.RGBD.BodySegmentation(idx)
-        self.RGBD.DrawSkeleton(idx)
+        segm = self.RGBD.BodySegmentation()
+        self.RGBD.DrawSkeleton()
         start_time = time.time()
         self.RGBD.Vmap_optimize()
         elapsed_time = time.time() - start_time
