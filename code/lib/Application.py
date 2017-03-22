@@ -140,8 +140,10 @@ class Application(tk.Frame):
         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()
         
-        self.canvas2 = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
-        self.canvas2.pack()
+#==============================================================================
+#         self.canvas2 = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+#         self.canvas2.pack()
+#==============================================================================
         
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
         #self.RGBD.ReadFromDisk()
@@ -149,6 +151,7 @@ class Application(tk.Frame):
         idx = 0
         self.RGBD.ReadFromMat(idx)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
+        self.RGBD.BodyBBox()
         segm = self.RGBD.BodySegmentation()
         self.RGBD.DrawSkeleton()
         start_time = time.time()
@@ -168,6 +171,8 @@ class Application(tk.Frame):
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
         
+        self.canvas2 = tk.Canvas(self, bg="white", height=self.RGBD.BBBox.shape[0], width=self.RGBD.BBBox.shape[1])
+        self.canvas2.pack()
         imgSeg = Image.fromarray(segm, 'RGB')
         self.imgTk2=ImageTk.PhotoImage(imgSeg)
         self.canvas2.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)

@@ -1,5 +1,5 @@
 # File created by Diego Thomas the 16-11-2016
-# improved by Inoe Andre 02-2017
+# improved by Inoe Andre from 02-2017
 
 # Define functions to manipulate RGB-D data
 import cv2
@@ -275,54 +275,74 @@ class RGBD():
         self.depth_image = self.depth_image.astype(np.uint16)
         
         # Threshold according to detph of the body
-        bdyVals = self.depth_image[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
+        bdyVals = self.depth_image[pos2D[self.connection[:,0]-1,0]-1,pos2D[self.connection[:,0]-1,1]-1]
+        #only keep values different from 0
+        bdy = bdyVals[np.nonzero(bdyVals != 0)]
+        mini = np.min(bdy)
+        print "mini: %u" % (mini)
+        maxi = np.max(bdy)
+        print "max: %u" % (maxi)
+        bwmin = (self.depth_image > mini+0.015*max_value) 
+        bwmax = (self.depth_image < maxi-0.2*max_value)
+        bw0 = bwmin*bwmax
+       
+        # Remove all stand alone object
+        bw0 = ( self.RemoveBG(bw0)>0)
+        # Compare with thenoised binary image given by the kinect
+        thresh2,tmp = cv2.threshold(self.bw[0,self.Index],0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        res = tmp *bw0 # 
+        return res
+    
+    def EntireBdyBB(self):
+        '''this function threshold the depth image in order to to get the whole body alone with the bounding box (BB)'''
+        pos2D = self.BBBPos
+        max_value = np.iinfo(np.uint16).max # = 65535 for uint16
+        self.BBBox = self.BBBox*max_value
+        self.BBBox = self.BBBox.astype(np.uint16)
+        
+        # Threshold according to detph of the body
+        bdyVals = self.BBBox[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
         #only keep vales different from 0
         bdy = bdyVals[np.nonzero(bdyVals != 0)]
-        mini = bdy[np.argmin(bdy)]
+        mini =  np.min(bdy)
         print "mini: %u" % (mini)
-        maxi = bdy[np.argmax(bdy)]
+        maxi = np.max(bdy)
         print "max: %u" % (maxi)
-        bwmin = (self.depth_image > mini-0.0075*max_value) 
-        bwmax = (self.depth_image < maxi+0.0075*max_value)
+        bwmin = (self.BBBox > mini-0.01*max_value) 
+        bwmax = (self.BBBox < maxi+0.01*max_value)
         bw0 = bwmin*bwmax
         
         # Remove all stand alone object
         bw0 = ( self.RemoveBG(bw0)>0)
-        
-#==============================================================================
-#         # threshold according to the position
-#         minIdxV = np.argmin(pos2D[self.connection[:,0]-1,1])
-#         maxIdxV = np.argmax(pos2D[self.connection[:,0]-1,1])
-#         minIdxH = np.argmin(pos2D[self.connection[:,0]-1,0])
-#         maxIdxH = np.argmax(pos2D[self.connection[:,0]-1,0])
-#         
-#         for i in range(minIdxV):
-#         
-#==============================================================================
         # Compare with thenoised binary image given by the kinect
-        thresh2,tmp = cv2.threshold(self.bw[0,self.Index],0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        thresh2,tmp = cv2.threshold(self.BBbw,0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
         res = tmp * bw0
         return res
 
 
     def BodySegmentation(self):
         '''this function calls the function in segmentation.py to process the segmentation of the body'''
-        self.segm = segm.Segmentation(self.lImages[0,self.Index],self.pos2d[0][self.Index])
-        segImg = (np.zeros([self.Size[0],self.Size[1],self.Size[2],self.numbImages])).astype(np.int8)
-        I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
+        self.segm = segm.Segmentation(self.BBBox,self.BBBPos) #self.lImages[0,self.Index],self.pos2d[0,self.Index]
+        #segImg = (np.zeros([self.Size[0],self.Size[1],self.Size[2],self.numbImages])).astype(np.int8)
+        segImg = (np.zeros([self.BBBox.shape[0],self.BBBox.shape[1],self.Size[2],self.numbImages])).astype(np.int8)
+        #I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
+        I =  (np.zeros([self.BBBox.shape[0],self.BBBox.shape[1]])).astype(np.int8)
         start_time = time.time()
         #segmentation of the whole body 
-        imageWBG = (self.EntireBdy()>0)
+        imageWBG = (self.EntireBdyBB()>0)
+        # Visualize the body
+        #M = np.max(self.depth_image)
+        #bdyImg = (np.zeros([self.Size[0],self.Size[1],self.Size[2],self.numbImages])).astype(np.int8) 
 #==============================================================================
-#         # Visualize the body
-#         #M = np.max(self.depth_image)
-#         segImg[:,:,0,self.Index]=imageWBG*255#self.depth_image*(255./M)#
-#         segImg[:,:,1,self.Index]=imageWBG*255#self.depth_image*(255./M)#
-#         segImg[:,:,2,self.Index]=imageWBG*255#self.depth_image*(255./M)#
-#         return segImg[:,:,:,self.Index]
+#         bdyImg = (np.zeros([self.BBBox.shape[0],self.BBBox.shape[1],self.Size[2],self.numbImages])).astype(np.int8) 
+#         bdyImg[:,:,0,self.Index]=imageWBG*255#self.depth_image*(255./M)#
+#         bdyImg[:,:,1,self.Index]=imageWBG*255#self.depth_image*(255./M)#
+#         bdyImg[:,:,2,self.Index]=imageWBG*255#self.depth_image*(255./M)#
+#         return bdyImg[:,:,:,self.Index]
 #==============================================================================
         #imageWBG = (self.bw[0][self.Index]>0)#self.RemoveBG(self.bw[0][self.Index])
-        B = self.lImages[0][self.Index]
+        #B = self.lImages[0][self.Index]
+        B = self.BBBox
         
         right = 0
         left = 1
@@ -394,4 +414,44 @@ class RGBD():
         return segImg[:,:,:,self.Index]
 
     
-                
+###################################################################
+################### Bounding boxes Function #######################
+##################################################################      
+    def BodyBBox(self):       
+        '''This will generate a new depthframe but focuses on the human body'''
+        pos2D = self.pos2d[0,self.Index].astype(np.int16)
+        # extremes points of the bodies
+        minV = np.min(pos2D[self.connection[:,0]-1,1])
+        maxV = np.max(pos2D[self.connection[:,0]-1,1])
+        minH = np.min(pos2D[self.connection[:,0]-1,0])
+        maxH = np.max(pos2D[self.connection[:,0]-1,0])
+        # distance head to neck. Let us assume this is enough for all borders
+        distH2N = int(LA.norm(pos2D[self.connection[0,1]-1]-pos2D[self.connection[0,0]-1]))
+        Box = self.lImages[0,self.Index]
+        bwBox = self.bw[0,self.Index]
+        ############ Should check whether the value are in the frame #####################
+        self.BBBox = Box[minV-distH2N:maxV+2*distH2N,minH-distH2N:maxH+distH2N]
+        self.BBBPos = (pos2D -np.array([minH-distH2N,minV-distH2N])).astype(np.int16)
+        self.BBbw = bwBox[minV-distH2N:maxV+2*distH2N,minH-distH2N:maxH+distH2N]
+        
+        
+#==============================================================================
+#         # threshold according to the position
+#         minIdxV = np.argmin(pos2D[self.connection[:,0]-1,1])
+#         maxIdxV = np.argmax(pos2D[self.connection[:,0]-1,1])
+#         minIdxH = np.argmin(pos2D[self.connection[:,0]-1,0])
+#         maxIdxH = np.argmax(pos2D[self.connection[:,0]-1,0])
+#         
+#         for i in range(minIdxV):
+#         
+#==============================================================================
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
