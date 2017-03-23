@@ -18,6 +18,7 @@ import random
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 TrackManager = imp.load_source('TrackManager', './lib/tracking.py')
+TSDFtk = imp.load_source('TSDFtk', './lib/TSDF.py')
 
 class Application(tk.Frame):
     ## Function to handle keyboard inputs
@@ -125,7 +126,7 @@ class Application(tk.Frame):
         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()
         
-        self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
+        self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection)
         self.RGBD.ReadFromMat()
@@ -146,6 +147,7 @@ class Application(tk.Frame):
         
         '''
         Test Register
+        '''
         '''
         ImageTest = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
         ImageTest.LoadMat(self.lImages,self.pos2d,self.connection)
@@ -168,7 +170,27 @@ class Application(tk.Frame):
         #Tracker = TrackManager.Tracker(0.1, 0.2, 1, [10], 0.001)
         #Tracker.RegisterRGBD(ImageTest, self.RGBD)
         '''
+        '''
         End test
+        '''
+        
+        '''
+        Test TSDF
+        '''
+        
+        TSDFManager = TSDFtk.TSDFManager((512,512,512))
+        start_time = time.time()
+        TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
+        elapsed_time = time.time() - start_time
+        print "FuseRGBD_optimized: %f" % (elapsed_time)
+        self.RGBD.depth_image = TSDFManager.RayTracing(self.RGBD, self.Pose)
+        self.RGBD.BilateralFilter(-1, 0.02, 3)
+        self.RGBD.Vmap_optimize()
+        self.RGBD.NMap_optimize()
+        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+        
+        '''
+        End Test
         '''
         
         img = Image.fromarray(rendering, 'RGB')
