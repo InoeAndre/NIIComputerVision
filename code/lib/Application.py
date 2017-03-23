@@ -123,7 +123,7 @@ class Application(tk.Frame):
         # 'h1'               cell array that contains binary image of body parts
         # 'tform'            transform matrix
         # 'xyzP'             pointcloud
-        mat = scipy.io.loadmat(self.path + '/String4b.mat')#
+        mat = scipy.io.loadmat(self.path + '/String4b.mat')
         self.lImages = mat['DepthImg']
         self.pos2d = mat['Pos2D']
         self.bdyIdx = mat['BodyIndex']
