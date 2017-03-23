@@ -446,13 +446,17 @@ class RGBD():
         minH = np.min(pos2D[:,0])
         maxH = np.max(pos2D[:,0])
         # distance head to neck. Let us assume this is enough for all borders
-        distH2N = int(LA.norm(pos2D[self.connection[0,1]-1]-pos2D[self.connection[0,0]-1]))
+        distH2N = np.abs(LA.norm( (pos2D[self.connection[0,1]-1]-pos2D[self.connection[0,0]-1]).astype(np.int16)).astype(np.int16))
         Box = self.lImages[0,self.Index]
         bwBox = self.bw[0,self.Index]
         ############ Should check whether the value are in the frame #####################
-        self.BBBox = Box[minV-distH2N:maxV,minH-distH2N:maxH+distH2N]
-        self.BBBPos = (pos2D -np.array([minH-distH2N,minV-distH2N])).astype(np.int16)
-        self.BBbw = bwBox[minV-distH2N:maxV,minH-distH2N:maxH+distH2N]
+        colStart = (minH-distH2N).astype(np.int16)
+        lineStart = (minV-distH2N).astype(np.int16)
+        colEnd = (maxH+distH2N).astype(np.int16)
+        lineEnd = maxV.astype(np.int16)        
+        self.BBBox = Box[lineStart:lineEnd,colStart:colEnd]
+        self.BBBPos = (pos2D -np.array([colStart,lineStart])).astype(np.int16)
+        self.BBbw = bwBox[lineStart:lineEnd,colStart:colEnd]
         
         
 #==============================================================================
