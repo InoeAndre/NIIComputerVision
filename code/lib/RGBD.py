@@ -361,16 +361,16 @@ class RGBD():
         #M = np.max(self.depth_image)
 
 
-        binaryImage =((imageWBG-(tmp>0))>0)
+        MidBdyImage =((imageWBG-(tmp>0))>0)
 
 
         #body = ( self.GetBody( binaryImage,self.pos2d[0,self.Index])>0)
-        body = ( self.GetBody( binaryImage,self.BBBPos)>0)
+        body = ( self.GetBody( MidBdyImage,self.BBBPos)>0)
         #pdb.set_trace()
         
-        bdyImg[:,:,0,self.Index]=body*255#self.depth_image*(255./M)#
-        bdyImg[:,:,1,self.Index]=body*255#self.depth_image*(255./M)#
-        bdyImg[:,:,2,self.Index]=body*255#self.depth_image*(255./M)#
+        bdyImg[:,:,0,self.Index]=imageWBG*255#self.depth_image*(255./M)#
+        bdyImg[:,:,1,self.Index]=imageWBG*255#self.depth_image*(255./M)#
+        bdyImg[:,:,2,self.Index]=imageWBG*255#self.depth_image*(255./M)#
         return bdyImg[:,:,:,self.Index]
         '''
         correspondance between number and body parts and color
@@ -446,7 +446,7 @@ class RGBD():
         minH = np.min(pos2D[:,0])
         maxH = np.max(pos2D[:,0])
         # distance head to neck. Let us assume this is enough for all borders
-        distH2N = np.abs(LA.norm( (pos2D[self.connection[0,1]-1]-pos2D[self.connection[0,0]-1]).astype(np.int16)).astype(np.int16))
+        distH2N = LA.norm( (pos2D[self.connection[0,1]-1]-pos2D[self.connection[0,0]-1])).astype(np.int16)
         Box = self.lImages[0,self.Index]
         bwBox = self.bw[0,self.Index]
         ############ Should check whether the value are in the frame #####################

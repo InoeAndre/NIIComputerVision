@@ -473,9 +473,9 @@ class Segmentation(object):
                 headRight = np.array([x,y])
                 break
         
-        h = pos2D[2,1]-pos2D[3,1]
-        headUp_right = np.array([pos2D[8,0],h])
-        headUp_left = np.array([pos2D[5,0],h])
+        h = 2*(pos2D[2,1]-pos2D[3,1])
+        headUp_right = np.array([pos2D[8,0],pos2D[2,1]-h])
+        headUp_left = np.array([pos2D[5,0],pos2D[2,1]-h])
         pt4D = np.array([headUp_right,headUp_left,headLeft,headRight])
         pt4D_bis = np.array([headUp_left,headLeft,headRight,headUp_right])
         HeadSlope=self.findSlope(pt4D.transpose(),pt4D_bis.transpose())
