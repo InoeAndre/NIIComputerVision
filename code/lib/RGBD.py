@@ -268,12 +268,6 @@ class RGBD():
         filtered_labeled = keep_labels[labeled]
         return filtered_labeled
 
-    def GetBody(self,binaryImage,pos2D):
-        ''' This function delete all the little group unwanted from the binary image'''
-        labeled, n = spm.label(binaryImage)
-        threshold = labeled[pos2D[1,1],pos2D[1,0]]
-        labeled = (labeled==threshold)
-        return labeled
     
     def EntireBdy(self):
         '''this function threshold the depth image in order to to get the whole body alone'''
@@ -364,14 +358,18 @@ class RGBD():
         MidBdyImage =((imageWBG-(tmp>0))>0)
 
 
-        #body = ( self.GetBody( binaryImage,self.pos2d[0,self.Index])>0)
-        body = ( self.GetBody( MidBdyImage,self.BBBPos)>0)
+        #body = ( self.segm.GetBody( binaryImage)>0)
+        body = ( self.segm.GetBody( MidBdyImage)>0)
+        handRight = ( self.segm.GetHand( MidBdyImage,right)>0)
+        handLeft = ( self.segm.GetHand( MidBdyImage,left)>0)
         #pdb.set_trace()
         
-        bdyImg[:,:,0,self.Index]=imageWBG*255#self.depth_image*(255./M)#
-        bdyImg[:,:,1,self.Index]=imageWBG*255#self.depth_image*(255./M)#
-        bdyImg[:,:,2,self.Index]=imageWBG*255#self.depth_image*(255./M)#
-        return bdyImg[:,:,:,self.Index]
+#==============================================================================
+#         bdyImg[:,:,0,self.Index]=MidBdyImage*255#self.depth_image*(255./M)#
+#         bdyImg[:,:,1,self.Index]=MidBdyImage*255#self.depth_image*(255./M)#
+#         bdyImg[:,:,2,self.Index]=MidBdyImage*255#self.depth_image*(255./M)#
+#         return bdyImg[:,:,:,self.Index]
+#==============================================================================
         '''
         correspondance between number and body parts and color
         self.binBody[0] = forearmL      color=[0,0,255]
@@ -397,6 +395,8 @@ class RGBD():
         I = I +255*legLeft[1]
         I = I +255*head
         I = I +255*body
+        I = I +0*handRight
+        I = I +0*handLeft
         segImg[:,:,0,self.Index]=I
     
         # For Channel color G
@@ -412,6 +412,8 @@ class RGBD():
         I = I +255*legLeft[1]
         I = I +0*head
         I = I +255*body
+        I = I +191*handRight
+        I = I +100*handLeft
         segImg[:,:,1,self.Index] = I
     
         # For Channel color B
@@ -427,6 +429,8 @@ class RGBD():
         I = I +180*legLeft[1]
         I = I +0*head
         I = I +255*body
+        I = I +255*handRight
+        I = I +0*handLeft
         segImg[:,:,2,self.Index] = I
     
         elapsed_time = time.time() - start_time
@@ -453,7 +457,7 @@ class RGBD():
         colStart = (minH-distH2N).astype(np.int16)
         lineStart = (minV-distH2N).astype(np.int16)
         colEnd = (maxH+distH2N).astype(np.int16)
-        lineEnd = maxV.astype(np.int16)        
+        lineEnd = (maxV+distH2N).astype(np.int16)        
         self.BBBox = Box[lineStart:lineEnd,colStart:colEnd]
         self.BBBPos = (pos2D -np.array([colStart,lineStart])).astype(np.int16)
         self.BBbw = bwBox[lineStart:lineEnd,colStart:colEnd]

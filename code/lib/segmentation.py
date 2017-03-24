@@ -10,6 +10,7 @@ import scipy.ndimage
 import math
 import time
 import itertools
+import scipy.ndimage.measurements as spm
 
 class Segmentation(object):
     
@@ -484,3 +485,44 @@ class Segmentation(object):
         bw_head = ( A*self.polygon_optimize(HeadSlope,ref,HeadSlope.shape[0]) > 0 )  
         return bw_head
 
+    def GetBody(self,binaryImage):
+        ''' This function delete all the little group unwanted from the binary image
+        It focuses on the group having the right pos2D, for now the body'''
+        pos2D = self.pos2D
+        labeled, n = spm.label(binaryImage)
+        threshold = labeled[pos2D[1,1],pos2D[1,0]]
+        labeled = (labeled==threshold)
+        return labeled
+    
+    def GetHand(self,binaryImage,side):
+        ''' This function delete all the little group unwanted from the binary image
+        It focuses on the group having the right pos2D, for now the body'''
+        if side == 0 :
+            idx =11
+        else :
+            idx =7
+        pos2D = self.pos2D
+        labeled, n = spm.label(binaryImage)
+        threshold = labeled[pos2D[idx,1],pos2D[idx,0]]
+        labeled = (labeled==threshold)
+        return labeled
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
