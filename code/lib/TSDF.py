@@ -88,6 +88,9 @@ class TSDFManager():
         line_index_ref = (line_index_ref - self.c_y)/self.dim_y
         
         voxels2D = np.dstack((line_index_ref, column_index_ref))
+        
+        normVtxInput = Image.Vtx[:,:,0:3]*Image.Vtx[:,:,0:3]
+        distVtxInput = np.sqrt(normVtxInput.sum(axis=2))
                 
         for z in range(self.Size[2]/s): 
             curr_z = (z-self.c_z)/self.dim_z
@@ -120,9 +123,10 @@ class TSDFManager():
             column_index = column_index*cdt_column
             
             empty_mat = (Image.Vtx[:, :,2] != 0.0)
-            normPt = pt[:,:,0:3]*pt[:,:,0:3]
-            distPt = np.sqrt(normPt.sum(axis=2))
-            diff_Vtx = distPt[:,:] - Image.Vtx[line_index[:][:], column_index[:][:],2]
+            #normPt = pt[:,:,0:3]*pt[:,:,0:3]
+            #distPt = np.sqrt(normPt.sum(axis=2))
+            #diff_Vtx = distPt[:,:] - distVtxInput[line_index[:][:], column_index[:][:]]
+            diff_Vtx = pt[:,:, 2] - Image.Vtx[line_index[:][:], column_index[:][:], 2]
             diff_Vtx = diff_Vtx[:,:]*empty_mat[line_index[:][:], column_index[:][:]] - ~empty_mat[line_index[:][:], column_index[:][:]]
             
             self.TSDF[:,:,z] = diff_Vtx/nu
