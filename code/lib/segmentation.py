@@ -12,6 +12,35 @@ import time
 import itertools
 import scipy.ndimage.measurements as spm
 
+
+'''These are the order of joints returned by the kinect adaptor.
+    SpineBase = 0
+    SpineMid = 1
+    Neck = 2
+    Head = 3
+    ShoulderLeft = 4
+    ElbowLeft = 5
+    WristLeft = 6
+    HandLeft = 7
+    ShoulderRight = 8
+    ElbowRight = 9
+    WristRight = 10
+    HandRight = 11
+    HipLeft = 12
+    KneeLeft = 13
+    AnkleLeft = 14
+    FootLeft = 15
+    HipRight = 16
+    KneeRight = 17
+    AnkleRight = 18
+    FootRight = 19
+    SpineShoulder = 20
+    HandTipLeft = 21
+    ThumbLeft = 22
+    HandTipRight = 23
+    ThumbRight = 24
+   ''' 
+    
 class Segmentation(object):
     
         # Constructor
@@ -164,7 +193,7 @@ class Segmentation(object):
         
         alpha = np.zeros([line,col,limit])
         alpha= np.dot(ind,slopes)
-        # for each k (line) if the points (ref and the current point in alpha) are on the same then the operation is positiv
+        # for each k (line) if the points (ref and the current point in alpha) are on the same side then the operation is positiv
         for k in range(limit):
             alpha[:,:,k]=( (np.dot(alpha[:,:,k],ref[0][k])) >= 0)
         # make sure that each point are on the same side as the reference for all line of the polygon
@@ -496,7 +525,7 @@ class Segmentation(object):
     
     def GetHand(self,binaryImage,side):
         ''' This function delete all the little group unwanted from the binary image
-        It focuses on the group having the right pos2D, for now the body'''
+        It focuses on the group having the right pos2D, here the hands'''
         if side == 0 :
             idx =11
         else :
@@ -507,6 +536,34 @@ class Segmentation(object):
         labeled = (labeled==threshold)
         return labeled
     
+    
+    def GetFoot(self,binaryImage,side):
+        ''' This function delete all the little group unwanted from the binary image
+        It focuses on the group having the right pos2D, here the feet'''
+        if side == 0 :
+            idx =19
+        else :
+            idx =15
+        pos2D = self.pos2D
+        footDist = 12# LA.norm( (pos2D[16]-pos2D[12])/1.5).astype(np.int16)
+        
+        #since feet are on the same detph as the floor some processing are reauired before using cc
+        line = self.depthImage.shape[0]
+        col = self.depthImage.shape[1]
+        mask = np.ones([line,col,2])
+        mask = mask*pos2D[idx]
+        #create a matrix containing in each pixel its indices
+        lineIdx = np.array([np.arange(line) for _ in range(col)]).reshape(col,line).transpose()
+        colIdx = np.array([np.arange(col) for _ in range(line)]).reshape(line,col)
+        ind = np.stack( (colIdx,lineIdx), axis = 2)
+        #compute the distance between the skeleton point of feet and each pixel
+        mask = np.sqrt(np.sum( (ind-mask)*(ind-mask),axis = 2))
+        mask = (mask < footDist)
+        mask = mask * binaryImage
+        labeled, n = spm.label(mask)
+        threshold = labeled[pos2D[idx,1],pos2D[idx,0]]
+        labeled = (labeled==threshold)
+        return labeled
     
     
     

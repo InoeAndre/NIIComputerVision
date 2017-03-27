@@ -10,7 +10,8 @@ import imp
 import time
 import scipy.ndimage.measurements as spm
 import pdb
-
+from skimage import img_as_ubyte
+        
 segm = imp.load_source('segmentation', './lib/segmentation.py')
 
 def normalized_cross_prod(a,b):
@@ -115,7 +116,10 @@ class RGBD():
             cv2.circle(self.skel,pt1,1,(0,0,255),2)
             cv2.circle(self.skel,pt2,1,(0,0,255),2)
 
-
+    def rgb2gray(rgb):
+        return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
+    
+    
     def Vmap(self): # Create the vertex image from the depth image and intrinsic matrice
         self.Vtx = np.zeros(self.Size, np.float32)
         for i in range(self.Size[0]): # line index (i.e. vertical y axis)
@@ -280,12 +284,16 @@ class RGBD():
         bdyVals = self.depth_image[pos2D[:,0]-1,pos2D[:,1]-1]
         #only keep values different from 0
         bdy = bdyVals[np.nonzero(bdyVals != 0)]
-        mini = np.min(bdy)
+        mini =  np.min(bdy)
         print "mini: %u" % (mini)
         maxi = np.max(bdy)
-        print "max: %u" % (maxi)
-        bwmin = (self.depth_image > mini+0.08*mini)#0.22*max_value) 
-        bwmax = (self.depth_image < maxi-0.35*maxi)#0.3*max_value)
+        print "max: %u" % (maxi)        
+        moy = np.mean(bdy)
+        print "moy: %u" % (moy)
+        std = np.std(bdy)
+        print "std: %u" % (std)
+        bwmin = (self.depth_image > moy-std)# mini+0.08*mini)#
+        bwmax = (self.depth_image < moy+std)#maxi-0.35*maxi)#
         bw0 = bwmin*bwmax
         # Compare with thenoised binary image given by the kinect
         thresh2,tmp = cv2.threshold(self.bw[0,self.Index],0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
@@ -320,27 +328,50 @@ class RGBD():
 
         return res
 
+#==============================================================================
+#     def GetBdyEdges(self):
+#         '''take the RGB image, threshold it to get the contours of the body'''
+#         #pos2D = self.pos2d
+#         imgray = self.rgb2gray(self.color_image)
+#         ret,thresh = cv2.threshold(imgray,0,1,cv2.THRESH_OTSU)#127,255,0)
+#         im2, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+#         cv2.drawContours(self.skel, contours, -1, (0,255,0), 3)
+#         #bdyEdges = 1
+#         return bdyEdges
+#==============================================================================
+
 
     def BodySegmentation(self):
         '''this function calls the function in segmentation.py to process the segmentation of the body'''
+        start_time = time.time()
 #==============================================================================
 #         self.segm = segm.Segmentation(self.lImages[0,self.Index],self.pos2d[0,self.Index])
 #         segImg = (np.zeros([self.Size[0],self.Size[1],self.Size[2],self.numbImages])).astype(np.int8)
 #         bdyImg = (np.zeros([self.Size[0],self.Size[1],self.Size[2],self.numbImages])).astype(np.int8) 
 #         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
+#         #segmentation of the whole body 
+#         imageWBG = (self.EntireBdy()>0)
+#         B = self.lImages[0][self.Index]
 #==============================================================================
         #Bounding box version
         self.segm = segm.Segmentation(self.BBBox,self.BBBPos) 
         segImg = (np.zeros([self.BBBox.shape[0],self.BBBox.shape[1],self.Size[2],self.numbImages])).astype(np.int8)
         bdyImg = (np.zeros([self.BBBox.shape[0],self.BBBox.shape[1],self.Size[2],self.numbImages])).astype(np.int8) 
         I =  (np.zeros([self.BBBox.shape[0],self.BBBox.shape[1]])).astype(np.int8)
-        start_time = time.time()
         #segmentation of the whole body 
         imageWBG = (self.EntireBdyBB()>0)
-
-        #B = self.lImages[0][self.Index]
         B = self.BBBox
         
+          # Visualize the body
+#==============================================================================
+#         M = np.max(self.depth_image) #self.depth_image*(255./M)#
+#         bdyImg[:,:,0,self.Index]=imageWBG*255#self.depth_image*(255./M)#
+#         bdyImg[:,:,1,self.Index]=imageWBG*255#self.depth_image*(255./M)#
+#         bdyImg[:,:,2,self.Index]=imageWBG*255#self.depth_image*(255./M)#
+#         return bdyImg[:,:,:,self.Index]
+#==============================================================================
+    
+    
         right = 0
         left = 1
         armLeft = self.segm.armSeg(imageWBG,B,left)
@@ -350,38 +381,38 @@ class RGBD():
         head = self.segm.headSeg(imageWBG)
         
         tmp = armLeft[0]+armLeft[1]+armRight[0]+armRight[1]+legRight[0]+legRight[1]+legLeft[0]+legLeft[1]+head
-        
-        # Visualize the body
-        #M = np.max(self.depth_image)
-
-
         MidBdyImage =((imageWBG-(tmp>0))>0)
+        #self.GetBdyEdges()
 
 
-        #body = ( self.segm.GetBody( binaryImage)>0)
+#==============================================================================
+#         cv_image = img_as_ubyte(MidBdyImage)
+#         im2, contours, hierarchy = cv2.findContours(cv_image,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+#         cv2.drawContours(self.skel, contours, -1, (0,255,0), 3)
+#==============================================================================
         body = ( self.segm.GetBody( MidBdyImage)>0)
         handRight = ( self.segm.GetHand( MidBdyImage,right)>0)
         handLeft = ( self.segm.GetHand( MidBdyImage,left)>0)
+        footRight = ( self.segm.GetFoot( MidBdyImage,right)>0)
+        footLeft = ( self.segm.GetFoot( MidBdyImage,left)>0)
         #pdb.set_trace()
-        
-#==============================================================================
-#         bdyImg[:,:,0,self.Index]=MidBdyImage*255#self.depth_image*(255./M)#
-#         bdyImg[:,:,1,self.Index]=MidBdyImage*255#self.depth_image*(255./M)#
-#         bdyImg[:,:,2,self.Index]=MidBdyImage*255#self.depth_image*(255./M)#
-#         return bdyImg[:,:,:,self.Index]
-#==============================================================================
+
+        self.bdyPart = np.array( [armLeft[0], armLeft[1],armRight[0], armRight[1],legLeft[0], legLeft[1], legRight[0],\
+                                legRight[1], head, body)#,  handRight, handLeft, footRight, footLeft])
         '''
         correspondance between number and body parts and color
-        self.binBody[0] = forearmL      color=[0,0,255]
-        self.binBody[1] = upperarmL     color=[200,200,255]
-        self.binBody[2] = forearmR      color=[0,255,0]
-        self.binBody[3] = upperarmR     color=[200,255,200]
-        self.binBody[4] = thighR        color=[255,0,255]
-        self.binBody[5] = calfR         color=[255,180,255]
-        self.binBody[6] = thighL        color=[255,255,0]
-        self.binBody[7] = calfL         color=[255,255,180]
-        self.binBody[8] = headB         color=[255,0,0]
-        self.binBody[9] = body          color=[255,255,255] 
+        armLeft[0] = forearmL      color=[0,0,255]
+        armLeft[1] = upperarmL     color=[200,200,255]
+        armRight[1]= forearmR      color=[0,255,0]
+        armRight[1] = upperarmR     color=[200,255,200]
+        legRight[0] = thighR        color=[255,0,255]
+        legRight[1] = calfR         color=[255,180,255]
+        legLeft[0] = thighL        color=[255,255,0]
+        legLeft[1] = calfL         color=[255,255,180]
+        head = headB                color=[255,0,0]
+        body = body               color=[255,255,255] 
+        handRight = right hand     color = [0,191,255]
+        handLeft = left hand     color = [0,100,0]
         '''
         
         # For Channel color R
@@ -397,6 +428,8 @@ class RGBD():
         I = I +255*body
         I = I +0*handRight
         I = I +0*handLeft
+        I = I +199*footRight
+        I = I +255*footLeft
         segImg[:,:,0,self.Index]=I
     
         # For Channel color G
@@ -414,6 +447,8 @@ class RGBD():
         I = I +255*body
         I = I +191*handRight
         I = I +100*handLeft
+        I = I +21*footRight
+        I = I +165*footLeft        
         segImg[:,:,1,self.Index] = I
     
         # For Channel color B
@@ -431,6 +466,8 @@ class RGBD():
         I = I +255*body
         I = I +255*handRight
         I = I +0*handLeft
+        I = I +133*footRight
+        I = I +0*footLeft        
         segImg[:,:,2,self.Index] = I
     
         elapsed_time = time.time() - start_time
@@ -474,7 +511,47 @@ class RGBD():
 #         
 #==============================================================================
         
+     def CoordChange(self):       
+        '''This will generate a new depthframe but focuses on the human body'''
         
+        pos2D = self.pos2d[0,self.Index].astype(np.int16)
+        for i in range(self.bdyPart.shape[0]):
+            if i == 0:
+                pos = np.stack( (pos2D[6],pos2D[5]) , axis = 0)
+            elif i == 1 :
+                pos = np.stack( (pos2D[5],pos2D[4]) , axis = 0)
+            elif i == 2 :
+                pos = np.stack( (pos2D[10],pos2D[9]) , axis = 0)
+            elif i == 3 :
+                pos = np.stack( (pos2D[12],pos2D[13]) , axis = 0)
+            elif i == 4 :
+                pos = np.stack( (pos2D[13],pos2D[14]) , axis = 0)
+            elif i == 5 :
+                pos = np.stack( (pos2D[16],pos2D[17]) , axis = 0)
+            elif i == 6 :
+                pos = np.stack( (pos2D[17],pos2D[18]) , axis = 0)    
+            elif i == 7 :
+                pos = np.stack( (pos2D[2],pos2D[3]) , axis = 0)   
+            elif i == 8 :
+                pos = np.stack( (pos2D[0],pos2D[1],pos2D[4],pos2D[8],pos2D[12],pos2D[16],pos2D[20]) , axis = 0)                   
+            # extremes points of the bodies
+            minV = np.min(pos[:,1])
+            maxV = np.max(pos[:,1])
+            minH = np.min(pos[:,0])
+            maxH = np.max(pos[:,0])
+            # distance head to neck. Let us assume this is enough for all borders
+            #dist = LA.norm( (pos2D[self.connection[0,1]-1]-pos2D[self.connection[0,0]-1])).astype(np.int16)
+            Box = self.lImages[0,self.Index]
+            bwBox = self.bw[0,self.Index]
+            ############ Should check whether the value are in the frame #####################
+            colStart = (minH-dist).astype(np.int16)
+            lineStart = (minV-dist).astype(np.int16)
+            colEnd = (maxH+dist).astype(np.int16)
+            lineEnd = (maxV+dist).astype(np.int16)        
+            self.PartPos = np.append(self.PartPos, (pos -np.array([colStart,lineStart])).astype(np.int16) )
+            self.PartBox = np.append(self.PartBox, Box[lineStart:lineEnd,colStart:colEnd] )
+            self.Partbw = np.append(self.Partbw, bwBox[lineStart:lineEnd,colStart:colEnd] )
+           
         
         
         
