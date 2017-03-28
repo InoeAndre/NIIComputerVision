@@ -133,20 +133,23 @@ class Application(tk.Frame):
     
         print self.intrinsic
     
+
         mat = scipy.io.loadmat(self.path + '/String4b.mat')
         self.lImages = mat['DepthImg']
         self.pos2d = mat['Pos2D']
         self.bdyIdx = mat['BodyIndex']
+
         connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
         self.connection = connectionMat['SkeletonConnectionMap']
 
         
+
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        self.RGBD.ReadFromMat()
+        idx = 0
+        self.RGBD.ReadFromMat(idx)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
-
         self.RGBD.BodyBBox()
         segm = self.RGBD.BodySegmentation()
         self.RGBD.CoordChange2D()
@@ -169,6 +172,7 @@ class Application(tk.Frame):
         print "DrawBB: %f" % (elapsed_time3)
         
         # Show figure and images
+
         self.imgTkBB = []
         for i in range(self.RGBD.bdyPart.shape[0]):
             Size = self.RGBD.PartBox[i].shape

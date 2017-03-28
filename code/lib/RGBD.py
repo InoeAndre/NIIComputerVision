@@ -1,4 +1,5 @@
 # File created by Diego Thomas the 16-11-2016
+# improved by Inoe Andre from 02-2017
 
 # Define functions to manipulate RGB-D data
 import cv2
@@ -10,6 +11,7 @@ import time
 import scipy.ndimage.measurements as spm
 import pdb
 from skimage import img_as_ubyte
+
 
 segm = imp.load_source('segmentation', './lib/segmentation.py')
 
@@ -106,23 +108,20 @@ class RGBD():
         self.skel = self.depth_image.copy()
 
 
-    def DrawSkeleton(self, idx = -1):
-        #this function draw the Skeleton of a human and make connections between each part
-        if (idx == -1):
-            self.Index = self.Index + 1
-        else:
-            self.Index = idx
+    def DrawSkeleton(self):
+        '''this function draw the Skeleton of a human and make connections between each part'''
         pos = self.pos2d[0][self.Index]
         for i in range(np.size(self.connection,0)):
             pt1 = (pos[self.connection[i,0]-1,0],pos[self.connection[i,0]-1,1])
             pt2 = (pos[self.connection[i,1]-1,0],pos[self.connection[i,1]-1,1])
-            cv2.line( self.depth_image,pt1,pt2,(0,0,255),2) # color space = BGR
-            cv2.circle(self.depth_image,pt1,1,(0,0,255),2)
-            cv2.circle(self.depth_image,pt2,1,(0,0,255),2)
+            cv2.line( self.skel,pt1,pt2,(0,0,255),2) # color space = BGR
+            cv2.circle(self.skel,pt1,1,(0,0,255),2)
+            cv2.circle(self.skel,pt2,1,(0,0,255),2)
 
     def rgb2gray(rgb):
         return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
-
+    
+    
     def Vmap(self): # Create the vertex image from the depth image and intrinsic matrice
         self.Vtx = np.zeros(self.Size, np.float32)
         for i in range(self.Size[0]): # line index (i.e. vertical y axis)
@@ -351,6 +350,7 @@ class RGBD():
         self.Nmls = np.dot(Pose[0:3,0:3],self.Nmls.transpose(0,2,1)).transpose(1,2,0)
         
     
+
 
 
 ##################################################################
@@ -662,6 +662,7 @@ class RGBD():
                 self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd]) 
            
 
+
 #==============================================================================
 #     def CoordChange2Dv2(self):       
 #         '''This will generate a new depthframe but focuses on the human body'''
@@ -703,3 +704,4 @@ class RGBD():
 #                 self.PartBox.append(Box[lineStart:lineEnd,colStart:colEnd]) 
 #                 self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd]) 
 #==============================================================================
+

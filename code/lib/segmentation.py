@@ -470,8 +470,6 @@ class Segmentation(object):
             self.thighPtsL = ptA
         bw_up = ( (A*self.polygonOutline(ptA))>0 )
         
-        
-            
         ## Find Calf
         # Define slopes
         a_pen = slopeCalf[1]
@@ -484,6 +482,7 @@ class Segmentation(object):
             self.calfPtsR = ptA
         else:
             self.calfPtsL = ptA
+
         bw_down = (A*self.polygonOutline(ptA)>0)
         return np.array([bw_up,bw_down])
     
