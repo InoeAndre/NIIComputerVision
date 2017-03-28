@@ -169,29 +169,31 @@ class Application(tk.Frame):
         print "DrawBB: %f" % (elapsed_time3)
         
         # Show figure and images
-#==============================================================================
-#         self.imgTkBB = []
-#         for i in range(self.RGBD.bdyPart.shape[0]):
-#             Size = self.RGBD.PartBox[i].shape
-#             self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
-#             self.canvas.pack()
-#             imgBB = Image.fromarray(renderingBB[i], 'RGB')
-#             self.imgTkBB.append(ImageTk.PhotoImage(imgBB))
-#             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB[i])
-#==============================================================================
+        self.imgTkBB = []
+        for i in range(self.RGBD.bdyPart.shape[0]):
+            Size = self.RGBD.PartBox[i].shape
+            self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
+            self.canvas.pack()
+            imgBB = Image.fromarray(renderingBB[i], 'RGB')
+            self.imgTkBB.append(ImageTk.PhotoImage(imgBB))
+            self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB[i])
 
-        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
-        self.canvas.pack()
-        img = Image.fromarray(rendering, 'RGB')
-        self.imgTk=ImageTk.PhotoImage(img)
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+#==============================================================================
+#         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+#         self.canvas.pack()
+#         img = Image.fromarray(rendering, 'RGB')
+#         self.imgTk=ImageTk.PhotoImage(img)
+#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+#==============================================================================
 
    
-        self.canvas = tk.Canvas(self, bg="white", height=self.RGBD.BBBox.shape[0], width=self.RGBD.BBBox.shape[1])
-        self.canvas.pack()
-        imgSeg = Image.fromarray(segm, 'RGB')
-        self.imgTk2=ImageTk.PhotoImage(imgSeg)
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
+#==============================================================================
+#         self.canvas = tk.Canvas(self, bg="white", height=self.RGBD.BBBox.shape[0], width=self.RGBD.BBBox.shape[1])
+#         self.canvas.pack()
+#         imgSeg = Image.fromarray(segm, 'RGB')
+#         self.imgTk2=ImageTk.PhotoImage(imgSeg)
+#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
+#==============================================================================
         
 
 
@@ -228,24 +230,26 @@ class Application(tk.Frame):
         Test TSDF
         '''
         
-        TSDFManager = TSDFtk.TSDFManager((512,512,512))
-        start_time = time.time()
-        TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
-        elapsed_time = time.time() - start_time
-        print "FuseRGBD_optimized: %f" % (elapsed_time)
-        self.RGBD.depth_image = TSDFManager.RayTracing(self.RGBD, self.Pose)
-        self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.Vmap_optimize()
-        self.RGBD.NMap_optimize()
-        renderingTr = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        
-        '''
-        End Test
-        '''
-        
-        imgTr = Image.fromarray(renderingTr, 'RGB')
-        self.imgTkTr=ImageTk.PhotoImage(imgTr)
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkTr)
+#==============================================================================
+#         TSDFManager = TSDFtk.TSDFManager((512,512,512))
+#         start_time = time.time()
+#         TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
+#         elapsed_time = time.time() - start_time
+#         print "FuseRGBD_optimized: %f" % (elapsed_time)
+#         self.RGBD.depth_image = TSDFManager.RayTracing(self.RGBD, self.Pose)
+#         self.RGBD.BilateralFilter(-1, 0.02, 3)
+#         self.RGBD.Vmap_optimize()
+#         self.RGBD.NMap_optimize()
+#         renderingTr = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+#         
+#         '''
+#         End Test
+#         '''
+#         
+#         imgTr = Image.fromarray(renderingTr, 'RGB')
+#         self.imgTkTr=ImageTk.PhotoImage(imgTr)
+#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkTr)
+#==============================================================================
         
         #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)

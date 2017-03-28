@@ -346,6 +346,10 @@ class Segmentation(object):
 
         pt4D = np.array([intersection_elbow[0],intersection_elbow[1],intersection_wrist[1],intersection_wrist[0]])
         pt4D_bis = np.array([intersection_wrist[0],intersection_elbow[0],intersection_elbow[1],intersection_wrist[1]])
+        if side == 0 :
+            self.foreArmPtsR = pt4D
+        else:
+            self.foreArmPtsL = pt4D
         finalSlope=self.findSlope(pt4D.transpose(),pt4D_bis.transpose())
         x = np.isnan(finalSlope[0])
         #erase all NaN in the array
@@ -403,8 +407,10 @@ class Segmentation(object):
         # create the upperarm polygon out the five point defining it
         if side == 0 :
             ptA = np.stack((intersection_elbow[0],intersection215[0],intersection_head[0],peakArmpit,intersection_elbow[1]))
+            self.upperArmPtsR = ptA
         else:
             ptA = np.stack((intersection_elbow[1],intersection215[1],intersection_head[1],peakArmpit,intersection_elbow[0]))
+            self.upperArmPtsL = ptA
         bw_upper = (A*self.polygonOutline(ptA)>0)
 
         return np.array([bw_up,bw_upper])
@@ -457,11 +463,15 @@ class Segmentation(object):
                 f = np.nonzero(B)
                 d = np.argmin(np.sum( np.square(np.array([pos2D[hip,0]-f[1], pos2D[hip,1]-f[0]]).transpose()),axis=1 ))
                 intersection_rsh[1] = np.array([f[1][d],f[0][d]])
-            ptA = np.stack((pos2D[0],intersection_rsh[1],intersection_knee[1],intersection_knee[0],peak1))   
+            ptA = np.stack((pos2D[0],intersection_rsh[1],intersection_knee[1],intersection_knee[0],peak1))
+            self.thighPtsR = ptA
         else :
-            ptA = np.stack((pos2D[0],intersection_rsh[0],intersection_knee[0],intersection_knee[1],peak1))   
+            ptA = np.stack((pos2D[0],intersection_rsh[0],intersection_knee[0],intersection_knee[1],peak1))  
+            self.thighPtsL = ptA
         bw_up = ( (A*self.polygonOutline(ptA))>0 )
         
+        
+            
         ## Find Calf
         # Define slopes
         a_pen = slopeCalf[1]
@@ -470,6 +480,10 @@ class Segmentation(object):
         # find 2 points corner of the ankle
         intersection_ankle=self.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[ankle])  
         ptA = np.stack((intersection_ankle[1],intersection_ankle[0],intersection_knee[0],intersection_knee[1]))  
+        if side == 0 :
+            self.calfPtsR = ptA
+        else:
+            self.calfPtsL = ptA
         bw_down = (A*self.polygonOutline(ptA)>0)
         return np.array([bw_up,bw_down])
     
@@ -507,6 +521,7 @@ class Segmentation(object):
         headUp_right = np.array([pos2D[8,0],pos2D[2,1]-h])
         headUp_left = np.array([pos2D[5,0],pos2D[2,1]-h])
         pt4D = np.array([headUp_right,headUp_left,headLeft,headRight])
+        self.headPts = pt4D
         pt4D_bis = np.array([headUp_left,headLeft,headRight,headUp_right])
         HeadSlope=self.findSlope(pt4D.transpose(),pt4D_bis.transpose())
         midpoint = [pos2D[3,0], pos2D[3,1]]

@@ -5,8 +5,13 @@ import cv2
 import numpy as np
 from numpy import linalg as LA
 import random
+import imp
+import time
+import scipy.ndimage.measurements as spm
+import pdb
+from skimage import img_as_ubyte
 
-
+segm = imp.load_source('segmentation', './lib/segmentation.py')
 
 def normalized_cross_prod(a,b):
     res = np.zeros(3, dtype = "float")
@@ -351,6 +356,88 @@ class RGBD():
 ##################################################################
 ################### Segmentation Function #######################
 ##################################################################
+    def RemoveBG(self,binaryImage):
+        ''' This function delete all the little group unwanted from the binary image'''
+        labeled, n = spm.label(binaryImage)
+        size = np.bincount(labeled.ravel())
+        #do not consider the background
+        size2 = np.delete(size,0)
+        threshold = max(size2)-1
+        keep_labels = size >= threshold
+        # Make sure the background is left as 0/False
+        keep_labels[0] = 0
+        filtered_labeled = keep_labels[labeled]
+        return filtered_labeled
+
+    
+    def EntireBdy(self):
+        '''this function threshold the depth image in order to to get the whole body alone'''
+        pos2D = self.pos2d[0][self.Index]
+        max_value = np.iinfo(np.uint16).max # = 65535 for uint16
+        tmp = self.depth_image*max_value
+        self.depth_image = tmp.astype(np.uint16)
+        
+        # Threshold according to detph of the body
+        bdyVals = self.depth_image[pos2D[:,0]-1,pos2D[:,1]-1]
+        #only keep values different from 0
+        bdy = bdyVals[np.nonzero(bdyVals != 0)]
+        mini =  np.min(bdy)
+        print "mini: %u" % (mini)
+        maxi = np.max(bdy)
+        print "max: %u" % (maxi)        
+        moy = np.mean(bdy)
+        print "moy: %u" % (moy)
+        std = np.std(bdy)
+        print "std: %u" % (std)
+        bwmin = (self.depth_image > moy-std)# mini+0.08*mini)#
+        bwmax = (self.depth_image < moy+std)#maxi-0.35*maxi)#
+        bw0 = bwmin*bwmax
+        # Compare with thenoised binary image given by the kinect
+        thresh2,tmp = cv2.threshold(self.bw[0,self.Index],0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        res = tmp *bw0 
+        # Remove all stand alone object
+        res = ( self.RemoveBG(res)>0)
+        return res#bw0#tmp#
+    
+    def EntireBdyBB(self):
+        '''this function threshold the depth image in order to to get the whole body alone with the bounding box (BB)'''
+        pos2D = self.BBBPos
+        max_value = np.iinfo(np.uint16).max # = 65535 for uint16
+        tmp = self.BBBox*max_value
+        self.BBBox = tmp.astype(np.uint16)
+        
+        # Threshold according to detph of the body
+        bdyVals = self.BBBox[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
+        #only keep vales different from 0
+        bdy = bdyVals[np.nonzero(bdyVals != 0)]
+        mini =  np.min(bdy)
+        print "mini: %u" % (mini)
+        maxi = np.max(bdy)
+        print "max: %u" % (maxi)
+        bwmin = (self.BBBox > mini-0.01*max_value) 
+        bwmax = (self.BBBox < maxi+0.01*max_value)
+        bw0 = bwmin*bwmax
+        # Compare with thenoised binary image given by the kinect
+        thresh2,tmp = cv2.threshold(self.BBbw,0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        res = tmp * bw0        
+        # Remove all stand alone object
+        bw0 = ( self.RemoveBG(bw0)>0)
+
+        return res
+
+#==============================================================================
+#     def GetBdyEdges(self):
+#         '''take the RGB image, threshold it to get the contours of the body'''
+#         #pos2D = self.pos2d
+#         imgray = self.rgb2gray(self.color_image)
+#         ret,thresh = cv2.threshold(imgray,0,1,cv2.THRESH_OTSU)#127,255,0)
+#         im2, contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+#         cv2.drawContours(self.skel, contours, -1, (0,255,0), 3)
+#         #bdyEdges = 1
+#         return bdyEdges
+#==============================================================================
+
+
     def BodySegmentation(self):
         '''this function calls the function in segmentation.py to process the segmentation of the body'''
         start_time = time.time()
@@ -575,3 +662,44 @@ class RGBD():
                 self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd]) 
            
 
+#==============================================================================
+#     def CoordChange2Dv2(self):       
+#         '''This will generate a new depthframe but focuses on the human body'''
+#         
+#         pos2D = self.pos2d[0,self.Index].astype(np.int16)
+#         Box = self.lImages[0,self.Index]
+#         bwBox = self.bw[0,self.Index]
+#         for i in range(self.bdyPart.shape[0]):
+#             if i == 0:
+#                 corners = self.segm.foreArmPtsL
+#             elif i == 1 :
+#                 corners = self.segm.upperArmPtsL
+#             elif i == 2 :
+#                 corners = self.segm.foreArmPtsR
+#             elif i == 3 :
+#                 corners = self.segm.upperArmPtsR
+#             elif i == 4 :
+#                 corners = self.segm.thighPtsL
+#             elif i == 5 :
+#                 corners = self.segm.calfPtsL                
+#             elif i == 6 :
+#                 corners = self.segm.thighPtsR
+#             elif i == 7 :
+#                 corners = self.segm.calfPtsR
+#             elif i == 8 :
+#                 corners = np.stack( (pos2D[0],pos2D[1],pos2D[4],pos2D[8],pos2D[12],pos2D[16],pos2D[20]) , axis = 0) 
+#                 dist = LA.norm( (corners[4]-corners[5])).astype(np.int16)  
+#             else:
+#                 corners = self.segm.headPts
+# 
+#             if i==0 :
+#                 self.translate =  [np.array([colStart,lineStart,colEnd, lineEnd])]
+#                 self.PartPos = [ (pos -np.array([colStart,lineStart])).astype(np.int16) ]
+#                 self.PartBox = [ Box[lineStart:lineEnd,colStart:colEnd] ]
+#                 self.Partbw = [ bwBox[lineStart:lineEnd,colStart:colEnd] ]
+#             else :
+#                 self.translate.append( np.array([colStart,lineStart,colEnd, lineEnd]) )
+#                 self.PartPos.append((pos -np.array([colStart,lineStart])).astype(np.int16))
+#                 self.PartBox.append(Box[lineStart:lineEnd,colStart:colEnd]) 
+#                 self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd]) 
+#==============================================================================
