@@ -614,6 +614,10 @@ class RGBD():
         pos2D = self.pos2d[0,self.Index].astype(np.int16)
         Box = self.lImages[0,self.Index]
         bwBox = self.bw[0,self.Index]
+        self.translate = []
+        self.PartPos = []
+        self.PartBox = []
+        self.Partbw = []
         for i in range(self.bdyPart.shape[0]):
             if i == 0:
                 pos = np.stack( (pos2D[6],pos2D[5]) , axis = 0)
@@ -650,58 +654,79 @@ class RGBD():
             lineStart = (minV-dist).astype(np.int16)
             colEnd = (maxH+dist).astype(np.int16)
             lineEnd = (maxV+dist).astype(np.int16)  
-            if i==0 :
-                self.translate =  [np.array([colStart,lineStart,colEnd, lineEnd])]
-                self.PartPos = [ (pos -np.array([colStart,lineStart])).astype(np.int16) ]
-                self.PartBox = [ Box[lineStart:lineEnd,colStart:colEnd] ]
-                self.Partbw = [ bwBox[lineStart:lineEnd,colStart:colEnd] ]
-            else :
-                self.translate.append( np.array([colStart,lineStart,colEnd, lineEnd]) )
-                self.PartPos.append((pos -np.array([colStart,lineStart])).astype(np.int16))
-                self.PartBox.append(Box[lineStart:lineEnd,colStart:colEnd]) 
-                self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd]) 
+            # New coordinates and new images
+            self.translate.append( np.array([colStart,lineStart,colEnd, lineEnd]) )
+            self.PartPos.append((pos -np.array([colStart,lineStart])).astype(np.int16))
+            self.PartBox.append(Box[lineStart:lineEnd,colStart:colEnd]) 
+            self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd]) 
            
 
 
+    def CoordChange2Dv2(self):       
+        '''This will generate a new depthframe but focuses on the human body'''
+        
+        pos2D = self.pos2d[0,self.Index].astype(np.int16)
+        Box = self.lImages[0,self.Index]
+        bwBox = self.bw[0,self.Index]
+        self.transfo =[]
+        self.translate = []
+        self.PartPos = []
+        self.PartBox = []
+        self.Partbw = []
+        for i in range(self.bdyPart.shape[0]):
+            if i == 0:
+                corners = self.segm.foreArmPtsL
+            elif i == 1 :
+                corners = self.segm.upperArmPtsL
+            elif i == 2 :
+                corners = self.segm.foreArmPtsR
+            elif i == 3 :
+                corners = self.segm.upperArmPtsR
+            elif i == 4 :
+                corners = self.segm.thighPtsL
+            elif i == 5 :
+                corners = self.segm.calfPtsL                
+            elif i == 6 :
+                corners = self.segm.thighPtsR
+            elif i == 7 :
+                corners = self.segm.calfPtsR
+            elif i == 8 :
+                corners = np.stack( (pos2D[0],pos2D[1],pos2D[4],pos2D[8],pos2D[12],pos2D[16],pos2D[20]) , axis = 0) 
+                dist =LA.norm( (corners[4]-corners[5])).astype(np.int16) /2 
+            else:
+                corners = np.stack( (pos2D[2],pos2D[3]), axis = 0) 
+                dist = LA.norm( (corners[0]-corners[1])).astype(np.int16)   
+
+            ############ Should check whether the value are in the frame?????????? #####################
 #==============================================================================
-#     def CoordChange2Dv2(self):       
-#         '''This will generate a new depthframe but focuses on the human body'''
-#         
-#         pos2D = self.pos2d[0,self.Index].astype(np.int16)
-#         Box = self.lImages[0,self.Index]
-#         bwBox = self.bw[0,self.Index]
-#         for i in range(self.bdyPart.shape[0]):
-#             if i == 0:
-#                 corners = self.segm.foreArmPtsL
-#             elif i == 1 :
-#                 corners = self.segm.upperArmPtsL
-#             elif i == 2 :
-#                 corners = self.segm.foreArmPtsR
-#             elif i == 3 :
-#                 corners = self.segm.upperArmPtsR
-#             elif i == 4 :
-#                 corners = self.segm.thighPtsL
-#             elif i == 5 :
-#                 corners = self.segm.calfPtsL                
-#             elif i == 6 :
-#                 corners = self.segm.thighPtsR
-#             elif i == 7 :
-#                 corners = self.segm.calfPtsR
-#             elif i == 8 :
-#                 corners = np.stack( (pos2D[0],pos2D[1],pos2D[4],pos2D[8],pos2D[12],pos2D[16],pos2D[20]) , axis = 0) 
-#                 dist = LA.norm( (corners[4]-corners[5])).astype(np.int16)  
-#             else:
-#                 corners = self.segm.headPts
-# 
-#             if i==0 :
-#                 self.translate =  [np.array([colStart,lineStart,colEnd, lineEnd])]
-#                 self.PartPos = [ (pos -np.array([colStart,lineStart])).astype(np.int16) ]
-#                 self.PartBox = [ Box[lineStart:lineEnd,colStart:colEnd] ]
-#                 self.Partbw = [ bwBox[lineStart:lineEnd,colStart:colEnd] ]
-#             else :
-#                 self.translate.append( np.array([colStart,lineStart,colEnd, lineEnd]) )
-#                 self.PartPos.append((pos -np.array([colStart,lineStart])).astype(np.int16))
-#                 self.PartBox.append(Box[lineStart:lineEnd,colStart:colEnd]) 
-#                 self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd]) 
+#             colStart = minH.astype(np.int16)
+#             lineStart = minV.astype(np.int16)
+#             colEnd = maxH.astype(np.int16)
+#             lineEnd = maxV.astype(np.int16) 
+#             
 #==============================================================================
+            if i < 8:
+                dist1 = LA.norm(corners[0]-corners[1]).astype(np.int) 
+                dist2 = LA.norm(corners[0]-corners[-1]).astype(np.int) 
+                pts = np.array([0,0],[0,dist1],[0,dist2])
+                corPts = np.array(corners[0],corners[1],corners[-1])
+                self.transfo.append(cv2.getAffineTransform(corPts,pts))
+                dst = np.zeros([dist1,dist2],self.bdyPart[i].dtype)
+                cv2.WarpAffine(self.bdyPart[i], dst, self.transfo[i], flags=cv2.CV_INTER_LINEAR+cv2.CV_WARP_FILL_OUTLIERS, fillval=(0, 0, 0, 0))
+                
+            # extremes points of the bodies          
+            minV = np.min(corners[:,1])
+            maxV = np.max(corners[:,1])
+            minH = np.min(corners[:,0])
+            maxH = np.max(corners[:,0])
+            colStart = (minH-dist).astype(np.int16)
+            lineStart = (minV-dist).astype(np.int16)
+            colEnd = (maxH+dist).astype(np.int16)
+            lineEnd = (maxV+dist).astype(np.int16)  
+            
+            # New coordinates and new images
+            self.translate.append( np.array([colStart,lineStart,colEnd, lineEnd]) )
+            self.PartPos.append((corners -np.array([colStart,lineStart])).astype(np.int16))
+            self.PartBox.append(dst) 
+            self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd]) 
 

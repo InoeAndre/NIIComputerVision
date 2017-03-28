@@ -152,7 +152,7 @@ class Application(tk.Frame):
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.BodyBBox()
         segm = self.RGBD.BodySegmentation()
-        self.RGBD.CoordChange2D()
+        self.RGBD.CoordChange2Dv2()
         self.RGBD.DrawSkeleton()
         start_time = time.time()
         self.RGBD.VmapBB()    
