@@ -132,7 +132,7 @@ class RGBD():
         
     
     def Vmap_optimize(self): # Create the vertex image from the depth image and intrinsic matrice
-        self.Vtx = np.zeros(self.Size, np.float32)
+        #self.Vtx = np.zeros(self.Size, np.float32)
         d = self.skel[0:self.Size[0]][0:self.Size[1]]
         d_pos = d * (d > 0.0)
         x_raw = np.zeros([self.Size[0],self.Size[1]], np.float32)
@@ -144,7 +144,25 @@ class RGBD():
         x = d_pos * x_raw
         y = d_pos * y_raw
         self.Vtx = np.dstack((x, y,d))
-    
+
+    def VmapBB(self): # Create the vertex image from the segmented part of the body and intrinsic matrice
+        for i in range(self.bdyPart.shape[0]):
+            Size = self.PartBox[i].shape
+            partBox = self.PartBox[i]
+            d = partBox#[0:Size[0]][0:Size[1]]
+            d_pos = d * (d > 0.0)
+            x_raw = np.zeros(Size, np.float32)
+            y_raw = np.zeros(Size, np.float32)
+            # change the matrix so that the first row is on all rows for x respectively colunm for y.
+            x_raw[0:-1,:] = ( np.arange(Size[1]) - self.intrinsic[0,2])/self.intrinsic[0,0]
+            y_raw[:,0:-1] = np.tile( ( np.arange(Size[0]) - self.intrinsic[1,2])/self.intrinsic[1,1],(1,1)).transpose()
+            # multiply point by point d_pos and raw matrices
+            x = d_pos * x_raw
+            y = d_pos * y_raw
+            if i==0:
+                self.VtxBB = [ np.dstack((x, y,d)) ]
+            else: 
+                self.VtxBB.append(np.dstack( (x, y,d) ))
                 
     ##### Compute normals
     def NMap(self):
@@ -176,6 +194,31 @@ class RGBD():
         #norm division 
         nmle = division_by_norm(nmle,norm_mat_nmle)
         self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
+        
+    def NMapBB(self):
+        for i in range(self.bdyPart.shape[0]):
+            Size = self.PartBox[i].shape
+            Vtx = self.VtxBB[i]
+            NmlsBB = np.zeros([Size[0],Size[1],3], np.float32)  
+            nmle1 = normalized_cross_prod_optimize(Vtx[2:Size[0]  ][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
+                                                   Vtx[1:Size[0]-1][:,2:Size[1]  ] - Vtx[1:Size[0]-1][:,1:Size[1]-1])        
+            nmle2 = normalized_cross_prod_optimize(Vtx[1:Size[0]-1][:,2:Size[1]  ] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
+                                                   Vtx[0:Size[0]-2][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1])
+            nmle3 = normalized_cross_prod_optimize(Vtx[0:Size[0]-2][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
+                                                   Vtx[1:Size[0]-1][:,0:Size[1]-2] - Vtx[1:Size[0]-1][:,1:Size[1]-1])
+            nmle4 = normalized_cross_prod_optimize(Vtx[1:Size[0]-1][:,0:Size[1]-2] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
+                                                   Vtx[2:Size[0]  ][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1])
+            nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
+            norm_mat_nmle = np.sqrt(np.sum(nmle*nmle,axis=2))
+            norm_mat_nmle = in_mat_zero2one(norm_mat_nmle)
+            #norm division 
+            nmle = division_by_norm(nmle,norm_mat_nmle)
+            if i == 0:
+                NmlsBB[1:Size[0]-1][:,1:Size[1]-1] = nmle
+                self.NmlsBB = [NmlsBB] # make a list out of the result so that append is possible
+            else:
+                NmlsBB[1:Size[0]-1][:,1:Size[1]-1] = nmle
+                self.NmlsBB.append(NmlsBB)
 
     def Draw(self, Pose, s, color = 0) :
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
@@ -243,6 +286,48 @@ class RGBD():
                                                                        ((nmle[ :, :,1]+1.0)*(255./2.))*cdt_line, \
                                                                        ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
+    
+    def DrawBB(self, Pose, s, color = 0) :   
+        for i in range(self.bdyPart.shape[0]):
+            Size = self.PartBox[i].shape
+            Vtx = self.VtxBB[i]
+            Nmls = self.NmlsBB[i]
+            result = np.zeros((Size[0], Size[1], 3), dtype = np.uint8)
+            stack_pix = np.ones((Size[0], Size[1]), dtype = np.float32)
+            stack_pt = np.ones((np.size(Vtx[ ::s, ::s,:],0), np.size(Vtx[ ::s, ::s,:],1)), dtype = np.float32)
+            pix = np.zeros((Size[0], Size[1],2), dtype = np.float32)
+            pix = np.dstack((pix,stack_pix))
+            pt = np.dstack((Vtx[ ::s, ::s, :],stack_pt))
+            pt = np.dot(Pose,pt.transpose(0,2,1)).transpose(1,2,0)
+            nmle = np.zeros((Size[0], Size[1],3), dtype = np.float32)
+            nmle[ ::s, ::s,:] = np.dot(Pose[0:3,0:3],Nmls[ ::s, ::s,:].transpose(0,2,1)).transpose(1,2,0)
+            #if (pt[2] != 0.0):
+            lpt = np.dsplit(pt,4)
+            lpt[2] = in_mat_zero2one(lpt[2])
+            # if in 1D pix[0] = pt[0]/pt[2]
+            pix[ ::s, ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(Vtx[ ::s, ::s,:],0), np.size(Vtx[ ::s, ::s,:],1))
+            # if in 1D pix[1] = pt[1]/pt[2]
+            pix[ ::s, ::s,1] = (lpt[1]/lpt[2]).reshape(np.size(Vtx[ ::s, ::s,:],0), np.size(Vtx[ ::s, ::s,:],1))
+            pix = np.dot(self.intrinsic,pix[0:Size[0],0:Size[1]].transpose(0,2,1)).transpose(1,2,0)
+            column_index = (np.round(pix[:,:,0])).astype(int)
+            line_index = (np.round(pix[:,:,1])).astype(int)
+            # create matrix that have 0 when the conditions are not verified and 1 otherwise
+            cdt_column = (column_index > -1) * (column_index < Size[1])
+            cdt_line = (line_index > -1) * (line_index < Size[0])
+            line_index = line_index*cdt_line
+            column_index = column_index*cdt_column
+            if (color == 0):
+                result[line_index[:][:], column_index[:][:]]= np.dstack((self.color_image[ ::s, ::s,2], \
+                                                                         self.color_image[ ::s, ::s,1]*cdt_line, \
+                                                                         self.color_image[ ::s, ::s,0]*cdt_column) )
+            else:
+                result[line_index[:][:], column_index[:][:]]= np.dstack( ( (nmle[ :, :,0]+1.0)*(255./2.), \
+                                                                           ((nmle[ :, :,1]+1.0)*(255./2.))*cdt_line, \
+                                                                           ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
+            if i == 0:
+                self.drawBB = [ result ]
+            else:
+                self.drawBB.append(result)
     
     
         
@@ -398,7 +483,7 @@ class RGBD():
         #pdb.set_trace()
 
         self.bdyPart = np.array( [armLeft[0], armLeft[1],armRight[0], armRight[1],legLeft[0], legLeft[1], legRight[0],\
-                                legRight[1], head, body)#,  handRight, handLeft, footRight, footLeft])
+                                legRight[1], head, body])#,  handRight, handLeft, footRight, footLeft])
         '''
         correspondance between number and body parts and color
         armLeft[0] = forearmL      color=[0,0,255]
@@ -511,10 +596,12 @@ class RGBD():
 #         
 #==============================================================================
         
-     def CoordChange(self):       
+    def CoordChange2D(self):       
         '''This will generate a new depthframe but focuses on the human body'''
         
         pos2D = self.pos2d[0,self.Index].astype(np.int16)
+        Box = self.lImages[0,self.Index]
+        bwBox = self.bw[0,self.Index]
         for i in range(self.bdyPart.shape[0]):
             if i == 0:
                 pos = np.stack( (pos2D[6],pos2D[5]) , axis = 0)
@@ -523,36 +610,45 @@ class RGBD():
             elif i == 2 :
                 pos = np.stack( (pos2D[10],pos2D[9]) , axis = 0)
             elif i == 3 :
-                pos = np.stack( (pos2D[12],pos2D[13]) , axis = 0)
+                pos = np.stack( (pos2D[8],pos2D[9]) , axis = 0)
             elif i == 4 :
                 pos = np.stack( (pos2D[13],pos2D[14]) , axis = 0)
             elif i == 5 :
-                pos = np.stack( (pos2D[16],pos2D[17]) , axis = 0)
+                pos = np.stack( (pos2D[12],pos2D[13]) , axis = 0)                 
             elif i == 6 :
-                pos = np.stack( (pos2D[17],pos2D[18]) , axis = 0)    
+                pos = np.stack( (pos2D[16],pos2D[17]) , axis = 0)              
             elif i == 7 :
-                pos = np.stack( (pos2D[2],pos2D[3]) , axis = 0)   
+                pos = np.stack( (pos2D[17],pos2D[18]) , axis = 0) 
             elif i == 8 :
-                pos = np.stack( (pos2D[0],pos2D[1],pos2D[4],pos2D[8],pos2D[12],pos2D[16],pos2D[20]) , axis = 0)                   
+                pos = np.stack( (pos2D[0],pos2D[1],pos2D[4],pos2D[8],pos2D[12],pos2D[16],pos2D[20]) , axis = 0) 
+                dist = LA.norm( (pos[4]-pos[5])).astype(np.int16)  
+            else:
+                pos = np.stack( (pos2D[2],pos2D[3]), axis = 0) 
+                dist = LA.norm( (pos[0]-pos[1])).astype(np.int16)        
+            if i < 8 :
+                # distance from borders of the part of the body
+                dist = LA.norm( (pos[0]-pos[1])).astype(np.int16)/2
             # extremes points of the bodies
             minV = np.min(pos[:,1])
             maxV = np.max(pos[:,1])
             minH = np.min(pos[:,0])
             maxH = np.max(pos[:,0])
-            # distance head to neck. Let us assume this is enough for all borders
-            #dist = LA.norm( (pos2D[self.connection[0,1]-1]-pos2D[self.connection[0,0]-1])).astype(np.int16)
-            Box = self.lImages[0,self.Index]
-            bwBox = self.bw[0,self.Index]
-            ############ Should check whether the value are in the frame #####################
+            ############ Should check whether the value are in the frame?????????? #####################
             colStart = (minH-dist).astype(np.int16)
             lineStart = (minV-dist).astype(np.int16)
             colEnd = (maxH+dist).astype(np.int16)
-            lineEnd = (maxV+dist).astype(np.int16)        
-            self.PartPos = np.append(self.PartPos, (pos -np.array([colStart,lineStart])).astype(np.int16) )
-            self.PartBox = np.append(self.PartBox, Box[lineStart:lineEnd,colStart:colEnd] )
-            self.Partbw = np.append(self.Partbw, bwBox[lineStart:lineEnd,colStart:colEnd] )
+            lineEnd = (maxV+dist).astype(np.int16)  
+            if i==0 :
+                self.translate =  [np.array([colStart,lineStart,colEnd, lineEnd])]
+                self.PartPos = [ (pos -np.array([colStart,lineStart])).astype(np.int16) ]
+                self.PartBox = [ Box[lineStart:lineEnd,colStart:colEnd] ]
+                self.Partbw = [ bwBox[lineStart:lineEnd,colStart:colEnd] ]
+            else :
+                self.translate.append( np.array([colStart,lineStart,colEnd, lineEnd]) )
+                self.PartPos.append((pos -np.array([colStart,lineStart])).astype(np.int16))
+                self.PartBox.append(Box[lineStart:lineEnd,colStart:colEnd]) 
+                self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd]) 
            
-        
         
         
         

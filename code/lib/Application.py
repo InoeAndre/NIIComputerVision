@@ -45,6 +45,13 @@ class Application(tk.Frame):
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
 
+#==============================================================================
+#             self.RGBD.DrawBB(self.Pose, self.w.get(), self.color_tag)
+#             renderingBB =self.RGBD.drawBB
+#             imgBB = Image.fromarray(renderingBB, 'RGB')
+#             self.imgTkBB=ImageTk.PhotoImage(imgBB)
+#             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB)
+#==============================================================================
 
     ## Function to handle mouse press event
     def mouse_press(self, event):
@@ -90,6 +97,15 @@ class Application(tk.Frame):
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
             
+#==============================================================================
+#             self.RGBD.DrawBB(self.Pose, self.w.get(), self.color_tag)
+#             renderingBB =self.RGBD.drawBB
+#             imgBB = Image.fromarray(renderingBB, 'RGB')
+#             self.imgTkBB=ImageTk.PhotoImage(imgBB)
+#             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB)
+#==============================================================================
+            
+        
         self.x_init = event.x
         self.y_init = event.y
     
@@ -102,7 +118,7 @@ class Application(tk.Frame):
 
         tk.Frame.__init__(self, master)
         self.pack()
-        
+
         self.color_tag = 1
         calib_file = open(self.path + '/Calib.txt', 'r')
         calib_data = calib_file.readlines()
@@ -137,13 +153,6 @@ class Application(tk.Frame):
         connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
         self.connection = connectionMat['SkeletonConnectionMap']
         
-        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
-        self.canvas.pack()
-        
-#==============================================================================
-#         self.canvas2 = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
-#         self.canvas2.pack()
-#==============================================================================
         
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
         #self.RGBD.ReadFromDisk()
@@ -153,30 +162,51 @@ class Application(tk.Frame):
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.BodyBBox()
         segm = self.RGBD.BodySegmentation()
+        self.RGBD.CoordChange2D()
         self.RGBD.DrawSkeleton()
         start_time = time.time()
-        self.RGBD.Vmap_optimize()
+        self.RGBD.VmapBB()    
+        self.RGBD.Vmap_optimize()  
         elapsed_time = time.time() - start_time
-        print "Vmap_optimize: %f" % (elapsed_time)
+        print "VmapBB: %f" % (elapsed_time)
+        self.RGBD.NMapBB()
         self.RGBD.NMap_optimize()
         elapsed_time2 = time.time() - start_time - elapsed_time
-        print "Nmap_optimize: %f" % (elapsed_time2)
+        print "NmapBB: %f" % (elapsed_time2)
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])
         start_time2 = time.time()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+        self.RGBD.DrawBB(self.Pose, 1, self.color_tag)
+        renderingBB =self.RGBD.drawBB
         elapsed_time3 = time.time() - start_time2
-        print "Draw_optimize: %f" % (elapsed_time3)
+        print "DrawBB: %f" % (elapsed_time3)
         
+        # Show figure and images
+#==============================================================================
+#         self.imgTkBB = []
+#         for i in range(self.RGBD.bdyPart.shape[0]):
+#             Size = self.RGBD.PartBox[i].shape
+#             self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
+#             self.canvas.pack()
+#             imgBB = Image.fromarray(renderingBB[i], 'RGB')
+#             self.imgTkBB.append(ImageTk.PhotoImage(imgBB))
+#             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB[i])
+#==============================================================================
+        
+        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+        self.canvas.pack()
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-        
-        self.canvas2 = tk.Canvas(self, bg="white", height=self.RGBD.BBBox.shape[0], width=self.RGBD.BBBox.shape[1])
-        self.canvas2.pack()
+
+   
+        self.canvas = tk.Canvas(self, bg="white", height=self.RGBD.BBBox.shape[0], width=self.RGBD.BBBox.shape[1])
+        self.canvas.pack()
         imgSeg = Image.fromarray(segm, 'RGB')
         self.imgTk2=ImageTk.PhotoImage(imgSeg)
-        self.canvas2.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
         
+        #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)
         self.root.bind("<Button-1>", self.mouse_press)
         self.root.bind("<ButtonRelease-1>", self.mouse_release)
