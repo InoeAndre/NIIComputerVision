@@ -47,7 +47,7 @@ class Segmentation(object):
     def __init__(self, depthImage, pos2D):
         self.depthImage = depthImage
         self.pos2D = pos2D
-        
+        self.bodyPts = []
 #==============================================================================
 #     def eraseZeros(mat):
 #         """This fonction erase all zeros from the array"""

@@ -294,6 +294,7 @@ class RGBD():
             Size = self.PartBox[i].shape
             Vtx = self.VtxBB[i]
             Nmls = self.NmlsBB[i]
+            self.drawBB = [  ]
             result = np.zeros((Size[0], Size[1], 3), dtype = np.uint8)
             stack_pix = np.ones((Size[0], Size[1]), dtype = np.float32)
             stack_pt = np.ones((np.size(Vtx[ ::s, ::s,:],0), np.size(Vtx[ ::s, ::s,:],1)), dtype = np.float32)
@@ -326,12 +327,17 @@ class RGBD():
                 result[line_index[:][:], column_index[:][:]]= np.dstack( ( (nmle[ :, :,0]+1.0)*(255./2.), \
                                                                            ((nmle[ :, :,1]+1.0)*(255./2.))*cdt_line, \
                                                                            ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
-            if i == 0:
-                self.drawBB = [ result ]
-            else:
-                self.drawBB.append(result)
-    
-    
+            self.drawBB.append(result)
+
+    def DrawBBox(self,boxCrn,rendering):
+        '''this function draw the bounding boxes for one part of the human body'''
+        for i in range(boxCrn.shape[0]/2-1):
+            cv2.line( rendering,boxCrn[i],boxCrn[i+4],(0,0,255),1) # color space = BGR
+            cv2.circle(rendering,boxCrn[i],boxCrn[i+1],(0,0,255),1)
+            cv2.circle(rendering,boxCrn[i+4],boxCrn[i+4+1],(0,0,255),1)        
+        cv2.line( rendering,boxCrn[3],boxCrn[0],(0,0,255),1) 
+        cv2.circle(rendering,boxCrn[7],boxCrn[4],(0,0,255),1)
+        cv2.circle(rendering,boxCrn[3],boxCrn[7],(0,0,255),1)  
         
 ##################################################################
 ###################Bilateral Smooth Funtion#######################
@@ -706,13 +712,16 @@ class RGBD():
 #             
 #==============================================================================
             if i < 8:
-                dist1 = LA.norm(corners[0]-corners[1]).astype(np.int) 
-                dist2 = LA.norm(corners[0]-corners[-1]).astype(np.int) 
-                pts = np.array([0,0],[0,dist1],[0,dist2])
-                corPts = np.array(corners[0],corners[1],corners[-1])
-                self.transfo.append(cv2.getAffineTransform(corPts,pts))
-                dst = np.zeros([dist1,dist2],self.bdyPart[i].dtype)
-                cv2.WarpAffine(self.bdyPart[i], dst, self.transfo[i], flags=cv2.CV_INTER_LINEAR+cv2.CV_WARP_FILL_OUTLIERS, fillval=(0, 0, 0, 0))
+                dist =0
+#==============================================================================
+#                 dist1 = LA.norm(corners[0]-corners[1]).astype(np.int) 
+#                 dist2 = LA.norm(corners[0]-corners[-1]).astype(np.int) 
+#                 pts = np.array([0,0],[0,dist1],[0,dist2])
+#                 corPts = np.array(corners[0],corners[1],corners[-1])
+#                 self.transfo.append(cv2.getAffineTransform(corPts,pts))
+#                 dst = np.zeros([dist1,dist2],self.bdyPart[i].dtype)
+#                 cv2.WarpAffine(self.bdyPart[i], dst, self.transfo[i], flags=cv2.CV_INTER_LINEAR+cv2.CV_WARP_FILL_OUTLIERS, fillval=(0, 0, 0, 0))
+#==============================================================================
                 
             # extremes points of the bodies          
             minV = np.min(corners[:,1])
@@ -727,6 +736,6 @@ class RGBD():
             # New coordinates and new images
             self.translate.append( np.array([colStart,lineStart,colEnd, lineEnd]) )
             self.PartPos.append((corners -np.array([colStart,lineStart])).astype(np.int16))
-            self.PartBox.append(dst) 
+            self.PartBox.append(Box[lineStart:lineEnd,colStart:colEnd]) #dst) 
             self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd]) 
 
