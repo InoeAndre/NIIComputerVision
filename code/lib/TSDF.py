@@ -9,8 +9,10 @@ Created on Thu Mar  2 17:16:49 2017
 import imp
 import numpy as np
 from numpy import linalg as LA
+import pyopencl as cl
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
+GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
 
 def sign(x):
     if (x < 0):
@@ -23,12 +25,14 @@ def in_mat_zero2one(mat):
     res = mat * mat_tmp + ~mat_tmp
     return res
 
+mf = cl.mem_flags
+
 class TSDFManager():
     
     # Constructor
-    def __init__(self, Size):
+    def __init__(self, Size, Image, GPUManager):
         self.Size = Size
-        self.TSDF = np.zeros(self.Size, np.float32)
+        self.TSDF = np.zeros(self.Size, dtype = np.float32)
         self.c_x = self.Size[0]/2
         self.c_y = self.Size[1]/2
         self.c_z = -0.1
@@ -36,6 +40,53 @@ class TSDFManager():
         self.dim_y = self.Size[1]/5.0
         self.dim_z = self.Size[2]/5.0
         
+        self.GPUManager = GPUManager
+        self.Size_Volume = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
+                               hostbuf = np.array([self.Size[0], self.Size[1], self.Size[2]], dtype = np.int32))
+        self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
+        self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
+                               hostbuf = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32))
+        
+        #fmt = cl.ImageFormat(cl.channel_order.RGB, cl.channel_type.FLOAT)
+        #self.VMapGPU = cl.Image(self.GPUManager.context, mf.READ_ONLY, fmt, shape = (Image.Size[1], Image.Size[0]))
+        #cl.enqueue_copy(self.GPUManager.queue, self.VMapGPU, Image.Vtx, origin = (0,0), region = (Image.Size[1], Image.Size[0]))
+        self.DepthGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Image.depth_image.nbytes)
+        self.Calib_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf = Image.intrinsic)
+        self.Pose_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, 64)
+        
+    
+#######
+##GPU code
+#####
+
+    # Fuse on the GPU
+    def FuseRGBD_GPU(self, Image, Pose):
+        Transform = LA.inv(Pose)
+        
+        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
+        cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
+        
+        self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
+                                self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
+                                np.int32(Image.Size[0]), np.int32(Image.Size[1]))
+        
+    # Reay tracing on the GPU
+    def RayTracing_GPU(self, Image, Pose):
+        result = np.zeros((Image.Size[0], Image.Size[1]), np.float32)
+        cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, result)
+        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
+        
+        self.GPUManager.programs['RayTracing'].RayTracing(self.GPUManager.queue, (Image.Size[0], Image.Size[1]), None, \
+                                self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
+                                np.int32(Image.Size[0]), np.int32(Image.Size[1]))
+        
+        cl.enqueue_read_buffer(self.GPUManager.queue, self.DepthGPU, result).wait()
+        
+        return result
+    
+#####
+#End GPU code
+#####
     
     # Fuse a new RGBD image into the TSDF volume
     def FuseRGBD(self, Image, Pose, s = 1):

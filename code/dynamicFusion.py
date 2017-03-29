@@ -1,6 +1,7 @@
 """Script to do dynamic fusion with topological changes."""
 import Tkinter as tk
 import imp
+GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
 
 '''Self made modules to structures the project'''
 #==============================================================================
@@ -11,7 +12,7 @@ import imp
 # import segmentation
 #==============================================================================
 
-def main():
+def main(GPUManager):
     ''' Create Menu to load data '''
     M = imp.load_source('Menu', './lib/Menu.py')
     root = tk.Tk()
@@ -20,12 +21,15 @@ def main():
     
     A = imp.load_source('Menu', './lib/Application.py')
     root = tk.Tk()
-    app = A.Application(menu_app.filename, root)
+    app = A.Application(menu_app.filename, GPUManager, root)
     app.mainloop()
     
     return 0
 
 
 if __name__ == '__main__':
-    main()
+    GPUManager = GPU.GPUManager()
+    GPUManager.print_device_info()
+    GPUManager.load_kernels()
+    main(GPUManager)
     exit(0)

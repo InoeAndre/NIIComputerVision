@@ -19,6 +19,7 @@ import random
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 TrackManager = imp.load_source('TrackManager', './lib/tracking.py')
 TSDFtk = imp.load_source('TSDFtk', './lib/TSDF.py')
+GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
 
 class Application(tk.Frame):
     ## Function to handle keyboard inputs
@@ -98,9 +99,10 @@ class Application(tk.Frame):
         self.y_init = event.y
     
     ## Constructor function
-    def __init__(self, path, master=None):
+    def __init__(self, path, GPUManager, master=None):
         self.root = master
         self.path = path
+        self.GPUManager = GPUManager
         self.draw_bump = False
         self.draw_spline = False
 
@@ -113,7 +115,7 @@ class Application(tk.Frame):
         self.Size = [int(calib_data[0]), int(calib_data[1])]
         self.intrinsic = np.array([[float(calib_data[2]), float(calib_data[3]), float(calib_data[4])], \
                                    [float(calib_data[5]), float(calib_data[6]), float(calib_data[7])], \
-                                   [float(calib_data[8]), float(calib_data[9]), float(calib_data[10])]])
+                                   [float(calib_data[8]), float(calib_data[9]), float(calib_data[10])]], dtype = np.float32)
     
         print self.intrinsic
     
@@ -139,7 +141,7 @@ class Application(tk.Frame):
         self.RGBD.NMap_optimize()
         elapsed_time2 = time.time() - start_time - elapsed_time
         print "Nmap_optimize: %f" % (elapsed_time2)
-        self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])
+        self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         start_time2 = time.time()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
         elapsed_time3 = time.time() - start_time2
@@ -178,12 +180,20 @@ class Application(tk.Frame):
         Test TSDF
         '''
         
-        TSDFManager = TSDFtk.TSDFManager((512,512,512))
+        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
         start_time = time.time()
-        TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
+        TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
         elapsed_time = time.time() - start_time
-        print "FuseRGBD_optimized: %f" % (elapsed_time)
-        self.RGBD.depth_image = TSDFManager.RayTracing(self.RGBD, self.Pose)
+        print "FuseRGBD_GPU: %f" % (elapsed_time)
+        start_time = time.time()
+        self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
+        elapsed_time = time.time() - start_time
+        print "RayTracing_GPU: %f" % (elapsed_time)
+        #start_time = time.time()
+        #TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
+        #elapsed_time = time.time() - start_time
+        #print "FuseRGBD_optimized: %f" % (elapsed_time)
+        #self.RGBD.depth_image = TSDFManager.RayTracing(self.RGBD, self.Pose)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.Vmap_optimize()
         self.RGBD.NMap_optimize()
