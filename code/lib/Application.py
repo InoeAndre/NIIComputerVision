@@ -168,7 +168,7 @@ class Application(tk.Frame):
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
         self.RGBD.DrawBB(self.Pose, 1, self.color_tag)
         self.RGBD.Pos2DToPos3D(1,self.Pose)
-        #self.RGBD.SetSystCoord()
+        self.RGBD.SetSystCoord()
         #renderingBB = self.RGBD.drawBBox(self.RGBD.vertexes,self.RGBD.drawBB)
         elapsed_time3 = time.time() - start_time2
         print "DrawBB: %f" % (elapsed_time3)
@@ -182,15 +182,17 @@ class Application(tk.Frame):
         
         # Show figure and images
 
-        self.imgTkBB = []
-        for i in range(self.RGBD.bdyPart.shape[0]):
-        #i=0
-            Size = self.RGBD.drawBB[i].shape
-            self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
-            self.canvas.pack()
-            imgBB = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
-            self.imgTkBB.append(ImageTk.PhotoImage(imgBB))
-            self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB[i])
+#==============================================================================
+#         self.imgTkBB = []
+#         for i in range(self.RGBD.bdyPart.shape[0]):
+#         #i=0
+#             Size = self.RGBD.drawBB[i].shape
+#             self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
+#             self.canvas.pack()
+#             imgBB = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
+#             self.imgTkBB.append(ImageTk.PhotoImage(imgBB))
+#             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB[i])
+#==============================================================================
 
 #==============================================================================
 #         self.parent.title("Colours")        
@@ -211,19 +213,19 @@ class Application(tk.Frame):
 #             fill='gray', width=2)
 #==============================================================================
    
-#==============================================================================
-#         self.canvas = tk.Canvas(self, bg="white", height=self.RGBD.BBBox.shape[0], width=self.RGBD.BBBox.shape[1])
-#         self.canvas.pack()
-#         imgSeg = Image.fromarray(segm, 'RGB')
-#         self.imgTk2=ImageTk.PhotoImage(imgSeg)
-#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
-#==============================================================================
-        
-        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+        self.canvas = tk.Canvas(self, bg="white", height=self.RGBD.BBox.shape[0], width=self.RGBD.BBox.shape[1])
         self.canvas.pack()
-        img = Image.fromarray(rendering, 'RGB')
-        self.imgTk=ImageTk.PhotoImage(img)
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+        imgSeg = Image.fromarray(segm, 'RGB')
+        self.imgTk2=ImageTk.PhotoImage(imgSeg)
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
+        
+#==============================================================================
+#         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+#         self.canvas.pack()
+#         img = Image.fromarray(rendering, 'RGB')
+#         self.imgTk=ImageTk.PhotoImage(img)
+#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+#==============================================================================
 
         '''
         Test Register

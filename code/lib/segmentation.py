@@ -281,8 +281,8 @@ class Segmentation(object):
         '''this function segment the left arm
         /arg A is the depthImag
         /arg B is the depthImg after bilateral filtering
-        /arg side if side = 0 the segmentation will be done for the right leg 
-                  otherwise it will be for the left leg'''
+        /arg side if side = 0 the segmentation will be done for the right arm 
+                  otherwise it will be for the left arm'''
         
         # pos2D[4] = Shoulder_Left
         # pos2D[5] = Elbow_Left
@@ -292,13 +292,14 @@ class Segmentation(object):
         # pos2D[10] = Wrist_Right
         pos2D = self.pos2D.astype(np.float64)-1
         if side == 0 :
-            shoulder =4
-            elbow = 5
-            wrist = 6
-        else :
             shoulder =8
             elbow = 9
             wrist = 10
+
+        else :
+            shoulder =4
+            elbow = 5
+            wrist = 6
         
 
         # First let us see the down limit thanks to the elbow and the wrist (left side)
@@ -346,7 +347,7 @@ class Segmentation(object):
 
         pt4D = np.array([intersection_elbow[0],intersection_elbow[1],intersection_wrist[1],intersection_wrist[0]])
         pt4D_bis = np.array([intersection_wrist[0],intersection_elbow[0],intersection_elbow[1],intersection_wrist[1]])
-        if side == 0 :
+        if side != 0 :
             self.foreArmPtsR = pt4D
         else:
             self.foreArmPtsL = pt4D
@@ -405,7 +406,7 @@ class Segmentation(object):
         d = np.argmin(np.sum( np.square(np.array([pos2D[20,0]-f[1], pos2D[20,1]-f[0]]).transpose()),axis=1 ))
         peakArmpit = np.array([f[1][d],f[0][d]])
         # create the upperarm polygon out the five point defining it
-        if side == 0 :
+        if side != 0 :
             ptA = np.stack((intersection_elbow[0],intersection215[0],intersection_head[0],peakArmpit,intersection_elbow[1]))
             self.upperArmPtsR = ptA
         else:

@@ -149,7 +149,7 @@ class RGBD():
 
     def VmapBB(self,im=0): # Create the vertex image from the segmented part of the body and intrinsic matrice
         self.VtxBB = []
-        self.corners3D =[]
+        #self.corners3D =[]
         for i in range(self.bdyPart.shape[0]):
             if im==0:            
                 Size = self.bdyPart[i].shape
@@ -590,8 +590,8 @@ class RGBD():
         footLeft = ( self.segm.GetFoot( MidBdyImage,left)>0)
         #pdb.set_trace()
 
-        self.bdyPart = np.array( [B*armLeft[0], B*armLeft[1],B*armRight[0], B*armRight[1],B*legLeft[0], B*legLeft[1], B*legRight[0],\
-                                B*legRight[1], B*head, B*body])#,  handRight, handLeft, footRight, footLeft])
+        self.bdyPart = np.array( [armLeft[0], armLeft[1], armRight[0], armRight[1], legLeft[0], legLeft[1], legRight[0],\
+                                legRight[1], head, body])#,  handRight, handLeft, footRight, footLeft])
         '''
         correspondance between number and body parts and color
         armLeft[0] = forearmL      color=[0,0,255]
@@ -638,8 +638,8 @@ class RGBD():
         I = I +255*legLeft[1]
         I = I +0*head
         I = I +255*body
-        I = I +191*handRight
-        I = I +100*handLeft
+        I = I +100*handRight
+        I = I +191*handLeft
         I = I +21*footRight
         I = I +165*footLeft        
         segImg[:,:,1,self.Index] = I
@@ -657,8 +657,8 @@ class RGBD():
         I = I +180*legLeft[1]
         I = I +0*head
         I = I +255*body
-        I = I +255*handRight
-        I = I +0*handLeft
+        I = I +0*handRight
+        I = I +255*handLeft
         I = I +133*footRight
         I = I +0*footLeft        
         segImg[:,:,2,self.Index] = I
@@ -758,7 +758,8 @@ class RGBD():
            
 
 
-    def GetOrthoCorner(self,up,mid,down):
+    def GetOrthoCorner(self,A,up,mid,down,part):
+        pos2D = self.pos2d[0,self.Index]
         # compute slopes
         slopesDown=self.segm.findSlope(pos2D[mid],pos2D[down])
         a_pen67 = -slopesDown[1]
@@ -774,61 +775,84 @@ class RGBD():
         bone1 = LA.norm(pos2D[mid]-pos2D[down])
         bone2 = LA.norm(pos2D[mid]-pos2D[up])
         bone = max(bone1,bone2);
-        corners=self.segm.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[mid],0.5*bone)
-        return corners
+        intersection_high=self.segm.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[mid],0.5*bone)
+        
+        # find 2 points wrist
+        c_pen67=-(a_pen67*pos2D[down,0]+b_pen67*pos2D[down,1])
+        intersection_down=self.segm.inferedPoint(A,a_pen67,b_pen67,c_pen67,pos2D[down],bone/3)
+        if part == 0:
+            return intersection_down
+        else :
+            return intersection_high
             
     def CoordChange2Dv2(self):       
         '''This will generate a new list of image having the corners of each body part'''
         self.corners = []
-        for i in range(self.bdyPart.shape[0]):
-
-            
-            
-            self.segm.inferedPoint(self.bdyPart[i],,)
-            
-            corners = self.bdyPart[i].copy()
-            
-            if i == 0:
-                pos = np.stack( (pos2D[6],pos2D[5]) , axis = 0)
+        pos2D = self.BBPos
+        high = 1
+        down = 0
+        for i in range(0, 8):#self.bdyPart.shape[0]):
+            corners = []
+            if i == 0:         
+                part = high
+                corners = self.GetOrthoCorner(self.bdyPart[i],8,9,10,part)
+                corners.extend((pos2D[6],pos2D[5]))
             elif i == 1 :
-                pos = np.stack( (pos2D[5],pos2D[4]) , axis = 0)
+                part = down
+                corners = self.GetOrthoCorner(self.bdyPart[i],8,9,10,part)
+                corners.extend((pos2D[6],pos2D[5]))
             elif i == 2 :
-                pos = np.stack( (pos2D[10],pos2D[9]) , axis = 0)
+                part = high
+                corners = self.GetOrthoCorner(self.bdyPart[i],4,5,6,part)
+                corners.extend((pos2D[10],pos2D[6]))
             elif i == 3 :
-                pos = np.stack( (pos2D[8],pos2D[9]) , axis = 0)
+                part = down
+                corners = self.GetOrthoCorner(self.bdyPart[i],4,5,6,part)
+                corners.extend((pos2D[8],pos2D[9]))
             elif i == 4 :
-                pos = np.stack( (pos2D[13],pos2D[14]) , axis = 0)
+                part = high
+                corners = self.GetOrthoCorner(self.bdyPart[i],12,13,14,part)
+                corners.extend((pos2D[13],pos2D[14]))
             elif i == 5 :
-                pos = np.stack( (pos2D[12],pos2D[13]) , axis = 0)                 
+                part = down
+                corners = self.GetOrthoCorner(self.bdyPart[i],12,13,14,part) 
+                corners.extend((pos2D[12],pos2D[13]))
             elif i == 6 :
-                pos = np.stack( (pos2D[16],pos2D[17]) , axis = 0)              
-            elif i == 7 :
-                pos = np.stack( (pos2D[17],pos2D[18]) , axis = 0) 
-            elif i == 8 :
-                pos = np.stack( (pos2D[0],pos2D[1],pos2D[4],pos2D[8],pos2D[12],pos2D[16],pos2D[20]) , axis = 0) 
-                dist = LA.norm( (pos[4]-pos[5])).astype(np.int16)  
-            else:
-                pos = np.stack( (pos2D[2],pos2D[3]), axis = 0) 
-                dist = LA.norm( (pos[0]-pos[1])).astype(np.int16) 
+                part = high
+                corners = self.GetOrthoCorner(self.bdyPart[i],16,17,18,part)
+                corners.extend((pos2D[16],pos2D[17]))
+            else:# i == 7 :
+                part = down
+                corners = self.GetOrthoCorner(self.bdyPart[i],16,17,18,part)
+                corners.extend((pos2D[17],pos2D[18]))
+#==============================================================================
+#             elif i == 8 :
+#                 pos = np.stack( (pos2D[0],pos2D[1],pos2D[4],pos2D[8],pos2D[12],pos2D[16],pos2D[20]) , axis = 0) 
+#                 dist = LA.norm( (pos[4]-pos[5])).astype(np.int16)  
+#             else:
+#                 pos = np.stack( (pos2D[2],pos2D[3]), axis = 0) 
+#                 dist = LA.norm( (pos[0]-pos[1])).astype(np.int16) 
+#==============================================================================
             self.corners.append(corners) 
         
     def Pos2DToPos3D(self,s,Pose):       
         '''Convert pos2D into indices for drawing'''
-        pos = self.pos2d[0][self.Index]
+        pos = self.corners
         self.pos3D = []
         self.posDraw = []
         pix = np.array([0., 0., 1.])
         pt = np.array([0., 0., 0., 1.])
         
-        for i in range(pos.shape[0]):
+        for i in range(len(pos)):
+            for j in range(len(pos[i])):
             # vertex part
-            d = self.depth_image[pos[i,0],pos[i,1]]
-            if d > 0.0:
-                x = d*(pos[i,1] - self.intrinsic[0,2])/self.intrinsic[0,0]
-                y = d*(pos[i,0]- self.intrinsic[1,2])/self.intrinsic[1,1]
-                self.pos3D.append( (x, y, d) )
-            else:
-                self.pos3D.append( (0,0,1) )
+                d = self.depth_image[pos[i][j][0],pos[i][j][1]]
+                if d > 0.0:
+                    x = d*(pos[i][j][1] - self.intrinsic[0,2])/self.intrinsic[0,0]
+                    y = d*(pos[i][j][0]- self.intrinsic[1,2])/self.intrinsic[1,1]
+                    self.pos3D.append( np.array([x, y, d]) )
+                else:
+                    self.pos3D.append( (0,0,1) )
         # draw part
         for i in range(len(self.pos3D)):
             pt[0] = self.pos3D[i][0]
@@ -846,35 +870,29 @@ class RGBD():
 
     def SetSystCoord(self):       
         '''This will generate a new list of vectors that correspond to the orthogonal system coordinates'''
-#==============================================================================
-#         pst = self.pos3D
-#         
-#         for i in range(self.bdyPart.shape[0]):
-#             corners = self.corners3D[i]
-#             if i == 0:
-#                 e1 = pst[6]-pst[5]
-#                 corners
-#                 if LA.norm(e1)>LA.norm(corners)
-#             elif i == 1 :
-#                 e1 = pst[5]-pst[4]
-#             elif i == 2 :
-#                 e1 = pst[10]-pst[9]
-#             elif i == 3 :
-#                 e1 = pst[8]-pst[9]
-#             elif i == 4 :
-#                 e1 = pst[13]-pst[14]
-#             elif i == 5 :
-#                 e1 = pst[12]-pst[13]                
-#             elif i == 6 :
-#                 e1 = pst[16]-pst[17]            
-#             elif i == 7 :
-#                 e1 = pst[17]-pst[18]
-#             elif i == 8 :
-#                 #body
-#                 e1 = pst[12]-pst[16]
-#             else:
-#                 e1 = pst[2]-pst[3]
-#==============================================================================
+        corners3D = self.pos3D
+        self.sysCoor = []
+        
+        for i in range(self.bdyPart.shape[0]):
+            lim = len(self.corners[i])
+            corners = []
+            for j in range(lim):
+                corners.append(corners3D[lim*i+j])
+            e1 = corners[2]-corners[3]
+            e2 = corners[0]-corners[1]
+            e3 = np.cross(e1,e2)
+            vects = np.stack( (e1,e2,e3),axis = 1 )
+            x = np.min(np.dot(self.VtxBB,e1))*e1
+            y = np.min(np.dot(self.VtxBB,e2))*e2
+            z = np.min(np.dot(self.VtxBB,e3))*e3
+            e1b = np.stack( (e1,1))
+            e2b = np.stack( (e2,1))
+            e3b = np.stack( (e3,1))
+            vects = np.stack( (e1b,e2b,e3b),axis = 0 )
+            origine = np.stack( (x,y,z,0),axis = 1 )
+            Transfo = np.stack( (vects,origine),axis = 0 )
+            self.sysCoor.append(np.stack( (Transfo, np.array([0,0,0,1]).transpose() ), axis =1))
+            print self.sysCoor[i]
 
                 
             
