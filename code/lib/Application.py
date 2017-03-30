@@ -147,13 +147,13 @@ class Application(tk.Frame):
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        idx = 0
+        idx = 20
         self.RGBD.ReadFromMat(idx)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.BodyBBox()
         segm = self.RGBD.BodySegmentation()
         self.RGBD.CoordChange2Dv2()
-        self.RGBD.DrawSkeleton()
+        #self.RGBD.DrawSkeleton()
         start_time = time.time()
         self.RGBD.VmapBB()    
         self.RGBD.Vmap_optimize()  
@@ -167,29 +167,49 @@ class Application(tk.Frame):
         start_time2 = time.time()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
         self.RGBD.DrawBB(self.Pose, 1, self.color_tag)
-        renderingBB =self.RGBD.drawBB
+        self.RGBD.Pos2DToPos3D(1,self.Pose)
+        #self.RGBD.SetSystCoord()
+        #renderingBB = self.RGBD.drawBBox(self.RGBD.vertexes,self.RGBD.drawBB)
         elapsed_time3 = time.time() - start_time2
         print "DrawBB: %f" % (elapsed_time3)
+        print "pos3D: " 
+        print self.RGBD.pos3D
+        print "posDraw: "
+        print self.RGBD.posDraw
+        print "posDraw lenght: %d" % (len(self.RGBD.pos3D))
+        print "drawCorn : "
+        print self.RGBD.drawCorn
         
         # Show figure and images
 
         self.imgTkBB = []
         for i in range(self.RGBD.bdyPart.shape[0]):
-            Size = self.RGBD.PartBox[i].shape
+        #i=0
+            Size = self.RGBD.drawBB[i].shape
             self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
             self.canvas.pack()
-            imgBB = Image.fromarray(renderingBB[i], 'RGB')
+            imgBB = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
             self.imgTkBB.append(ImageTk.PhotoImage(imgBB))
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB[i])
 
 #==============================================================================
-#         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
-#         self.canvas.pack()
-#         img = Image.fromarray(rendering, 'RGB')
-#         self.imgTk=ImageTk.PhotoImage(img)
-#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+#         self.parent.title("Colours")        
+#         self.pack(fill=BOTH, expand=1)
+# 
+#         canvas = Canvas(self)
+#         canvas.create_rectangle(30, 10, 120, 80, 
+#             outline="#fb0", fill="#fb0")
+#         canvas.create_rectangle(150, 10, 240, 80, 
+#             outline="#f50", fill="#f50")
+#         canvas.create_rectangle(270, 10, 370, 80, 
+#             outline="#05f", fill="#05f")            
+#         canvas.pack(fill=BOTH, expand=1)
 #==============================================================================
-
+#==============================================================================
+# polygon = GUI(root)
+# polygon.create_polygon([150,75,225,0,300,75,225,150],     outline='gray', 
+#             fill='gray', width=2)
+#==============================================================================
    
 #==============================================================================
 #         self.canvas = tk.Canvas(self, bg="white", height=self.RGBD.BBBox.shape[0], width=self.RGBD.BBBox.shape[1])
@@ -199,7 +219,11 @@ class Application(tk.Frame):
 #         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
 #==============================================================================
         
-
+        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+        self.canvas.pack()
+        img = Image.fromarray(rendering, 'RGB')
+        self.imgTk=ImageTk.PhotoImage(img)
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
 
         '''
         Test Register
