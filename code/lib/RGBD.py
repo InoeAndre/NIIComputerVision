@@ -846,13 +846,14 @@ class RGBD():
         for i in range(len(pos)):
             for j in range(len(pos[i])):
             # vertex part
-                d = self.depth_image[pos[i][j][0],pos[i][j][1]]
+                d = self.depth_image[int(pos[i][j][0]),int(pos[i][j][1])]
                 if d > 0.0:
                     x = d*(pos[i][j][1] - self.intrinsic[0,2])/self.intrinsic[0,0]
                     y = d*(pos[i][j][0]- self.intrinsic[1,2])/self.intrinsic[1,1]
                     self.pos3D.append( np.array([x, y, d]) )
                 else:
                     self.pos3D.append( (0,0,1) )
+                print self.pos3D[i]
         # draw part
         for i in range(len(self.pos3D)):
             pt[0] = self.pos3D[i][0]
@@ -873,25 +874,25 @@ class RGBD():
         corners3D = self.pos3D
         self.sysCoor = []
         
-        for i in range(self.bdyPart.shape[0]):
-            lim = len(self.corners[i])
+        for i in range(self.bdyPart.shape[0]/4):
+            lim = 4#len(self.corners[i])
             corners = []
             for j in range(lim):
                 corners.append(corners3D[lim*i+j])
-            e1 = corners[2]-corners[3]
-            e2 = corners[0]-corners[1]
+            e1 = np.array(corners[2])-np.array(corners[3])
+            e2 = np.array(corners[0])-np.array(corners[1])
             e3 = np.cross(e1,e2)
             vects = np.stack( (e1,e2,e3),axis = 1 )
             x = np.min(np.dot(self.VtxBB,e1))*e1
             y = np.min(np.dot(self.VtxBB,e2))*e2
             z = np.min(np.dot(self.VtxBB,e3))*e3
-            e1b = np.stack( (e1,1))
-            e2b = np.stack( (e2,1))
-            e3b = np.stack( (e3,1))
-            vects = np.stack( (e1b,e2b,e3b),axis = 0 )
-            origine = np.stack( (x,y,z,0),axis = 1 )
-            Transfo = np.stack( (vects,origine),axis = 0 )
-            self.sysCoor.append(np.stack( (Transfo, np.array([0,0,0,1]).transpose() ), axis =1))
+            e1b = np.array( [e1[0],e1[1],e1[2],0])
+            e2b = np.array( [e2[0],e2[1],e2[2],0])
+            e3b = np.array( [e3[0],e3[1],e3[2],0])
+            center = x+y+z
+            origine = np.array( [center[0],center[1],center[2],1])
+            Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
+            self.sysCoor.append(Transfo)
             print self.sysCoor[i]
 
                 
