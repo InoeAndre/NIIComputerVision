@@ -153,7 +153,7 @@ class Application(tk.Frame):
         self.RGBD.BodyBBox()
         segm = self.RGBD.BodySegmentation()
         self.RGBD.CoordChange2Dv2()
-        #self.RGBD.DrawSkeleton()
+        self.RGBD.DrawSkeleton()
         start_time = time.time()
         self.RGBD.VmapBB()    
         self.RGBD.Vmap_optimize()  
@@ -182,37 +182,34 @@ class Application(tk.Frame):
         
         # Show figure and images
 
+        # figure 3D of with each part segmented in 3D but in one image
+        Size = self.RGBD.drawBB[0].shape
+        self.imgBB = Image.new('RGBA',(Size[0],Size[1]))
+        self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
+        self.canvas.pack()
+        for i in range(self.RGBD.bdyPart.shape[0]):
+            newImg = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
+            newImg = self.RGBD.Cvt2RGBA(newImg)
+            newImg = self.RGBD.ChangeColors(newImg,self.RGBD.bdyColor[i])
+            newImg.paste(self.imgBB,(0,0),self.imgBB)
+            self.imgBB = newImg        
+        self.imgTkBB = ImageTk.PhotoImage(self.imgBB)
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB)
+        
 #==============================================================================
+#         # All part of the bodies are separated in different images
 #         self.imgTkBB = []
 #         for i in range(self.RGBD.bdyPart.shape[0]):
 #         #i=0
-#             Size = self.RGBD.drawBB[i].shape
+#             Size = self.RGBD.drawBB[i].shape        
 #             self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
 #             self.canvas.pack()
 #             imgBB = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
 #             self.imgTkBB.append(ImageTk.PhotoImage(imgBB))
 #             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB[i])
 #==============================================================================
-
-#==============================================================================
-#         self.parent.title("Colours")        
-#         self.pack(fill=BOTH, expand=1)
-# 
-#         canvas = Canvas(self)
-#         canvas.create_rectangle(30, 10, 120, 80, 
-#             outline="#fb0", fill="#fb0")
-#         canvas.create_rectangle(150, 10, 240, 80, 
-#             outline="#f50", fill="#f50")
-#         canvas.create_rectangle(270, 10, 370, 80, 
-#             outline="#05f", fill="#05f")            
-#         canvas.pack(fill=BOTH, expand=1)
-#==============================================================================
-#==============================================================================
-# polygon = GUI(root)
-# polygon.create_polygon([150,75,225,0,300,75,225,150],     outline='gray', 
-#             fill='gray', width=2)
-#==============================================================================
    
+        # Display segmentation in 2D
         self.canvas = tk.Canvas(self, bg="white", height=self.RGBD.BBox.shape[0], width=self.RGBD.BBox.shape[1])
         self.canvas.pack()
         imgSeg = Image.fromarray(segm, 'RGB')
@@ -220,6 +217,7 @@ class Application(tk.Frame):
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
         
 #==============================================================================
+#         # 3D reconstruction of the whole image
 #         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
 #         self.canvas.pack()
 #         img = Image.fromarray(rendering, 'RGB')

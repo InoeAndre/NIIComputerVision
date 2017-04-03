@@ -590,13 +590,17 @@ class RGBD():
         footLeft = ( self.segm.GetFoot( MidBdyImage,left)>0)
         #pdb.set_trace()
 
-        self.bdyPart = np.array( [armLeft[0], armLeft[1], armRight[0], armRight[1], legLeft[0], legLeft[1], legRight[0],\
-                                legRight[1], head, body])#,  handRight, handLeft, footRight, footLeft])
+        self.bdyPart = np.array( [armLeft[0], armLeft[1], armRight[0], armRight[1],\
+                                  legLeft[0], legLeft[1], legRight[0],legRight[1],\
+                                  head, body])#,  handRight, handLeft, footRight, footLeft])
+        self.bdyColor = np.array( [np.array([0,0,255]), np.array([200,200,255]), np.array([0,255,0]), np.array([200,255,200]),\
+                                   np.array([255,0,255]), np.array([255,180,255]), np.array([255,255,0]), np.array([255,255,180]),\
+                                   np.array([255,0,0]), np.array([255,255,255])])#,  handRight, handLeft, footRight, footLeft])    
         '''
         correspondance between number and body parts and color
         armLeft[0] = forearmL      color=[0,0,255]
         armLeft[1] = upperarmL     color=[200,200,255]
-        armRight[1]= forearmR      color=[0,255,0]
+        armRight[0]= forearmR      color=[0,255,0]
         armRight[1] = upperarmR     color=[200,255,200]
         legRight[0] = thighR        color=[255,0,255]
         legRight[1] = calfR         color=[255,180,255]
@@ -606,19 +610,21 @@ class RGBD():
         body = body               color=[255,255,255] 
         handRight = right hand     color = [0,191,255]
         handLeft = left hand     color = [0,100,0]
+        footRight = right foot  color = [199,21,133]
+        footLeft = left foot  color = [255,165,0]
         '''
         
         # For Channel color R
-        I = I +0*armLeft[0]
-        I = I +200*armLeft[1]
-        I = I +0*armRight[0]
-        I = I +200*armRight[1]
-        I = I +255*legRight[0]
-        I = I +255*legRight[1]
-        I = I +255*legLeft[0]
-        I = I +255*legLeft[1]
-        I = I +255*head
-        I = I +255*body
+        I = I +self.bdyColor[0,0]*armLeft[0]
+        I = I +self.bdyColor[1,0]*armLeft[1]
+        I = I +self.bdyColor[2,0]*armRight[0]
+        I = I +self.bdyColor[3,0]*armRight[1]
+        I = I +self.bdyColor[4,0]*legRight[0]
+        I = I +self.bdyColor[5,0]*legRight[1]
+        I = I +self.bdyColor[6,0]*legLeft[0]
+        I = I +self.bdyColor[7,0]*legLeft[1]
+        I = I +self.bdyColor[8,0]*head
+        I = I +self.bdyColor[9,0]*body
         I = I +0*handRight
         I = I +0*handLeft
         I = I +199*footRight
@@ -628,16 +634,16 @@ class RGBD():
         # For Channel color G
         #I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
         I =  (np.zeros([self.BBox.shape[0],self.BBox.shape[1]])).astype(np.int8)
-        I = I +0*armLeft[0]
-        I = I +200*armLeft[1]
-        I = I +255*armRight[0]
-        I = I +255*armRight[1]
-        I = I +0*legRight[0]
-        I = I +180*legRight[1]
-        I = I +255*legLeft[0]
-        I = I +255*legLeft[1]
-        I = I +0*head
-        I = I +255*body
+        I = I +self.bdyColor[0,1]*armLeft[0]
+        I = I +self.bdyColor[1,1]*armLeft[1]
+        I = I +self.bdyColor[2,1]*armRight[0]
+        I = I +self.bdyColor[3,1]*armRight[1]
+        I = I +self.bdyColor[4,1]*legRight[0]
+        I = I +self.bdyColor[5,1]*legRight[1]
+        I = I +self.bdyColor[6,1]*legLeft[0]
+        I = I +self.bdyColor[7,1]*legLeft[1]
+        I = I +self.bdyColor[8,1]*head
+        I = I +self.bdyColor[9,1]*body
         I = I +100*handRight
         I = I +191*handLeft
         I = I +21*footRight
@@ -647,16 +653,16 @@ class RGBD():
         # For Channel color B
         #I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
         I =  (np.zeros([self.BBox.shape[0],self.BBox.shape[1]])).astype(np.int8)
-        I = I +255*armLeft[0]
-        I = I +255*armLeft[1]
-        I = I +0*armRight[0]
-        I = I +200*armRight[1]
-        I = I +255*legRight[0]
-        I = I +255*legRight[1]
-        I = I +0*legLeft[0]
-        I = I +180*legLeft[1]
-        I = I +0*head
-        I = I +255*body
+        I = I +self.bdyColor[0,2]*armLeft[0]
+        I = I +self.bdyColor[1,2]*armLeft[1]
+        I = I +self.bdyColor[2,2]*armRight[0]
+        I = I +self.bdyColor[3,2]*armRight[1]
+        I = I +self.bdyColor[4,2]*legRight[0]
+        I = I +self.bdyColor[5,2]*legRight[1]
+        I = I +self.bdyColor[6,2]*legLeft[0]
+        I = I +self.bdyColor[7,2]*legLeft[1]
+        I = I +self.bdyColor[8,2]*head
+        I = I +self.bdyColor[9,2]*body
         I = I +0*handRight
         I = I +255*handLeft
         I = I +133*footRight
@@ -894,9 +900,110 @@ class RGBD():
             Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
             self.sysCoor.append(Transfo.transpose())
             print self.sysCoor[i]
+            
+    def MeanPart(self,):       
+        '''Compute the mean of each body part'''
+        self.means = []
+        bdy = self.BBox
+        for i in range(self.bdyPart.shape[0]):
+            self.means.append(np.mean(bdy*self.bdyPart[i]))
+            
+             
+    def PCA(self, dims_rescaled_data=3):
+        """
+        returns: data transformed in 2 dims/columns + regenerated original data
+        pass in: data as 2D NumPy array
+        """
+        self.TVtxBB = []
+        self.eigenBB = []
+        for i in range(self.bdyPart.shape[0]):
+            m, n = self.VtxBB.shape
+            # mean center the data
+            data = self.VtxBB-self.VtxBB.mean(axis=0)
+            # calculate the covariance matrix
+            R = np.cov(data, rowvar=False)
+            # calculate eigenvectors & eigenvalues of the covariance matrix
+            # use 'eigh' rather than 'eig' since R is symmetric, 
+            # the performance gain is substantial
+            evals, evecs = LA.eigh(R)
+            # sort eigenvalue in decreasing order
+            idx = np.argsort(evals)[::-1]
+            evecs = evecs[:,idx]
+            # sort eigenvectors according to same index
+            evals = evals[idx]
+            # select the first n eigenvectors (n is desired dimension
+            # of rescaled data array, or dims_rescaled_data)
+            evecs = evecs[:, :dims_rescaled_data]
+            # carry out the transformation on the data using eigenvectors
+            # and return the re-scaled data, eigenvalues, and eigenvectors
+            self.TVtxBB.append( np.dot(evecs.T, data.T).T)
+            self.eigenBB.append( (evals, evecs))
+            
+    def SketchBB(self, dims_rescaled_data=3):       
+        '''
+        draw the bounding boxes in 3D for each part of the human body
+        '''
+        
+        pos2D = self.pos2d[0,self.Index].astype(np.int16)
+        Box = self.lImages[0,self.Index]
+        bwBox = self.bw[0,self.Index]
+        self.translate=[]
+        self.PartPos = []
+        self.PartBox = []
+        self.Partbw = []
+        for i in range(self.bdyPart.shape[0]):
+            # extremes points of the bodies
+            minY = np.min(self.TVtxBB[:,1,:])
+            maxY = np.max(self.TVtxBB[:,1,:])
+            minX = np.min(self.TVtxBB[:,0,:])
+            maxX = np.max(self.TVtxBB[:,0,:])
+            minZ = np.min(self.TVtxBB[:,0,:])
+            maxZ = np.max(self.TVtxBB[:,0,:])
+            ############ Should check whether the value are in the frame?????????? #####################
+            colStart = minX.astype(np.int16)
+            lineStart = minY.astype(np.int16)
+            depthStart = minZ.astype(np.int16)
+            colEnd = maxX.astype(np.int16)
+            lineEnd = maxY.astype(np.int16) 
+            depthEnd = maxZ.astype(np.int16)            
+            # New coordinates and new images
+            self.translate.append( np.array([colStart,lineStart,colEnd, lineEnd]) )
+            self.PartPos.append((pos -np.array([colStart,lineStart])).astype(np.int16))
+            self.PartBox.append(Box[lineStart:lineEnd,colStart:colEnd]) 
+            self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd])             
+            
+    def Cvt2RGBA(self,im_im):
+        '''
+        convert an RGB image in RGBA to put all zeros as transparent
+        '''
+        img = im_im.convert("RGBA")
+        datas = img.getdata()     
+        newData = []
+        for item in datas:
+            if item[0] == 0 and item[1] == 0 and item[2] == 0:
+                newData.append((0, 0, 0, 0))
+            else:
+                newData.append(item)
+        
+        img.putdata(newData)
+        return img      
 
                 
-            
+    def ChangeColors(self,im_im,color):
+        '''
+        take an RGBA image to color it 
+        '''
+        img = im_im.convert("RGBA")
+        datas = img.getdata()     
+        newData = []
+        for item in datas:
+            if item[0] != 0 and item[1] != 0 and item[2] != 0:
+                newData.append((color[0], color[1], color[2], item[3]))
+            else:
+                newData.append(item)
+        
+        img.putdata(newData)
+        return img                
             
             
             
