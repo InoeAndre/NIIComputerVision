@@ -892,7 +892,7 @@ class RGBD():
             center = x+y+z
             origine = np.array( [center[0],center[1],center[2],1])
             Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
-            self.sysCoor.append(Transfo)
+            self.sysCoor.append(Transfo.transpose())
             print self.sysCoor[i]
 
                 
