@@ -169,21 +169,6 @@ class RGBD():
             y = d_pos * y_raw
             self.VtxBB.append(np.dstack( (x, y,d) ))
             
-#==============================================================================
-#             Size = self.corners[i].shape
-#             partBox = self.corners[i]
-#             d = partBox#[0:Size[0]][0:Size[1]]
-#             d_pos = d * (d > 0.0)
-#             x_raw = np.zeros(Size, np.float32)
-#             y_raw = np.zeros(Size, np.float32)
-#             # change the matrix so that the first row is on all rows for x respectively colunm for y.
-#             x_raw[0:-1,:] = ( np.arange(Size[1]) - self.intrinsic[0,2])/self.intrinsic[0,0]
-#             y_raw[:,0:-1] = np.tile( ( np.arange(Size[0]) - self.intrinsic[1,2])/self.intrinsic[1,1],(1,1)).transpose()
-#             # multiply point by point d_pos and raw matrices
-#             x = d_pos * x_raw
-#             y = d_pos * y_raw
-#             self.corners3D.append(np.dstack( (x, y,d) ))
-#==============================================================================
 
                 
     ##### Compute normals
@@ -243,26 +228,6 @@ class RGBD():
             NmlsBB[1:Size[0]-1][:,1:Size[1]-1] = nmle
             self.NmlsBB.append(NmlsBB)
             
-#==============================================================================
-#             Size = self.corners[i].shape
-#             Vtx = self.corners3D[i]
-#             NmlsBB = np.zeros([Size[0],Size[1],3], np.float32)  
-#             nmle1 = normalized_cross_prod_optimize(Vtx[2:Size[0]  ][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
-#                                                    Vtx[1:Size[0]-1][:,2:Size[1]  ] - Vtx[1:Size[0]-1][:,1:Size[1]-1])        
-#             nmle2 = normalized_cross_prod_optimize(Vtx[1:Size[0]-1][:,2:Size[1]  ] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
-#                                                    Vtx[0:Size[0]-2][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1])
-#             nmle3 = normalized_cross_prod_optimize(Vtx[0:Size[0]-2][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
-#                                                    Vtx[1:Size[0]-1][:,0:Size[1]-2] - Vtx[1:Size[0]-1][:,1:Size[1]-1])
-#             nmle4 = normalized_cross_prod_optimize(Vtx[1:Size[0]-1][:,0:Size[1]-2] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
-#                                                    Vtx[2:Size[0]  ][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1])
-#             nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
-#             norm_mat_nmle = np.sqrt(np.sum(nmle*nmle,axis=2))
-#             norm_mat_nmle = in_mat_zero2one(norm_mat_nmle)
-#             #norm division 
-#             nmle = division_by_norm(nmle,norm_mat_nmle)
-#             NmlsBB[1:Size[0]-1][:,1:Size[1]-1] = nmle
-#             self.NmlsCorn.append(NmlsBB)            
-#==============================================================================
                 
                 
     def Draw(self, Pose, s, color = 0) :
@@ -377,57 +342,7 @@ class RGBD():
             #for others points
             self.drawBB.append(result)
 
-#==============================================================================
-#             Vtx = self.corners3D[i]
-#             Nmls = self.NmlsCorn[i]          
-#             result = np.zeros((Size[0], Size[1], 3), dtype = np.uint8)
-#             stack_pix = np.ones((Size[0], Size[1]), dtype = np.float32)
-#             stack_pt = np.ones((np.size(Vtx[ ::s, ::s,:],0), np.size(Vtx[ ::s, ::s,:],1)), dtype = np.float32)
-#             pix = np.zeros((Size[0], Size[1],2), dtype = np.float32)
-#             pix = np.dstack((pix,stack_pix))
-#             pt = np.dstack((Vtx[ ::s, ::s, :],stack_pt))
-#             pt = np.dot(Pose,pt.transpose(0,2,1)).transpose(1,2,0)
-#             nmle = np.zeros((Size[0], Size[1],3), dtype = np.float32)
-#             nmle[ ::s, ::s,:] = np.dot(Pose[0:3,0:3],Nmls[ ::s, ::s,:].transpose(0,2,1)).transpose(1,2,0)
-#             #if (pt[2] != 0.0):
-#             lpt = np.dsplit(pt,4)
-#             lpt[2] = in_mat_zero2one(lpt[2])
-#             # if in 1D pix[0] = pt[0]/pt[2]
-#             pix[ ::s, ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(Vtx[ ::s, ::s,:],0), np.size(Vtx[ ::s, ::s,:],1))
-#             # if in 1D pix[1] = pt[1]/pt[2]
-#             pix[ ::s, ::s,1] = (lpt[1]/lpt[2]).reshape(np.size(Vtx[ ::s, ::s,:],0), np.size(Vtx[ ::s, ::s,:],1))
-#             pix = np.dot(self.intrinsic,pix[0:Size[0],0:Size[1]].transpose(0,2,1)).transpose(1,2,0)
-#             column_index = (np.round(pix[:,:,0])).astype(int)
-#             line_index = (np.round(pix[:,:,1])).astype(int)
-#             # create matrix that have 0 when the conditions are not verified and 1 otherwise
-#             cdt_column = (column_index > -1) * (column_index < Size[1])
-#             cdt_line = (line_index > -1) * (line_index < Size[0])
-#             line_index = line_index*cdt_line
-#             column_index = column_index*cdt_column
-#             if (color == 0):
-#                 result[line_index[:][:], column_index[:][:]]= np.dstack((self.color_image[ ::s, ::s,2], \
-#                                                                          self.color_image[ ::s, ::s,1]*cdt_line, \
-#                                                                          self.color_image[ ::s, ::s,0]*cdt_column) )
-#             else:
-#                 result[line_index[:][:], column_index[:][:]]= np.dstack( ( (nmle[ :, :,0]+1.0)*(255./2.), \
-#                                                                            ((nmle[ :, :,1]+1.0)*(255./2.))*cdt_line, \
-#                                                                            ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
-# 
-#             self.drawCorn.append(result)
-#==============================================================================
             
-            
-#==============================================================================
-#     def DrawBBox(self,boxCrn,rendering):
-#         '''this function draw the bounding boxes for one part of the human body'''
-#         for i in range(boxCrn.shape[0]/2-1):
-#             cv2.line( rendering,boxCrn[i],boxCrn[i+4],(0,0,255),1) # color space = BGR
-#             cv2.circle(rendering,boxCrn[i],boxCrn[i+1],(0,0,255),1)
-#             cv2.circle(rendering,boxCrn[i+4],boxCrn[i+4+1],(0,0,255),1)        
-#         cv2.line( rendering,boxCrn[3],boxCrn[0],(0,0,255),1) 
-#         cv2.circle(rendering,boxCrn[7],boxCrn[4],(0,0,255),1)
-#         cv2.circle(rendering,boxCrn[3],boxCrn[7],(0,0,255),1)  
-#==============================================================================
         
 ##################################################################
 ###################Bilateral Smooth Funtion#######################
@@ -699,16 +614,6 @@ class RGBD():
         self.BBbw = bwBox[lineStart:lineEnd,colStart:colEnd]
         
         
-#==============================================================================
-#         # threshold according to the position
-#         minIdxV = np.argmin(pos2D[self.connection[:,0]-1,1])
-#         maxIdxV = np.argmax(pos2D[self.connection[:,0]-1,1])
-#         minIdxH = np.argmin(pos2D[self.connection[:,0]-1,0])
-#         maxIdxH = np.argmax(pos2D[self.connection[:,0]-1,0])
-#         
-#         for i in range(minIdxV):
-#         
-#==============================================================================
         
     def CoordChange2D(self):       
         '''This will generate a new depthframe but focuses on the human body'''
@@ -888,10 +793,9 @@ class RGBD():
             e1 = np.array(corners[2])-np.array(corners[3])
             e2 = np.array(corners[0])-np.array(corners[1])
             e3 = np.cross(e1,e2)
-            vects = np.stack( (e1,e2,e3),axis = 1 )
-            x = np.min(np.dot(self.VtxBB,e1))*e1
-            y = np.min(np.dot(self.VtxBB,e2))*e2
-            z = np.min(np.dot(self.VtxBB,e3))*e3
+            x = np.min(np.dot(self.VtxBB[i],e1))*e1
+            y = np.min(np.dot(self.VtxBB[i],e2))*e2
+            z = np.min(np.dot(self.VtxBB[i],e3))*e3
             e1b = np.array( [e1[0],e1[1],e1[2],0])
             e2b = np.array( [e2[0],e2[1],e2[2],0])
             e3b = np.array( [e3[0],e3[1],e3[2],0])
@@ -901,6 +805,23 @@ class RGBD():
             self.sysCoor.append(Transfo.transpose())
             print self.sysCoor[i]
             
+    def SetTransfoMat(self,evecs,i):       
+        '''Generate the transformation matrix '''
+        e1 = evecs[0]
+        e2 = evecs[1]
+        e3 = evecs[2]
+        x = np.min(np.dot(self.VtxBB[i],e1))*e1
+        y = np.min(np.dot(self.VtxBB[i],e2))*e2
+        z = np.min(np.dot(self.VtxBB[i],e3))*e3
+        e1b = np.array( [e1[0],e1[1],e1[2],0])
+        e2b = np.array( [e2[0],e2[1],e2[2],0])
+        e3b = np.array( [e3[0],e3[1],e3[2],0])
+        center = x+y+z
+        origine = np.array( [center[0],center[1],center[2],1])
+        Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
+        self.TransfoBB.append(Transfo.transpose())
+        print self.TransfoBB[i]
+            
     def MeanPart(self,):       
         '''Compute the mean of each body part'''
         self.means = []
@@ -909,23 +830,24 @@ class RGBD():
             self.means.append(np.mean(bdy*self.bdyPart[i]))
             
              
-    def PCA(self, dims_rescaled_data=3):
+    def myPCA(self, dims_rescaled_data=3):
         """
         returns: data transformed in 2 dims/columns + regenerated original data
         pass in: data as 2D NumPy array
         """
         self.TVtxBB = []
-        self.eigenBB = []
         for i in range(self.bdyPart.shape[0]):
-            m, n = self.VtxBB.shape
             # mean center the data
-            data = self.VtxBB-self.VtxBB.mean(axis=0)
-            # calculate the covariance matrix
-            R = np.cov(data, rowvar=False)
+            data = self.VtxBB[i]-self.VtxBB[i].mean(axis=0)
+            data_cov = np.zeros( [data.shape[0],data.shape[0],3])
+            for j in range(3):
+                data_cov[:,:,j] = np.dot(data[:,:,j],data[:,:,j].transpose())
+                # calculate the covariance matrix
+                data_cov[:,:,j] = np.cov(data_cov[:,:,j], rowvar=False)
             # calculate eigenvectors & eigenvalues of the covariance matrix
             # use 'eigh' rather than 'eig' since R is symmetric, 
             # the performance gain is substantial
-            evals, evecs = LA.eigh(R)
+            uu,evals,evecs = np.linalg.svd(data_cov)
             # sort eigenvalue in decreasing order
             idx = np.argsort(evals)[::-1]
             evecs = evecs[:,idx]
@@ -937,40 +859,35 @@ class RGBD():
             # carry out the transformation on the data using eigenvectors
             # and return the re-scaled data, eigenvalues, and eigenvectors
             self.TVtxBB.append( np.dot(evecs.T, data.T).T)
-            self.eigenBB.append( (evals, evecs))
+            self.SetTransfoMat(evecs,i)
             
-    def SketchBB(self, dims_rescaled_data=3):       
+
+            
+    def FindCoord(self, dims_rescaled_data=3):       
         '''
         draw the bounding boxes in 3D for each part of the human body
-        '''
-        
-        pos2D = self.pos2d[0,self.Index].astype(np.int16)
-        Box = self.lImages[0,self.Index]
-        bwBox = self.bw[0,self.Index]
-        self.translate=[]
-        self.PartPos = []
-        self.PartBox = []
-        self.Partbw = []
+        '''     
+        self.coords=[]
         for i in range(self.bdyPart.shape[0]):
+            # extremes planes of the bodies
+            minX = np.min(self.TVtxBB[i],axis=0)
+            maxX = np.max(self.TVtxBB[i],axis=0)
+            minY = np.min(self.TVtxBB[i],axis=1)
+            maxY = np.max(self.TVtxBB[i],axis=1)
+            minZ = np.min(self.TVtxBB[i],axis=2)
+            maxZ = np.max(self.TVtxBB[i],axis=2)
             # extremes points of the bodies
-            minY = np.min(self.TVtxBB[:,1,:])
-            maxY = np.max(self.TVtxBB[:,1,:])
-            minX = np.min(self.TVtxBB[:,0,:])
-            maxX = np.max(self.TVtxBB[:,0,:])
-            minZ = np.min(self.TVtxBB[:,0,:])
-            maxZ = np.max(self.TVtxBB[:,0,:])
-            ############ Should check whether the value are in the frame?????????? #####################
-            colStart = minX.astype(np.int16)
-            lineStart = minY.astype(np.int16)
-            depthStart = minZ.astype(np.int16)
-            colEnd = maxX.astype(np.int16)
-            lineEnd = maxY.astype(np.int16) 
-            depthEnd = maxZ.astype(np.int16)            
+            xymz = np.array([minX,minY,minZ]).astype(np.int16)
+            xYmz = np.array([minX,maxY,minZ]).astype(np.int16)            
+            Xymz = np.array([maxX,minY,minZ]).astype(np.int16)
+            XYmz = np.array([maxX,maxY,minZ]).astype(np.int16)
+            xymZ = np.array([minX,minY,maxZ]).astype(np.int16)
+            xYmZ = np.array([minX,maxY,maxZ]).astype(np.int16)
+            XymZ = np.array([maxX,minY,maxZ]).astype(np.int16)
+            XYmZ = np.array([maxX,maxY,maxZ]).astype(np.int16)           
             # New coordinates and new images
-            self.translate.append( np.array([colStart,lineStart,colEnd, lineEnd]) )
-            self.PartPos.append((pos -np.array([colStart,lineStart])).astype(np.int16))
-            self.PartBox.append(Box[lineStart:lineEnd,colStart:colEnd]) 
-            self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd])             
+            self.coords.append( np.array([xymz,xYmz,Xymz,XYmz,xymZ,xYmZ,XymZ,XYmZ]) )
+            
             
     def Cvt2RGBA(self,im_im):
         '''
@@ -1006,6 +923,22 @@ class RGBD():
         return img                
             
             
-            
+#==============================================================================
+#     def DrawBoxes(self,im_im,color,coordinates):
+#         '''
+#         take an RGBA image to draw bounding boxes on it 
+#         '''
+#         img = im_im.convert("RGBA")
+#         datas = img.getdata()     
+#         newData = []
+#         for item in datas:
+#             if item[0] != 0 and item[1] != 0 and item[2] != 0:
+#                 newData.append((color[0], color[1], color[2], item[3]))
+#             else:
+#                 newData.append(item)
+#         
+#         img.putdata(newData)
+#         return img             
+#==============================================================================
             
                 

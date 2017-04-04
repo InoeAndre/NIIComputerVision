@@ -192,6 +192,8 @@ class Application(tk.Frame):
             newImg = self.RGBD.Cvt2RGBA(newImg)
             newImg = self.RGBD.ChangeColors(newImg,self.RGBD.bdyColor[i])
             newImg.paste(self.imgBB,(0,0),self.imgBB)
+            #self.canvas.create_line()
+            self.RGBD.myPCA()
             self.imgBB = newImg        
         self.imgTkBB = ImageTk.PhotoImage(self.imgBB)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB)
