@@ -153,7 +153,7 @@ class RGBD():
         for i in range(self.bdyPart.shape[0]):
             if im==0:            
                 Size = self.bdyPart[i].shape
-                partBox = self.bdyPart[i]
+                partBox = self.BBox[i]*self.bdyPart[i]
             else:
                 Size = self.PartBox[i].shape
                 partBox = self.PartBox[i]
@@ -168,7 +168,11 @@ class RGBD():
             x = d_pos * x_raw
             y = d_pos * y_raw
             self.VtxBB.append(np.dstack( (x, y,d) ))
-            
+#==============================================================================
+#             print 'VtxBB[%d]' %(i)
+#             print self.VtxBB[i]
+#==============================================================================
+
 
                 
     ##### Compute normals
@@ -204,7 +208,7 @@ class RGBD():
         
     def NMapBB(self, im = 0):
         self.NmlsBB = []
-        self.NmlsCorn = []
+
         for i in range(self.bdyPart.shape[0]):
             if im==0:
                 Size = self.bdyPart[i].shape
@@ -227,8 +231,7 @@ class RGBD():
             nmle = division_by_norm(nmle,norm_mat_nmle)
             NmlsBB[1:Size[0]-1][:,1:Size[1]-1] = nmle
             self.NmlsBB.append(NmlsBB)
-            
-                
+                          
                 
     def Draw(self, Pose, s, color = 0) :
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
@@ -297,9 +300,8 @@ class RGBD():
                                                                        ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
     
-    def DrawBB(self, Pose, s, color = 0,im=0) :   
+    def DrawBdyPart(self, Pose, s, color = 0,im=0) :   
         self.drawBB = []
-        self.drawCorn = []
         for i in range(self.bdyPart.shape[0]):
             if im == 0:
                 Size = self.bdyPart[i].shape
@@ -342,7 +344,7 @@ class RGBD():
             #for others points
             self.drawBB.append(result)
 
-            
+           
         
 ##################################################################
 ###################Bilateral Smooth Funtion#######################
@@ -416,7 +418,7 @@ class RGBD():
         max_value = np.iinfo(np.uint16).max # = 65535 for uint16
         tmp = self.BBox*max_value
         self.BBox = tmp.astype(np.uint16)
-        
+        #self.BBox = self.BBox.astype(np.uint16)
         # Threshold according to detph of the body
         bdyVals = self.BBox[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
         #only keep vales different from 0
@@ -513,20 +515,20 @@ class RGBD():
                                    np.array([255,0,0]), np.array([255,255,255])])#,  handRight, handLeft, footRight, footLeft])    
         '''
         correspondance between number and body parts and color
-        armLeft[0] = forearmL      color=[0,0,255]
-        armLeft[1] = upperarmL     color=[200,200,255]
-        armRight[0]= forearmR      color=[0,255,0]
-        armRight[1] = upperarmR     color=[200,255,200]
-        legRight[0] = thighR        color=[255,0,255]
-        legRight[1] = calfR         color=[255,180,255]
-        legLeft[0] = thighL        color=[255,255,0]
-        legLeft[1] = calfL         color=[255,255,180]
-        head = headB                color=[255,0,0]
-        body = body               color=[255,255,255] 
-        handRight = right hand     color = [0,191,255]
-        handLeft = left hand     color = [0,100,0]
-        footRight = right foot  color = [199,21,133]
-        footLeft = left foot  color = [255,165,0]
+        armLeft[0] = forearmL      color = [0,0,255]          blue
+        armLeft[1] = upperarmL     color = [200,200,255]      very light blue
+        armRight[0]= forearmR      color = [0,255,0]          green
+        armRight[1] = upperarmR    color = [200,255,200]      very light green
+        legRight[0] = thighR       color = [255,0,255]        purple
+        legRight[1] = calfR        color = [255,180,255]      pink
+        legLeft[0] = thighL        color = [255,255,0]        yellow
+        legLeft[1] = calfL         color = [255,255,180]      very light yellow
+        head = headB               color = [255,0,0]          red
+        body = body                color = [255,255,255]      white
+        handRight = right hand     color = [0,191,255]        turquoise
+        handLeft = left hand       color = [0,100,0]          dark green
+        footRight = right foot     color = [199,21,133]       dark purple
+        footLeft = left foot       color = [255,165,0]        orange
         '''
         
         # For Channel color R
@@ -614,197 +616,6 @@ class RGBD():
         self.BBbw = bwBox[lineStart:lineEnd,colStart:colEnd]
         
         
-        
-    def CoordChange2D(self):       
-        '''This will generate a new depthframe but focuses on the human body'''
-        
-        pos2D = self.pos2d[0,self.Index].astype(np.int16)
-        Box = self.lImages[0,self.Index]
-        bwBox = self.bw[0,self.Index]
-        self.translate = []
-        self.PartPos = []
-        self.PartBox = []
-        self.Partbw = []
-        for i in range(self.bdyPart.shape[0]):
-            if i == 0:
-                pos = np.stack( (pos2D[6],pos2D[5]) , axis = 0)
-            elif i == 1 :
-                pos = np.stack( (pos2D[5],pos2D[4]) , axis = 0)
-            elif i == 2 :
-                pos = np.stack( (pos2D[10],pos2D[9]) , axis = 0)
-            elif i == 3 :
-                pos = np.stack( (pos2D[8],pos2D[9]) , axis = 0)
-            elif i == 4 :
-                pos = np.stack( (pos2D[13],pos2D[14]) , axis = 0)
-            elif i == 5 :
-                pos = np.stack( (pos2D[12],pos2D[13]) , axis = 0)                 
-            elif i == 6 :
-                pos = np.stack( (pos2D[16],pos2D[17]) , axis = 0)              
-            elif i == 7 :
-                pos = np.stack( (pos2D[17],pos2D[18]) , axis = 0) 
-            elif i == 8 :
-                pos = np.stack( (pos2D[0],pos2D[1],pos2D[4],pos2D[8],pos2D[12],pos2D[16],pos2D[20]) , axis = 0) 
-                dist = LA.norm( (pos[4]-pos[5])).astype(np.int16)  
-            else:
-                pos = np.stack( (pos2D[2],pos2D[3]), axis = 0) 
-                dist = LA.norm( (pos[0]-pos[1])).astype(np.int16)        
-            if i < 8 :
-                # distance from borders of the part of the body
-                dist = LA.norm( (pos[0]-pos[1])).astype(np.int16)/2
-            # extremes points of the bodies
-            minV = np.min(pos[:,1])
-            maxV = np.max(pos[:,1])
-            minH = np.min(pos[:,0])
-            maxH = np.max(pos[:,0])
-            ############ Should check whether the value are in the frame?????????? #####################
-            colStart = (minH-dist).astype(np.int16)
-            lineStart = (minV-dist).astype(np.int16)
-            colEnd = (maxH+dist).astype(np.int16)
-            lineEnd = (maxV+dist).astype(np.int16)  
-            # New coordinates and new images
-            self.translate.append( np.array([colStart,lineStart,colEnd, lineEnd]) )
-            self.PartPos.append((pos -np.array([colStart,lineStart])).astype(np.int16))
-            self.PartBox.append(Box[lineStart:lineEnd,colStart:colEnd]) 
-            self.Partbw.append(bwBox[lineStart:lineEnd,colStart:colEnd]) 
-           
-
-
-    def GetOrthoCorner(self,A,up,mid,down,part):
-        pos2D = self.pos2d[0,self.Index]
-        # compute slopes
-        slopesDown=self.segm.findSlope(pos2D[mid],pos2D[down])
-        a_pen67 = -slopesDown[1]
-        b_pen67 = slopesDown[0]
-        # Upperarm
-        slopesUp=self.segm.findSlope(pos2D[mid],pos2D[up])   
-        a_pen = slopesDown[0] + slopesUp[0]
-        b_pen = slopesDown[1] + slopesUp[1]
-        if (a_pen == b_pen) and (a_pen==0):
-            a_pen = slopesUp[1]
-            b_pen =-slopesUp[0]
-        c_pen = -(a_pen*pos2D[mid,0]+b_pen*pos2D[mid,1])
-        bone1 = LA.norm(pos2D[mid]-pos2D[down])
-        bone2 = LA.norm(pos2D[mid]-pos2D[up])
-        bone = max(bone1,bone2);
-        intersection_high=self.segm.inferedPoint(A,a_pen,b_pen,c_pen,pos2D[mid],0.5*bone)
-        
-        # find 2 points wrist
-        c_pen67=-(a_pen67*pos2D[down,0]+b_pen67*pos2D[down,1])
-        intersection_down=self.segm.inferedPoint(A,a_pen67,b_pen67,c_pen67,pos2D[down],bone/3)
-        if part == 0:
-            return intersection_down
-        else :
-            return intersection_high
-            
-    def CoordChange2Dv2(self):       
-        '''This will generate a new list of image having the corners of each body part'''
-        self.corners = []
-        pos2D = self.BBPos
-        high = 1
-        down = 0
-        for i in range(0, 8):#self.bdyPart.shape[0]):
-            corners = []
-            if i == 0:         
-                part = high
-                corners = self.GetOrthoCorner(self.bdyPart[i],8,9,10,part)
-                corners.extend((pos2D[6],pos2D[5]))
-            elif i == 1 :
-                part = down
-                corners = self.GetOrthoCorner(self.bdyPart[i],8,9,10,part)
-                corners.extend((pos2D[6],pos2D[5]))
-            elif i == 2 :
-                part = high
-                corners = self.GetOrthoCorner(self.bdyPart[i],4,5,6,part)
-                corners.extend((pos2D[10],pos2D[6]))
-            elif i == 3 :
-                part = down
-                corners = self.GetOrthoCorner(self.bdyPart[i],4,5,6,part)
-                corners.extend((pos2D[8],pos2D[9]))
-            elif i == 4 :
-                part = high
-                corners = self.GetOrthoCorner(self.bdyPart[i],12,13,14,part)
-                corners.extend((pos2D[13],pos2D[14]))
-            elif i == 5 :
-                part = down
-                corners = self.GetOrthoCorner(self.bdyPart[i],12,13,14,part) 
-                corners.extend((pos2D[12],pos2D[13]))
-            elif i == 6 :
-                part = high
-                corners = self.GetOrthoCorner(self.bdyPart[i],16,17,18,part)
-                corners.extend((pos2D[16],pos2D[17]))
-            else:# i == 7 :
-                part = down
-                corners = self.GetOrthoCorner(self.bdyPart[i],16,17,18,part)
-                corners.extend((pos2D[17],pos2D[18]))
-#==============================================================================
-#             elif i == 8 :
-#                 pos = np.stack( (pos2D[0],pos2D[1],pos2D[4],pos2D[8],pos2D[12],pos2D[16],pos2D[20]) , axis = 0) 
-#                 dist = LA.norm( (pos[4]-pos[5])).astype(np.int16)  
-#             else:
-#                 pos = np.stack( (pos2D[2],pos2D[3]), axis = 0) 
-#                 dist = LA.norm( (pos[0]-pos[1])).astype(np.int16) 
-#==============================================================================
-            self.corners.append(corners) 
-        
-    def Pos2DToPos3D(self,s,Pose):       
-        '''Convert pos2D into indices for drawing'''
-        pos = self.corners
-        self.pos3D = []
-        self.posDraw = []
-        pix = np.array([0., 0., 1.])
-        pt = np.array([0., 0., 0., 1.])
-        
-        for i in range(len(pos)):
-            for j in range(len(pos[i])):
-            # vertex part
-                d = self.depth_image[int(pos[i][j][0]),int(pos[i][j][1])]
-                if d > 0.0:
-                    x = d*(pos[i][j][1] - self.intrinsic[0,2])/self.intrinsic[0,0]
-                    y = d*(pos[i][j][0]- self.intrinsic[1,2])/self.intrinsic[1,1]
-                    self.pos3D.append( np.array([x, y, d]) )
-                else:
-                    self.pos3D.append( (0,0,1) )
-                print self.pos3D[i]
-        # draw part
-        for i in range(len(self.pos3D)):
-            pt[0] = self.pos3D[i][0]
-            pt[1] = self.pos3D[i][1]
-            pt[2] = self.pos3D[i][2]
-            pt = np.dot(Pose, pt)
-            if (pt[2] != 0.0):
-                pix[0] = pt[0]/pt[2]
-                pix[1] = pt[1]/pt[2]
-                pix = np.dot(self.intrinsic, pix)
-                column_index = int(round(pix[0]))
-                line_index = int(round(pix[1]))
-                self.posDraw.append(np.array([line_index,column_index]))
-
-
-    def SetSystCoord(self):       
-        '''This will generate a new list of vectors that correspond to the orthogonal system coordinates'''
-        corners3D = self.pos3D
-        self.sysCoor = []
-        
-        for i in range(self.bdyPart.shape[0]/4):
-            lim = 4#len(self.corners[i])
-            corners = []
-            for j in range(lim):
-                corners.append(corners3D[lim*i+j])
-            e1 = np.array(corners[2])-np.array(corners[3])
-            e2 = np.array(corners[0])-np.array(corners[1])
-            e3 = np.cross(e1,e2)
-            x = np.min(np.dot(self.VtxBB[i],e1))*e1
-            y = np.min(np.dot(self.VtxBB[i],e2))*e2
-            z = np.min(np.dot(self.VtxBB[i],e3))*e3
-            e1b = np.array( [e1[0],e1[1],e1[2],0])
-            e2b = np.array( [e2[0],e2[1],e2[2],0])
-            e3b = np.array( [e3[0],e3[1],e3[2],0])
-            center = x+y+z
-            origine = np.array( [center[0],center[1],center[2],1])
-            Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
-            self.sysCoor.append(Transfo.transpose())
-            print self.sysCoor[i]
-            
     def SetTransfoMat(self,evecs,i):       
         '''Generate the transformation matrix '''
         e1 = evecs[0]
@@ -822,12 +633,14 @@ class RGBD():
         self.TransfoBB.append(Transfo.transpose())
         print self.TransfoBB[i]
             
-    def MeanPart(self,):       
-        '''Compute the mean of each body part'''
-        self.means = []
-        bdy = self.BBox
-        for i in range(self.bdyPart.shape[0]):
-            self.means.append(np.mean(bdy*self.bdyPart[i]))
+#==============================================================================
+#     def MeanPart(self,):       
+#         '''Compute the mean of each body part'''
+#         self.means = []
+#         bdy = self.BBox
+#         for i in range(self.bdyPart.shape[0]):
+#             self.means.append(np.mean(bdy*self.bdyPart[i]))
+#==============================================================================
             
              
     def myPCA(self, dims_rescaled_data=3):
@@ -836,14 +649,15 @@ class RGBD():
         pass in: data as 2D NumPy array
         """
         self.TVtxBB = []
+        self.TransfoBB = []
         for i in range(self.bdyPart.shape[0]):
             # mean center the data
             data = self.VtxBB[i]-self.VtxBB[i].mean(axis=0)
-            data_cov = np.zeros( [data.shape[0],data.shape[0],3])
+            data_cov = np.zeros( [3,3])                
+            # compute the covariance matrix  
             for j in range(3):
-                data_cov[:,:,j] = np.dot(data[:,:,j],data[:,:,j].transpose())
-                # calculate the covariance matrix
-                data_cov[:,:,j] = np.cov(data_cov[:,:,j], rowvar=False)
+                for k in range(3):      
+                    data_cov[j,k] = np.mean(np.dot(data[:,:,j],data[:,:,k].T))
             # calculate eigenvectors & eigenvalues of the covariance matrix
             # use 'eigh' rather than 'eig' since R is symmetric, 
             # the performance gain is substantial
@@ -858,7 +672,11 @@ class RGBD():
             evecs = evecs[:, :dims_rescaled_data]
             # carry out the transformation on the data using eigenvectors
             # and return the re-scaled data, eigenvalues, and eigenvectors
-            self.TVtxBB.append( np.dot(evecs.T, data.T).T)
+            self.TVtxBB.append( np.dot(self.VtxBB[i],evecs))
+#==============================================================================
+#             print 'TVtxBB[%d]' %(i)
+#             print self.TVtxBB[i]
+#==============================================================================
             self.SetTransfoMat(evecs,i)
             
 
@@ -868,14 +686,16 @@ class RGBD():
         draw the bounding boxes in 3D for each part of the human body
         '''     
         self.coords=[]
+        self.coordsNml=[]
         for i in range(self.bdyPart.shape[0]):
             # extremes planes of the bodies
-            minX = np.min(self.TVtxBB[i],axis=0)
-            maxX = np.max(self.TVtxBB[i],axis=0)
-            minY = np.min(self.TVtxBB[i],axis=1)
-            maxY = np.max(self.TVtxBB[i],axis=1)
-            minZ = np.min(self.TVtxBB[i],axis=2)
-            maxZ = np.max(self.TVtxBB[i],axis=2)
+            minX = np.min(self.TVtxBB[i][:,:,0])
+            maxX = np.max(self.TVtxBB[i][:,:,0])
+            minY = np.min(self.TVtxBB[i][:,:,1])
+            maxY = np.max(self.TVtxBB[i][:,:,1])
+            minZ = np.min(self.TVtxBB[i][:,:,2])
+            maxZ = np.max(self.TVtxBB[i][:,:,2])
+
             # extremes points of the bodies
             xymz = np.array([minX,minY,minZ]).astype(np.int16)
             xYmz = np.array([minX,maxY,minZ]).astype(np.int16)            
@@ -886,8 +706,32 @@ class RGBD():
             XymZ = np.array([maxX,minY,maxZ]).astype(np.int16)
             XYmZ = np.array([maxX,maxY,maxZ]).astype(np.int16)           
             # New coordinates and new images
-            self.coords.append( np.array([xymz,xYmz,Xymz,XYmz,xymZ,xYmZ,XymZ,XYmZ]) )
-            
+            self.coords.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
+
+    def GetCorners(self, Pose, s=1, color = 0) :   
+        self.drawCorners = []
+        for k in range(self.bdyPart.shape[0]):
+            Size = self.coords[k].shape
+            tmp = np.zeros([Size[0],2])
+            Vtx = self.coords[k]  
+            line_index = 0
+            column_index = 0
+            pix = np.array([0., 0., 1.])
+            pt = np.array([0., 0., 0., 1.])
+            for i in range(Size[0]/s):
+                pt[0] = Vtx[i*s][0]
+                pt[1] = Vtx[i*s][1]
+                pt[2] = Vtx[i*s][2]
+                pt = np.dot(Pose, pt)
+                if (pt[2] != 0.0):
+                    pix[0] = pt[0]/pt[2]
+                    pix[1] = pt[1]/pt[2]
+                    pix = np.dot(self.intrinsic, pix)
+                    column_index = int(round(pix[0]))
+                    line_index = int(round(pix[1]))
+                    tmp[i,0] = line_index
+                    tmp[i,1] = column_index
+            self.drawCorners.append(tmp) 
             
     def Cvt2RGBA(self,im_im):
         '''
@@ -923,22 +767,6 @@ class RGBD():
         return img                
             
             
-#==============================================================================
-#     def DrawBoxes(self,im_im,color,coordinates):
-#         '''
-#         take an RGBA image to draw bounding boxes on it 
-#         '''
-#         img = im_im.convert("RGBA")
-#         datas = img.getdata()     
-#         newData = []
-#         for item in datas:
-#             if item[0] != 0 and item[1] != 0 and item[2] != 0:
-#                 newData.append((color[0], color[1], color[2], item[3]))
-#             else:
-#                 newData.append(item)
-#         
-#         img.putdata(newData)
-#         return img             
-#==============================================================================
+
             
                 
