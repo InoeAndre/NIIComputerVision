@@ -180,7 +180,7 @@ class Segmentation(object):
     def polygon_optimize(self,slopes,ref,  limit  ):
         ''' This function test the sign of alpha = (a[k]*j+b[k]*i+c[k])*ref[k] 
         to know whether a point is within a polygon or not'''
-        start_time = time.time()
+        #start_time = time.time()
         line = self.depthImage.shape[0]
         col = self.depthImage.shape[1]
         res = np.ones([line,col])
@@ -200,8 +200,8 @@ class Segmentation(object):
         for k in range(limit):
             res = res*alpha[:,:,k ] 
         res = (res>0)
-        elapsed_time = time.time() - start_time
-        print "polygon_optimize: %f" % (elapsed_time)
+        #elapsed_time = time.time() - start_time
+        #print "polygon_optimize: %f" % (elapsed_time)
         return res
         
     def polygonOutline(self,points):

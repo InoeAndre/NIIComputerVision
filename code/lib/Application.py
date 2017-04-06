@@ -152,7 +152,6 @@ class Application(tk.Frame):
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.BodyBBox()
         segm = self.RGBD.BodySegmentation()
-        self.RGBD.CoordChange2Dv2()
         self.RGBD.DrawSkeleton()
         start_time = time.time()
         self.RGBD.VmapBB()    
@@ -167,18 +166,14 @@ class Application(tk.Frame):
         start_time2 = time.time()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
         self.RGBD.DrawBB(self.Pose, 1, self.color_tag)
-        self.RGBD.Pos2DToPos3D(1,self.Pose)
-        self.RGBD.SetSystCoord()
-        #renderingBB = self.RGBD.drawBBox(self.RGBD.vertexes,self.RGBD.drawBB)
+#==============================================================================
+#         self.RGBD.myPCA()
+#         self.RGBD.FindCoord()
+#         self.RGBD.GetCorners(self.Pose, 1, self.color_tag)
+#==============================================================================
         elapsed_time3 = time.time() - start_time2
         print "DrawBB: %f" % (elapsed_time3)
-        print "pos3D: " 
-        print self.RGBD.pos3D
-        print "posDraw: "
-        print self.RGBD.posDraw
-        print "posDraw lenght: %d" % (len(self.RGBD.pos3D))
-        print "drawCorn : "
-        print self.RGBD.drawCorn
+        
         
         # Show figure and images
 
@@ -192,6 +187,14 @@ class Application(tk.Frame):
             newImg = self.RGBD.Cvt2RGBA(newImg)
             newImg = self.RGBD.ChangeColors(newImg,self.RGBD.bdyColor[i])
             newImg.paste(self.imgBB,(0,0),self.imgBB)
+#==============================================================================
+#             coords = self.RGBD.drawCorners[i]
+#             self.canvas.create_line(coords[0],coords[1],coords[2],coords[3],coords[0],\
+#                                     coords[4],coords[5],coords[6],coords[7],coords[4],fill="red")
+#             self.canvas.create_line(coords[1],coords[5],fill="red")
+#             self.canvas.create_line(coords[2],coords[6],fill="red")
+#             self.canvas.create_line(coords[3],coords[7],fill="red")
+#==============================================================================
             self.imgBB = newImg        
         self.imgTkBB = ImageTk.PhotoImage(self.imgBB)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB)
