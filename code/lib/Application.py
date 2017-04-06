@@ -147,7 +147,7 @@ class Application(tk.Frame):
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        idx = 20
+        idx = 0
         self.RGBD.ReadFromMat(idx)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.BodyBBox()
@@ -174,7 +174,6 @@ class Application(tk.Frame):
         elapsed_time3 = time.time() - start_time2
         print "DrawBB: %f" % (elapsed_time3)
         
-        
         # Show figure and images
 
         # figure 3D of with each part segmented in 3D but in one image
@@ -183,6 +182,7 @@ class Application(tk.Frame):
         self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
         self.canvas.pack()
         for i in range(self.RGBD.bdyPart.shape[0]):
+        #i=1
             newImg = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
             newImg = self.RGBD.Cvt2RGBA(newImg)
             newImg = self.RGBD.ChangeColors(newImg,self.RGBD.bdyColor[i])

@@ -176,6 +176,11 @@ class RGBD():
             x = d_pos * x_raw
             y = d_pos * y_raw
             self.VtxBB.append(np.dstack( (x, y,d) ))
+#==============================================================================
+#             print 'VtxBB[%d]' %(i)
+#             print self.VtxBB[i]
+#==============================================================================
+
 
                 
     ##### Compute normals
@@ -211,7 +216,7 @@ class RGBD():
         
     def NMapBB(self, im = 0):
         self.NmlsBB = []
-        self.NmlsCorn = []
+
         for i in range(self.bdyPart.shape[0]):
             if im==0:
                 Size = self.bdyPart[i].shape
@@ -234,7 +239,7 @@ class RGBD():
             nmle = division_by_norm(nmle,norm_mat_nmle)
             NmlsBB[1:Size[0]-1][:,1:Size[1]-1] = nmle
             self.NmlsBB.append(NmlsBB)
-                           
+
                 
     def Draw(self, Pose, s, color = 0) :
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
@@ -303,9 +308,8 @@ class RGBD():
                                                                        ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
     
-    def DrawBB(self, Pose, s, color = 0,im=0) :   
+    def DrawBdyPart(self, Pose, s, color = 0,im=0) :   
         self.drawBB = []
-        self.drawCorn = []
         for i in range(self.bdyPart.shape[0]):
             if im == 0:
                 Size = self.bdyPart[i].shape
@@ -348,8 +352,7 @@ class RGBD():
             #for others points
             self.drawBB.append(result)
 
-         
-                   
+
 ##################################################################
 ###################Bilateral Smooth Funtion#######################
 ##################################################################
@@ -422,7 +425,7 @@ class RGBD():
         max_value = np.iinfo(np.uint16).max # = 65535 for uint16
         tmp = self.BBox*max_value
         self.BBox = tmp.astype(np.uint16)
-        
+        #self.BBox = self.BBox.astype(np.uint16)
         # Threshold according to detph of the body
         bdyVals = self.BBox[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
         #only keep vales different from 0
@@ -607,8 +610,7 @@ class RGBD():
         self.BBPos = (pos2D -np.array([colStart,lineStart])).astype(np.int16)
         self.BBbw = bwBox[lineStart:lineEnd,colStart:colEnd]
         
-    
- 
+
 #==============================================================================
 #     def SetTransfoMat(self,evecs,i):       
 #         '''Generate the transformation matrix '''
@@ -721,6 +723,7 @@ class RGBD():
 #             self.drawCorners.append(tmp) 
 # 
 #==============================================================================
+
     def Cvt2RGBA(self,im_im):
         '''
         convert an RGB image in RGBA to put all zeros as transparent
@@ -755,6 +758,6 @@ class RGBD():
         return img                
             
             
-            
+
             
                 
