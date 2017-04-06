@@ -11,6 +11,7 @@ import time
 import scipy.ndimage.measurements as spm
 import pdb
 from skimage import img_as_ubyte
+from scipy import ndimage
 
 
 segm = imp.load_source('segmentation', './lib/segmentation.py')
@@ -168,9 +169,6 @@ class RGBD():
             x = d_pos * x_raw
             y = d_pos * y_raw
             self.VtxBB.append(np.dstack( (x, y,d) ))
-            print 'VtxBB[%d]' %(i)
-            print self.VtxBB[i]
-
 
                 
     ##### Compute normals
@@ -595,18 +593,21 @@ class RGBD():
         self.BBbw = bwBox[lineStart:lineEnd,colStart:colEnd]
         
 
-    def SetTransfoMat(self,evecs,i):       
+    def SetTransfoMat(self,evecs,i,ctrMass):       
         '''Generate the transformation matrix '''
         e1 = evecs[0]
         e2 = evecs[1]
         e3 = evecs[2]
-        x = np.min(np.dot(self.VtxBB[i],e1))*e1
-        y = np.min(np.dot(self.VtxBB[i],e2))*e2
-        z = np.min(np.dot(self.VtxBB[i],e3))*e3
+#==============================================================================
+#         x = np.min(np.dot(self.VtxBB[i],e1))*e1
+#         y = np.min(np.dot(self.VtxBB[i],e2))*e2
+#         z = np.min(np.dot(self.VtxBB[i],e3))*e3
+#         center = x + y + z
+#==============================================================================
         e1b = np.array( [e1[0],e1[1],e1[2],0])
         e2b = np.array( [e2[0],e2[1],e2[2],0])
         e3b = np.array( [e3[0],e3[1],e3[2],0])
-        center = x+y+z
+        center = ctrMass[0]+ctrMass[1]+ctrMass[2]
         origine = np.array( [center[0],center[1],center[2],1])
         Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
         self.TransfoBB.append(Transfo.transpose())
@@ -614,16 +615,18 @@ class RGBD():
            
     def myPCA(self, dims_rescaled_data=3):
         """
-        returns: data transformed in 2 dims/columns + regenerated original data
-        pass in: data as 2D NumPy array
+        returns: data transformed 
         """
         self.TVtxBB = []
         self.TransfoBB = []
         for i in range(self.bdyPart.shape[0]):
+            ctrMass = []
             data = np.zeros(self.VtxBB[i].shape)
             for j in range(3):
-                # mean center the data
-                data[:,:,j] = self.VtxBB[i][:,:,j]-self.VtxBB[i][:,:,j].mean()
+                # center of mass the data
+                idx = ndimage.measurements.center_of_mass(self.VtxBB[i][:,:,j])
+                ctrMass.append(np.array([idx[0],idx[1],j]))
+                data[:,:,j] = self.VtxBB[i][:,:,j]-self.VtxBB[i][int(round(idx[0])),int(round(idx[1])),j]
             data_cov = np.zeros( [3,3])                
             # compute the covariance matrix  
             for j in range(3):
@@ -649,7 +652,7 @@ class RGBD():
 #             print 'TVtxBB[%d]' %(i)
 #             print self.TVtxBB[i]
 #==============================================================================
-            self.SetTransfoMat(uu,i)       
+            self.SetTransfoMat(uu,i,ctrMass)       
 
             
     def FindCoord(self, dims_rescaled_data=3):       
@@ -658,6 +661,7 @@ class RGBD():
         '''     
         self.coords=[]
         self.coordsT=[]
+        self.borders = []
         for i in range(self.bdyPart.shape[0]):
             # extremes planes of the bodies
             minX = np.min(self.TVtxBB[i][:,:,0])
@@ -666,7 +670,7 @@ class RGBD():
             maxY = np.max(self.TVtxBB[i][:,:,1])
             minZ = np.min(self.TVtxBB[i][:,:,2])
             maxZ = np.max(self.TVtxBB[i][:,:,2])
-
+            self.borders.append( np.array([minX,maxX,minY,maxY,minZ,maxZ]) )
             # extremes points of the bodies
             xymz = np.array([minX,minY,minZ]).astype(np.int16)
             xYmz = np.array([minX,maxY,minZ]).astype(np.int16)            
@@ -681,14 +685,16 @@ class RGBD():
             print "coordsT[%d]" %(i)
             print self.coordsT[i]
             inv = np.linalg.inv(self.TransfoBB[i][0:3,0:3])
-            self.coords.append(np.dot(self.coordsT[i],inv))
+            self.coords.append(np.dot(self.coordsT[i],inv.T))
             print "coord[%d]" %(i)
             print self.coords[i]
             
 
     def GetCorners(self, Pose, s=1, color = 0) :   
         self.drawCorners = []
+        self.drawCenter = []
         for k in range(self.bdyPart.shape[0]):
+            # coordinates of boxes corners
             Size = self.coords[k].shape
             tmp = np.zeros([Size[0],2])
             Vtx = self.coords[k]  
@@ -712,6 +718,29 @@ class RGBD():
             self.drawCorners.append(tmp) 
             print "drawCorners[%d]" %(k)
             print self.drawCorners[k]
+            # coordinates system
+            tmp = np.zeros([1,2])
+            bord= self.TransfoBB[k]  
+            line_index = 0
+            column_index = 0
+            pix = np.array([0., 0., 1.])
+            pt = np.array([0., 0., 0., 1.])
+            pt[0] = bord[0][3]
+            pt[1] = bord[1][3]
+            pt[2] = bord[2][3]
+            pt = np.dot(Pose, pt)
+            if (pt[2] != 0.0):
+                pix[0] = pt[0]/pt[2]
+                pix[1] = pt[1]/pt[2]
+                pix = np.dot(self.intrinsic, pix)
+                column_index = int(round(pix[0]))
+                line_index = int(round(pix[1]))
+                tmp[0,0] = line_index
+                tmp[0,1] = column_index
+            self.drawCenter.append(tmp) 
+            print "drawCenter[%d]" %(k)
+            print self.drawCenter[k]
+
 
     def Cvt2RGBA(self,im_im):
         '''
