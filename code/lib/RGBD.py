@@ -154,14 +154,6 @@ class RGBD():
             if im==0:            
                 Size = self.bdyPart[i].shape
                 partBox = self.bdyPart[i]
-#==============================================================================
-#                 print 'partBox[%d]' %(i)
-#                 print partBox#self.VtxBB[i]
-
-
-
-#self.BBox[i]*
-#==============================================================================
             else:
                 Size = self.PartBox[i].shape
                 partBox = self.PartBox[i]
@@ -176,10 +168,8 @@ class RGBD():
             x = d_pos * x_raw
             y = d_pos * y_raw
             self.VtxBB.append(np.dstack( (x, y,d) ))
-#==============================================================================
-#             print 'VtxBB[%d]' %(i)
-#             print self.VtxBB[i]
-#==============================================================================
+            print 'VtxBB[%d]' %(i)
+            print self.VtxBB[i]
 
 
                 
@@ -308,7 +298,7 @@ class RGBD():
                                                                        ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
     
-    def DrawBdyPart(self, Pose, s, color = 0,im=0) :   
+    def DrawBB(self, Pose, s, color = 0,im=0) :   
         self.drawBB = []
         for i in range(self.bdyPart.shape[0]):
             if im == 0:
@@ -423,9 +413,9 @@ class RGBD():
         '''this function threshold the depth image in order to to get the whole body alone with the bounding box (BB)'''
         pos2D = self.BBPos
         max_value = np.iinfo(np.uint16).max # = 65535 for uint16
-        tmp = self.BBox*max_value
-        self.BBox = tmp.astype(np.uint16)
-        #self.BBox = self.BBox.astype(np.uint16)
+        #tmp = self.BBox*max_value
+        #self.BBox = tmp.astype(np.uint16)
+        self.BBox = self.BBox.astype(np.uint16)
         # Threshold according to detph of the body
         bdyVals = self.BBox[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
         #only keep vales different from 0
@@ -487,14 +477,7 @@ class RGBD():
         
         tmp = armLeft[0]+armLeft[1]+armRight[0]+armRight[1]+legRight[0]+legRight[1]+legLeft[0]+legLeft[1]+head
         MidBdyImage =((imageWBG-(tmp>0))>0)
-        #self.GetBdyEdges()
 
-
-#==============================================================================
-#         cv_image = img_as_ubyte(MidBdyImage)
-#         im2, contours, hierarchy = cv2.findContours(cv_image,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-#         cv2.drawContours(self.skel, contours, -1, (0,255,0), 3)
-#==============================================================================
         body = ( self.segm.GetBody( MidBdyImage)>0)
         handRight = ( self.segm.GetHand( MidBdyImage,right)>0)
         handLeft = ( self.segm.GetHand( MidBdyImage,left)>0)
@@ -502,7 +485,7 @@ class RGBD():
         footLeft = ( self.segm.GetFoot( MidBdyImage,left)>0)
         #pdb.set_trace()
 
-        self.bdyPart = np.array( [armLeft[0], armLeft[1], armRight[0], armRight[1],\
+        self.bdyPart = B*np.array( [armLeft[0], armLeft[1], armRight[0], armRight[1],\
                                   legLeft[0], legLeft[1], legRight[0],legRight[1],\
                                   head, body])#,  handRight, handLeft, footRight, footLeft])
         self.bdyColor = np.array( [np.array([0,0,255]), np.array([200,200,255]), np.array([0,255,0]), np.array([200,255,200]),\
@@ -605,124 +588,130 @@ class RGBD():
         colStart = (minH-distH2N).astype(np.int16)
         lineStart = (minV-distH2N).astype(np.int16)
         colEnd = (maxH+distH2N).astype(np.int16)
-        lineEnd = (maxV+distH2N).astype(np.int16)        
+        lineEnd = (maxV+distH2N).astype(np.int16)  
+        self.transBB = np.array([colStart,lineStart])
         self.BBox = Box[lineStart:lineEnd,colStart:colEnd]
-        self.BBPos = (pos2D -np.array([colStart,lineStart])).astype(np.int16)
+        self.BBPos = (pos2D -self.transBB).astype(np.int16)
         self.BBbw = bwBox[lineStart:lineEnd,colStart:colEnd]
         
 
+    def SetTransfoMat(self,evecs,i):       
+        '''Generate the transformation matrix '''
+        e1 = evecs[0]
+        e2 = evecs[1]
+        e3 = evecs[2]
+        x = np.min(np.dot(self.VtxBB[i],e1))*e1
+        y = np.min(np.dot(self.VtxBB[i],e2))*e2
+        z = np.min(np.dot(self.VtxBB[i],e3))*e3
+        e1b = np.array( [e1[0],e1[1],e1[2],0])
+        e2b = np.array( [e2[0],e2[1],e2[2],0])
+        e3b = np.array( [e3[0],e3[1],e3[2],0])
+        center = x+y+z
+        origine = np.array( [center[0],center[1],center[2],1])
+        Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
+        self.TransfoBB.append(Transfo.transpose())
+        print self.TransfoBB[i]           
+           
+    def myPCA(self, dims_rescaled_data=3):
+        """
+        returns: data transformed in 2 dims/columns + regenerated original data
+        pass in: data as 2D NumPy array
+        """
+        self.TVtxBB = []
+        self.TransfoBB = []
+        for i in range(self.bdyPart.shape[0]):
+            data = np.zeros(self.VtxBB[i].shape)
+            for j in range(3):
+                # mean center the data
+                data[:,:,j] = self.VtxBB[i][:,:,j]-self.VtxBB[i][:,:,j].mean()
+            data_cov = np.zeros( [3,3])                
+            # compute the covariance matrix  
+            for j in range(3):
+                for k in range(3):  
+                    #compute each term of the covariancecovariance matrix
+                    data_cov[j,k] = np.sum(np.dot(data[:,:,j],data[:,:,k].T))/data.shape[0]
+            # calculate eigenvectors & eigenvalues of the covariance matrix
+            # use 'eigh' rather than 'eig' since data_cov is symmetric, 
+            # the performance gain is substantial
+            uu,s,vv = np.linalg.svd(data_cov)
+            # sort eigenvalue in decreasing order
+            idx = np.argsort(s)[::-1]
+            vv = vv[:,idx]
+            # sort eigenvectors according to same index
+            s = s[idx]
+            # select the first n eigenvectors (n is desired dimension
+            # of rescaled data array, or dims_rescaled_data)
+            vv = vv[:, :dims_rescaled_data]
+            # carry out the transformation on the data using eigenvectors
+            # and return the re-scaled data, eigenvalues, and eigenvectors
+            self.TVtxBB.append( np.dot(self.VtxBB[i],vv))
 #==============================================================================
-#     def SetTransfoMat(self,evecs,i):       
-#         '''Generate the transformation matrix '''
-#         e1 = evecs[0]
-#         e2 = evecs[1]
-#         e3 = evecs[2]
-#         x = np.min(np.dot(self.VtxBB[i],e1))*e1
-#         y = np.min(np.dot(self.VtxBB[i],e2))*e2
-#         z = np.min(np.dot(self.VtxBB[i],e3))*e3
-#         e1b = np.array( [e1[0],e1[1],e1[2],0])
-#         e2b = np.array( [e2[0],e2[1],e2[2],0])
-#         e3b = np.array( [e3[0],e3[1],e3[2],0])
-#         center = x+y+z
-#         origine = np.array( [center[0],center[1],center[2],1])
-#         Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
-#         self.TransfoBB.append(Transfo.transpose())
-#         print self.TransfoBB[i]           
-#            
-#     def myPCA(self, dims_rescaled_data=3):
-#         """
-#         returns: data transformed in 2 dims/columns + regenerated original data
-#         pass in: data as 2D NumPy array
-#         """
-#         self.TVtxBB = []
-#         self.TransfoBB = []
-#         for i in range(self.bdyPart.shape[0]):
-#             # mean center the data
-#             data = self.VtxBB[i]-self.VtxBB[i].mean(axis=0)
-#             data_cov = np.zeros( [3,3])                
-#             # compute the covariance matrix  
-#             for j in range(3):
-#                 for k in range(3):      
-#                     data_cov[j,k] = np.mean(np.dot(data[:,:,j],data[:,:,k].T))
-#             # calculate eigenvectors & eigenvalues of the covariance matrix
-#             # use 'eigh' rather than 'eig' since R is symmetric, 
-#             # the performance gain is substantial
-#             uu,evals,evecs = np.linalg.svd(data_cov)
-#             # sort eigenvalue in decreasing order
-#             idx = np.argsort(evals)[::-1]
-#             evecs = evecs[:,idx]
-#             # sort eigenvectors according to same index
-#             evals = evals[idx]
-#             # select the first n eigenvectors (n is desired dimension
-#             # of rescaled data array, or dims_rescaled_data)
-#             evecs = evecs[:, :dims_rescaled_data]
-#             # carry out the transformation on the data using eigenvectors
-#             # and return the re-scaled data, eigenvalues, and eigenvectors
-#             self.TVtxBB.append( np.dot(self.VtxBB[i],evecs))
-# #==============================================================================
-# #             print 'TVtxBB[%d]' %(i)
-# #             print self.TVtxBB[i]
-# #==============================================================================
-#             self.SetTransfoMat(evecs,i)
-#             
-# 
-#             
-#     def FindCoord(self, dims_rescaled_data=3):       
-#         '''
-#         draw the bounding boxes in 3D for each part of the human body
-#         '''     
-#         self.coords=[]
-#         self.coordsT=[]
-#         for i in range(self.bdyPart.shape[0]):
-#             # extremes planes of the bodies
-#             minX = np.min(self.TVtxBB[i][:,:,0])
-#             maxX = np.max(self.TVtxBB[i][:,:,0])
-#             minY = np.min(self.TVtxBB[i][:,:,1])
-#             maxY = np.max(self.TVtxBB[i][:,:,1])
-#             minZ = np.min(self.TVtxBB[i][:,:,2])
-#             maxZ = np.max(self.TVtxBB[i][:,:,2])
-# 
-#             # extremes points of the bodies
-#             xymz = np.array([minX,minY,minZ]).astype(np.int16)
-#             xYmz = np.array([minX,maxY,minZ]).astype(np.int16)            
-#             Xymz = np.array([maxX,minY,minZ]).astype(np.int16)
-#             XYmz = np.array([maxX,maxY,minZ]).astype(np.int16)
-#             xymZ = np.array([minX,minY,maxZ]).astype(np.int16)
-#             xYmZ = np.array([minX,maxY,maxZ]).astype(np.int16)
-#             XymZ = np.array([maxX,minY,maxZ]).astype(np.int16)
-#             XYmZ = np.array([maxX,maxY,maxZ]).astype(np.int16)           
-#             # New coordinates and new images
-#             self.coordsT.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
-#             inv = np.linalg.inv(self.TransfoBB[i][0:3,0:3])
-#             self.coords.append(np.dot(self.coordsT[i],inv))
-#             
-# 
-#     def GetCorners(self, Pose, s=1, color = 0) :   
-#         self.drawCorners = []
-#         for k in range(self.bdyPart.shape[0]):
-#             Size = self.coords[k].shape
-#             tmp = np.zeros([Size[0],2])
-#             Vtx = self.coords[k]  
-#             line_index = 0
-#             column_index = 0
-#             pix = np.array([0., 0., 1.])
-#             pt = np.array([0., 0., 0., 1.])
-#             for i in range(Size[0]/s):
-#                 pt[0] = Vtx[i*s][0]
-#                 pt[1] = Vtx[i*s][1]
-#                 pt[2] = Vtx[i*s][2]
-#                 pt = np.dot(Pose, pt)
-#                 if (pt[2] != 0.0):
-#                     pix[0] = pt[0]/pt[2]
-#                     pix[1] = pt[1]/pt[2]
-#                     pix = np.dot(self.intrinsic, pix)
-#                     column_index = int(round(pix[0]))
-#                     line_index = int(round(pix[1]))
-#                     tmp[i,0] = line_index
-#                     tmp[i,1] = column_index
-#             self.drawCorners.append(tmp) 
-# 
+#             print 'TVtxBB[%d]' %(i)
+#             print self.TVtxBB[i]
 #==============================================================================
+            self.SetTransfoMat(uu,i)       
+
+            
+    def FindCoord(self, dims_rescaled_data=3):       
+        '''
+        draw the bounding boxes in 3D for each part of the human body
+        '''     
+        self.coords=[]
+        self.coordsT=[]
+        for i in range(self.bdyPart.shape[0]):
+            # extremes planes of the bodies
+            minX = np.min(self.TVtxBB[i][:,:,0])
+            maxX = np.max(self.TVtxBB[i][:,:,0])
+            minY = np.min(self.TVtxBB[i][:,:,1])
+            maxY = np.max(self.TVtxBB[i][:,:,1])
+            minZ = np.min(self.TVtxBB[i][:,:,2])
+            maxZ = np.max(self.TVtxBB[i][:,:,2])
+
+            # extremes points of the bodies
+            xymz = np.array([minX,minY,minZ]).astype(np.int16)
+            xYmz = np.array([minX,maxY,minZ]).astype(np.int16)            
+            Xymz = np.array([maxX,minY,minZ]).astype(np.int16)
+            XYmz = np.array([maxX,maxY,minZ]).astype(np.int16)
+            xymZ = np.array([minX,minY,maxZ]).astype(np.int16)
+            xYmZ = np.array([minX,maxY,maxZ]).astype(np.int16)
+            XymZ = np.array([maxX,minY,maxZ]).astype(np.int16)
+            XYmZ = np.array([maxX,maxY,maxZ]).astype(np.int16)           
+            # New coordinates and new images
+            self.coordsT.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
+            print "coordsT[%d]" %(i)
+            print self.coordsT[i]
+            inv = np.linalg.inv(self.TransfoBB[i][0:3,0:3])
+            self.coords.append(np.dot(self.coordsT[i],inv))
+            print "coord[%d]" %(i)
+            print self.coords[i]
+            
+
+    def GetCorners(self, Pose, s=1, color = 0) :   
+        self.drawCorners = []
+        for k in range(self.bdyPart.shape[0]):
+            Size = self.coords[k].shape
+            tmp = np.zeros([Size[0],2])
+            Vtx = self.coords[k]  
+            line_index = 0
+            column_index = 0
+            pix = np.array([0., 0., 1.])
+            pt = np.array([0., 0., 0., 1.])
+            for i in range(Size[0]/s):
+                pt[0] = Vtx[i*s][0]
+                pt[1] = Vtx[i*s][1]
+                pt[2] = Vtx[i*s][2]
+                pt = np.dot(Pose, pt)
+                if (pt[2] != 0.0):
+                    pix[0] = pt[0]/pt[2]
+                    pix[1] = pt[1]/pt[2]
+                    pix = np.dot(self.intrinsic, pix)
+                    column_index = int(round(pix[0]))
+                    line_index = int(round(pix[1]))
+                    tmp[i,0] = line_index
+                    tmp[i,1] = column_index
+            self.drawCorners.append(tmp) 
+            print "drawCorners[%d]" %(k)
+            print self.drawCorners[k]
 
     def Cvt2RGBA(self,im_im):
         '''

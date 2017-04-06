@@ -147,7 +147,7 @@ class Application(tk.Frame):
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        idx = 0
+        idx = 20
         self.RGBD.ReadFromMat(idx)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.BodyBBox()
@@ -166,11 +166,9 @@ class Application(tk.Frame):
         start_time2 = time.time()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
         self.RGBD.DrawBB(self.Pose, 1, self.color_tag)
-#==============================================================================
-#         self.RGBD.myPCA()
-#         self.RGBD.FindCoord()
-#         self.RGBD.GetCorners(self.Pose, 1, self.color_tag)
-#==============================================================================
+        self.RGBD.myPCA()
+        self.RGBD.FindCoord()
+        self.RGBD.GetCorners(self.Pose, 1, self.color_tag)
         elapsed_time3 = time.time() - start_time2
         print "DrawBB: %f" % (elapsed_time3)
         
@@ -182,19 +180,15 @@ class Application(tk.Frame):
         self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
         self.canvas.pack()
         for i in range(self.RGBD.bdyPart.shape[0]):
-        #i=1
             newImg = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
             newImg = self.RGBD.Cvt2RGBA(newImg)
-            newImg = self.RGBD.ChangeColors(newImg,self.RGBD.bdyColor[i])
             newImg.paste(self.imgBB,(0,0),self.imgBB)
-#==============================================================================
-#             coords = self.RGBD.drawCorners[i]
-#             self.canvas.create_line(coords[0],coords[1],coords[2],coords[3],coords[0],\
-#                                     coords[4],coords[5],coords[6],coords[7],coords[4],fill="red")
-#             self.canvas.create_line(coords[1],coords[5],fill="red")
-#             self.canvas.create_line(coords[2],coords[6],fill="red")
-#             self.canvas.create_line(coords[3],coords[7],fill="red")
-#==============================================================================
+            coords = self.RGBD.drawCorners[i]
+            self.canvas.create_line(coords[0],coords[1],coords[2],coords[3],coords[0],\
+                                    coords[4],coords[5],coords[6],coords[7],coords[4],fill="red")
+            self.canvas.create_line(coords[1],coords[5],fill="red")
+            self.canvas.create_line(coords[2],coords[6],fill="red")
+            self.canvas.create_line(coords[3],coords[7],fill="red")
             self.imgBB = newImg        
         self.imgTkBB = ImageTk.PhotoImage(self.imgBB)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB)
