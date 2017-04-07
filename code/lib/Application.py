@@ -203,15 +203,17 @@ class Application(tk.Frame):
             newImg = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
             newImg = self.RGBD.Cvt2RGBA(newImg)
             newImg.paste(self.imgBB,(0,0),self.imgBB)
-            transfo = self.RGBD.TransfoBB[i]
-            center = self.RGBD.drawCenter[i]
-            self.paint(center)
-            vect1 = transfo[0,0:1]-center
-            vect2 = transfo[1,0:1]-center
-            vect3 = transfo[2,0:1]-center
-            self.canvas.create_line(vect1[0,0],vect1[0,1],center[0,0],center[0,1],fill="red")
-            self.canvas.create_line(vect2[0,0],vect2[0,1],center[0,0],center[0,1],fill="red")
-            self.canvas.create_line(vect3[0,0],vect3[0,1],center[0,0],center[0,1],fill="red")
+#==============================================================================
+#             transfo = self.RGBD.TransfoBB[i]
+#             center = self.RGBD.drawCenter[i]
+#             self.paint(center)
+#             vect1 = transfo[0,0:1]-center
+#             vect2 = transfo[1,0:1]-center
+#             vect3 = transfo[2,0:1]-center
+#             self.canvas.create_line(vect1[0,0],vect1[0,1],center[0,0],center[0,1],fill="red")
+#             self.canvas.create_line(vect2[0,0],vect2[0,1],center[0,0],center[0,1],fill="red")
+#             self.canvas.create_line(vect3[0,0],vect3[0,1],center[0,0],center[0,1],fill="red")
+#==============================================================================
 #==============================================================================
 #             coords = self.RGBD.drawCorners[i]
 #             self.canvas.create_line(coords[0],coords[1],coords[2],coords[3],coords[0],\

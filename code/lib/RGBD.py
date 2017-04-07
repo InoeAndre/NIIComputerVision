@@ -158,12 +158,13 @@ class RGBD():
             else:
                 Size = self.PartBox[i].shape
                 partBox = self.PartBox[i]
+            #shift = self.transBB
             d = partBox#[0:Size[0]][0:Size[1]]
             d_pos = d * (d > 0.0)
             x_raw = np.zeros(Size, np.float32)
             y_raw = np.zeros(Size, np.float32)
             # change the matrix so that the first row is on all rows for x respectively colunm for y.
-            x_raw[0:-1,:] = ( np.arange(Size[1]) - self.intrinsic[0,2])/self.intrinsic[0,0]
+            x_raw[0:-1,:] = ( np.arange(Size[1]) - self.intrinsic[0,2] )/self.intrinsic[0,0]
             y_raw[:,0:-1] = np.tile( ( np.arange(Size[0]) - self.intrinsic[1,2])/self.intrinsic[1,1],(1,1)).transpose()
             # multiply point by point d_pos and raw matrices
             x = d_pos * x_raw
@@ -587,9 +588,9 @@ class RGBD():
         lineStart = (minV-distH2N).astype(np.int16)
         colEnd = (maxH+distH2N).astype(np.int16)
         lineEnd = (maxV+distH2N).astype(np.int16)  
-        self.transBB = np.array([colStart,lineStart])
+        self.transBB = np.array([colStart,lineStart,colEnd,lineEnd])
         self.BBox = Box[lineStart:lineEnd,colStart:colEnd]
-        self.BBPos = (pos2D -self.transBB).astype(np.int16)
+        self.BBPos = (pos2D -self.transBB[0:2]).astype(np.int16)
         self.BBbw = bwBox[lineStart:lineEnd,colStart:colEnd]
         
 
@@ -607,7 +608,7 @@ class RGBD():
         e1b = np.array( [e1[0],e1[1],e1[2],0])
         e2b = np.array( [e2[0],e2[1],e2[2],0])
         e3b = np.array( [e3[0],e3[1],e3[2],0])
-        center = ctrMass[0]+ctrMass[1]+ctrMass[2]
+        center = (ctrMass[0]+ctrMass[1]+ctrMass[2])/3
         origine = np.array( [center[0],center[1],center[2],1])
         Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
         self.TransfoBB.append(Transfo.transpose())
@@ -619,13 +620,14 @@ class RGBD():
         """
         self.TVtxBB = []
         self.TransfoBB = []
+        shift = self.transBB
         for i in range(self.bdyPart.shape[0]):
             ctrMass = []
             data = np.zeros(self.VtxBB[i].shape)
             for j in range(3):
                 # center of mass the data
                 idx = ndimage.measurements.center_of_mass(self.VtxBB[i][:,:,j])
-                ctrMass.append(np.array([idx[0],idx[1],j]))
+                ctrMass.append(np.array([idx[1],idx[1],j]))
                 data[:,:,j] = self.VtxBB[i][:,:,j]-self.VtxBB[i][int(round(idx[0])),int(round(idx[1])),j]
             data_cov = np.zeros( [3,3])                
             # compute the covariance matrix  
@@ -664,12 +666,13 @@ class RGBD():
         self.borders = []
         for i in range(self.bdyPart.shape[0]):
             # extremes planes of the bodies
-            minX = np.min(self.TVtxBB[i][:,:,0])
-            maxX = np.max(self.TVtxBB[i][:,:,0])
-            minY = np.min(self.TVtxBB[i][:,:,1])
-            maxY = np.max(self.TVtxBB[i][:,:,1])
-            minZ = np.min(self.TVtxBB[i][:,:,2])
-            maxZ = np.max(self.TVtxBB[i][:,:,2])
+            
+            minX = np.min(self.TVtxBB[i][:,:,0][np.nonzero(self.TVtxBB[i][:,:,0])])#np.min(self.TVtxBB[i][:,:,0])
+            maxX = np.max(self.TVtxBB[i][:,:,0][np.nonzero(self.TVtxBB[i][:,:,0])])#np.max(self.TVtxBB[i][:,:,0])
+            minY = np.min(self.TVtxBB[i][:,:,1][np.nonzero(self.TVtxBB[i][:,:,1])])#np.min(self.TVtxBB[i][:,:,1])
+            maxY = np.max(self.TVtxBB[i][:,:,1][np.nonzero(self.TVtxBB[i][:,:,1])])#np.max(self.TVtxBB[i][:,:,1])
+            minZ = np.min(self.TVtxBB[i][:,:,2][np.nonzero(self.TVtxBB[i][:,:,2])])#np.min(self.TVtxBB[i][:,:,2])
+            maxZ = np.max(self.TVtxBB[i][:,:,2][np.nonzero(self.TVtxBB[i][:,:,2])])#np.max(self.TVtxBB[i][:,:,2])
             self.borders.append( np.array([minX,maxX,minY,maxY,minZ,maxZ]) )
             # extremes points of the bodies
             xymz = np.array([minX,minY,minZ]).astype(np.int16)
