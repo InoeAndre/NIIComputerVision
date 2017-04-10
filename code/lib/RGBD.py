@@ -435,12 +435,16 @@ class RGBD():
         footLeft = ( self.segm.GetFoot( MidBdyImage,left)>0)
         #pdb.set_trace()
 
-        self.bdyPart = B*np.array( [armLeft[0], armLeft[1], armRight[0], armRight[1],\
+        self.bdyPart = np.array( [armLeft[0], armLeft[1], armRight[0], armRight[1],\
                                   legLeft[0], legLeft[1], legRight[0],legRight[1],\
-                                  head, body])#,  handRight, handLeft, footRight, footLeft])
+                                  head, body,  handRight, handLeft, footRight, footLeft]).astype(np.int)
         self.bdyColor = np.array( [np.array([0,0,255]), np.array([200,200,255]), np.array([0,255,0]), np.array([200,255,200]),\
                                    np.array([255,0,255]), np.array([255,180,255]), np.array([255,255,0]), np.array([255,255,180]),\
-                                   np.array([255,0,0]), np.array([255,255,255])])#,  handRight, handLeft, footRight, footLeft])    
+                                   np.array([255,0,0]), np.array([255,255,255]),np.array([0,100,0]),np.array([0,191,255]),\
+                                   np.array([255,165,0]),np.array([199,21,133]) ])    
+        self.labelColor = np.array( ["#0000ff", "#ffc8ff", "#00ff00","#c8ffc8","#ff00ff","#ffb4ff",\
+                                   "#ffff00","#ffffb4","#ff0000","#ffffff","#00bfff","#006400",\
+                                   "#c715ff","#ffa500"])    
 #==============================================================================
 #         self.AddColors()
 #       
@@ -448,20 +452,20 @@ class RGBD():
 #==============================================================================
         '''
         correspondance between number and body parts and color
-        armLeft[0] = forearmL      color = [0,0,255]          blue                  label = 1
-        armLeft[1] = upperarmL     color = [200,200,255]      very light blue       label = 2
-        armRight[0]= forearmR      color = [0,255,0]          green                 label = 3
-        armRight[1] = upperarmR    color = [200,255,200]      very light green      label = 4
-        legRight[0] = thighR       color = [255,0,255]        purple                label = 5
-        legRight[1] = calfR        color = [255,180,255]      pink                  label = 6
-        legLeft[0] = thighL        color = [255,255,0]        yellow                label = 7
-        legLeft[1] = calfL         color = [255,255,180]      very light yellow     label = 8
-        head = headB               color = [255,0,0]          red                   label = 9
-        body = body                color = [255,255,255]      white                 label = 10
-        handRight = right hand     color = [0,191,255]        turquoise             label = 11
-        handLeft = left hand       color = [0,100,0]          dark green            label = 12
-        footRight = right foot     color = [199,21,133]       dark purple           label = 13
-        footLeft = left foot       color = [255,165,0]        orange                label = 14
+        armLeft[0] = forearmL      color = [0,0,255]     = #0000ff     blue                  label = 1
+        armLeft[1] = upperarmL     color = [200,200,255] = #ffc8ff     very light blue       label = 2
+        armRight[0]= forearmR      color = [0,255,0]     = #00ff00     green                 label = 3
+        armRight[1] = upperarmR    color = [200,255,200] = #c8ffc8     very light green      label = 4
+        legRight[0] = thighR       color = [255,0,255]   = #ff00ff     purple                label = 5
+        legRight[1] = calfR        color = [255,180,255] = #ffb4ff     pink                  label = 6
+        legLeft[0] = thighL        color = [255,255,0]   = #ffff00     yellow                label = 7
+        legLeft[1] = calfL         color = [255,255,180] = #ffffb4     very light yellow     label = 8
+        head = headB               color = [255,0,0]     = #ff0000     red                   label = 9
+        body = body                color = [255,255,255] = #ffffff     white                 label = 10
+        handRight = right hand     color = [0,191,255]   = #00bfff     turquoise             label = 11
+        handLeft = left hand       color = [0,100,0]     = #006400     dark green            label = 12
+        footRight = right foot     color = [199,21,133]  = #c715ff     dark purple           label = 13
+        footLeft = left foot       color = [255,165,0]   = #ffa500     orange                label = 14
         '''
         
         # For Channel color R
@@ -525,8 +529,12 @@ class RGBD():
 
     def BodyLabelling(self):
         '''Create label for each body part in the depth_image'''
-        return self.bdyPart
-        
+        Size = self.depth_image.shape
+        self.labels = np.zeros(Size,np.int)   
+        Txy = self.transBB
+        for i in range(self.bdyPart.shape[0]):  
+            self.labels[Txy[1]:Txy[3],Txy[0]:Txy[2]] += (i+1)*self.bdyPart[i]
+
     
 ###################################################################
 ################### Bounding boxes Function #######################
