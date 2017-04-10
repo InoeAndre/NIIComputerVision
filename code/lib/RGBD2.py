@@ -109,6 +109,18 @@ class RGBD():
         self.skel = self.depth_image.copy()
 
 
+#==============================================================================
+#     def DrawSkeleton(self):
+#         '''this function draw the Skeleton of a human and make connections between each part'''
+#         pos = self.pos2d[0][self.Index]
+#         for i in range(np.size(self.connection,0)):
+#             pt1 = (pos[self.connection[i,0]-1,0],pos[self.connection[i,0]-1,1])
+#             pt2 = (pos[self.connection[i,1]-1,0],pos[self.connection[i,1]-1,1])
+#             cv2.line( self.skel,pt1,pt2,(0,0,255),2) # color space = BGR
+#             cv2.circle(self.skel,pt1,1,(0,0,255),2)
+#             cv2.circle(self.skel,pt2,1,(0,0,255),2)
+#==============================================================================
+
     def rgb2gray(rgb):
         return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
     
@@ -337,8 +349,8 @@ class RGBD():
 ##################################################################
     def BilateralFilter(self, d, sigma_color, sigma_space):
         self.depth_image = (self.depth_image[:,:] > 0.0) * cv2.bilateralFilter(self.depth_image, d, sigma_color, sigma_space)
-
-
+        #self.skel = (self.skel[:,:] > 0.0) *cv2.bilateralFilter(self.skel, d, sigma_color, sigma_space)
+        
 ##################################################################
 ###################Transformation Funtion#######################
 ##################################################################
@@ -367,6 +379,36 @@ class RGBD():
         keep_labels[0] = 0
         filtered_labeled = keep_labels[labeled]
         return filtered_labeled
+
+    
+    def EntireBdy(self):
+        '''this function threshold the depth image in order to to get the whole body alone'''
+        pos2D = self.pos2d[0][self.Index]
+        max_value = np.iinfo(np.uint16).max # = 65535 for uint16
+        tmp = self.depth_image*max_value
+        self.depth_image = tmp.astype(np.uint16)
+        
+        # Threshold according to detph of the body
+        bdyVals = self.depth_image[pos2D[:,0]-1,pos2D[:,1]-1]
+        #only keep values different from 0
+        bdy = bdyVals[np.nonzero(bdyVals != 0)]
+        mini =  np.min(bdy)
+        print "mini: %u" % (mini)
+        maxi = np.max(bdy)
+        print "max: %u" % (maxi)        
+        moy = np.mean(bdy)
+        print "moy: %u" % (moy)
+        std = np.std(bdy)
+        print "std: %u" % (std)
+        bwmin = (self.depth_image > moy-std)# mini+0.08*mini)#
+        bwmax = (self.depth_image < moy+std)#maxi-0.35*maxi)#
+        bw0 = bwmin*bwmax
+        # Compare with thenoised binary image given by the kinect
+        thresh2,tmp = cv2.threshold(self.bw[0,self.Index],0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        res = tmp *bw0 
+        # Remove all stand alone object
+        res = ( self.RemoveBG(res)>0)
+        return res#bw0#tmp#
     
     def EntireBdyBB(self):
         '''this function threshold the depth image in order to to get the whole body alone with the bounding box (BB)'''
@@ -398,6 +440,15 @@ class RGBD():
     def BodySegmentation(self):
         '''this function calls the function in segmentation.py to process the segmentation of the body'''
         start_time = time.time()
+#==============================================================================
+#         self.segm = segm.Segmentation(self.lImages[0,self.Index],self.pos2d[0,self.Index])
+#         segImg = (np.zeros([self.Size[0],self.Size[1],self.Size[2],self.numbImages])).astype(np.int8)
+#         bdyImg = (np.zeros([self.Size[0],self.Size[1],self.Size[2],self.numbImages])).astype(np.int8) 
+#         I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
+#         #segmentation of the whole body 
+#         imageWBG = (self.EntireBdy()>0)
+#         B = self.lImages[0][self.Index]
+#==============================================================================
         #Bounding box version
         self.segm = segm.Segmentation(self.BBox,self.BBPos) 
         segImg = (np.zeros([self.BBox.shape[0],self.BBox.shape[1],self.Size[2],self.numbImages])).astype(np.int8)
@@ -441,27 +492,22 @@ class RGBD():
         self.bdyColor = np.array( [np.array([0,0,255]), np.array([200,200,255]), np.array([0,255,0]), np.array([200,255,200]),\
                                    np.array([255,0,255]), np.array([255,180,255]), np.array([255,255,0]), np.array([255,255,180]),\
                                    np.array([255,0,0]), np.array([255,255,255])])#,  handRight, handLeft, footRight, footLeft])    
-#==============================================================================
-#         self.AddColors()
-#       
-#     def AddColors(self):
-#==============================================================================
         '''
         correspondance between number and body parts and color
-        armLeft[0] = forearmL      color = [0,0,255]          blue                  label = 1
-        armLeft[1] = upperarmL     color = [200,200,255]      very light blue       label = 2
-        armRight[0]= forearmR      color = [0,255,0]          green                 label = 3
-        armRight[1] = upperarmR    color = [200,255,200]      very light green      label = 4
-        legRight[0] = thighR       color = [255,0,255]        purple                label = 5
-        legRight[1] = calfR        color = [255,180,255]      pink                  label = 6
-        legLeft[0] = thighL        color = [255,255,0]        yellow                label = 7
-        legLeft[1] = calfL         color = [255,255,180]      very light yellow     label = 8
-        head = headB               color = [255,0,0]          red                   label = 9
-        body = body                color = [255,255,255]      white                 label = 10
-        handRight = right hand     color = [0,191,255]        turquoise             label = 11
-        handLeft = left hand       color = [0,100,0]          dark green            label = 12
-        footRight = right foot     color = [199,21,133]       dark purple           label = 13
-        footLeft = left foot       color = [255,165,0]        orange                label = 14
+        armLeft[0] = forearmL      color = [0,0,255]          blue
+        armLeft[1] = upperarmL     color = [200,200,255]      very light blue
+        armRight[0]= forearmR      color = [0,255,0]          green
+        armRight[1] = upperarmR    color = [200,255,200]      very light green
+        legRight[0] = thighR       color = [255,0,255]        purple
+        legRight[1] = calfR        color = [255,180,255]      pink
+        legLeft[0] = thighL        color = [255,255,0]        yellow
+        legLeft[1] = calfL         color = [255,255,180]      very light yellow
+        head = headB               color = [255,0,0]          red
+        body = body                color = [255,255,255]      white
+        handRight = right hand     color = [0,191,255]        turquoise
+        handLeft = left hand       color = [0,100,0]          dark green
+        footRight = right foot     color = [199,21,133]       dark purple
+        footLeft = left foot       color = [255,165,0]        orange
         '''
         
         # For Channel color R
@@ -523,10 +569,6 @@ class RGBD():
         print "Segmentation: %f" % (elapsed_time)
         return segImg[:,:,:,self.Index]
 
-    def BodyLabelling(self):
-        '''Create label for each body part in the depth_image'''
-        return self.bdyPart
-        
     
 ###################################################################
 ################### Bounding boxes Function #######################

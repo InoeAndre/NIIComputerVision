@@ -122,14 +122,27 @@ class Application(tk.Frame):
         self.y_init = event.y
 
 
-    def paint(self,point):
+    def DrawSkeleton(self):
+        '''this function draw the Skeleton of a human and make connections between each part'''
+        pos = self.pos2d[0][self.Index]
+        for i in range(np.size(self.connection,0)): 
+            pt1 = (pos[self.connection[i,0]-1,0],pos[self.connection[i,0]-1,1])
+            pt2 = (pos[self.connection[i,1]-1,0],pos[self.connection[i,1]-1,1])
+            radius = 2
+            self.DrawPoint(pt1,radius)
+            self.DrawPoint(pt2,radius)      
+            self.canvas.create_line(pt1[0],pt1[1],pt2[0],pt2[1],fill="black")
+
+
+
+    def DrawPoint(self,point,radius):
         python_green = "#476042"
-        if point[0,0]>0 and point[0,1]>0:
-            x1, y1 = (point[0,0] - 1), (point[0,1] - 1)
-            x2, y2 = (point[0,0] + 1), (point[0,1] + 1)
+        if point[0]>0 and point[1]>0:
+            x1, y1 = (point[0] - radius), (point[1] - radius)
+            x2, y2 = (point[0] + radius), (point[1] + radius)
         else:
-            x1, y1 = (point[0,0]), (point[0,1])
-            x2, y2 = (point[0,0]), (point[0,1]) 
+            x1, y1 = (point[0]), (point[1])
+            x2, y2 = (point[0]), (point[1]) 
         self.canvas.create_oval(x1, y1, x2, y2, fill=python_green)
 
     
@@ -167,12 +180,12 @@ class Application(tk.Frame):
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        idx = 20
-        self.RGBD.ReadFromMat(idx)
+        self.Index = 20
+        self.RGBD.ReadFromMat(self.Index)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.BodyBBox()
         segm = self.RGBD.BodySegmentation()
-        self.RGBD.DrawSkeleton()
+
         start_time = time.time()
         self.RGBD.VmapBB()    
         self.RGBD.Vmap_optimize()  
@@ -194,27 +207,29 @@ class Application(tk.Frame):
         
         # Show figure and images
 
+
+
+        
         # figure 3D of with each part segmented in 3D but in one image
         Size = self.RGBD.drawBB[0].shape
         self.imgBB = Image.new('RGBA',(Size[0],Size[1]))
         self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
         self.canvas.pack()
-        for i in range(self.RGBD.bdyPart.shape[0]):
-            newImg = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
-            newImg = self.RGBD.Cvt2RGBA(newImg)
-            newImg.paste(self.imgBB,(0,0),self.imgBB)
+        #for i in range(self.RGBD.bdyPart.shape[0]):
+        i=0
+        newImg = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
+        newImg = self.RGBD.Cvt2RGBA(newImg)
+        newImg.paste(self.imgBB,(0,0),self.imgBB)
+        transfo = self.RGBD.TransfoBB[i]
+        center = self.RGBD.drawCenter[i]
+        self.DrawPoint(center[i],radius =1)
 #==============================================================================
-#             transfo = self.RGBD.TransfoBB[i]
-#             center = self.RGBD.drawCenter[i]
-#             self.paint(center)
-#             vect1 = transfo[0,0:1]-center
-#             vect2 = transfo[1,0:1]-center
-#             vect3 = transfo[2,0:1]-center
-#             self.canvas.create_line(vect1[0,0],vect1[0,1],center[0,0],center[0,1],fill="red")
-#             self.canvas.create_line(vect2[0,0],vect2[0,1],center[0,0],center[0,1],fill="red")
-#             self.canvas.create_line(vect3[0,0],vect3[0,1],center[0,0],center[0,1],fill="red")
-#==============================================================================
-#==============================================================================
+#         vect1 = transfo[0,0:1]-center
+#         vect2 = transfo[1,0:1]-center
+#         vect3 = transfo[2,0:1]-center
+#         self.canvas.create_line(vect1[0,0],vect1[0,1],center[0,0],center[0,1],fill="red")
+#         self.canvas.create_line(vect2[0,0],vect2[0,1],center[0,0],center[0,1],fill="red")
+#         self.canvas.create_line(vect3[0,0],vect3[0,1],center[0,0],center[0,1],fill="red")
 #             coords = self.RGBD.drawCorners[i]
 #             self.canvas.create_line(coords[0],coords[1],coords[2],coords[3],coords[0],\
 #                                     coords[4],coords[5],coords[6],coords[7],coords[4],fill="red")
@@ -222,7 +237,9 @@ class Application(tk.Frame):
 #             self.canvas.create_line(coords[2],coords[6],fill="red")
 #             self.canvas.create_line(coords[3],coords[7],fill="red")
 #==============================================================================
-            self.imgBB = newImg        
+        self.imgBB = newImg   
+        
+        
         self.imgTkBB = ImageTk.PhotoImage(self.imgBB)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB)
         
@@ -252,7 +269,7 @@ class Application(tk.Frame):
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-
+        self.DrawSkeleton()
         '''
         Test Register
         '''
