@@ -215,51 +215,36 @@ class Application(tk.Frame):
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])
         start_time2 = time.time()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        #self.RGBD.DrawBB(self.Pose, 1, self.color_tag)
-        #self.RGBD.myPCA()
-        #self.RGBD.FindCoord()
-        #self.RGBD.GetCorners(self.Pose, 1, self.color_tag)
+        self.RGBD.DrawBB(self.Pose, 1, self.color_tag)
+        self.RGBD.myPCA()
+        self.RGBD.FindCoord()
+        self.RGBD.GetCorners(self.Pose, 1, self.color_tag)
         elapsed_time3 = time.time() - start_time2
         print "DrawBB: %f" % (elapsed_time3)
         
         # Show figure and images
             
             
-        # figure 3D of with each part segmented in 3D but in one image
 #==============================================================================
-#         Size = self.RGBD.drawBB[0].shape
-#         self.imgBB = Image.new('RGBA',(Size[0],Size[1]))
-#         self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
-#         self.canvas.pack()
-#         #for i in range(self.RGBD.bdyPart.shape[0]):
-#         i=0
 #         newImg = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
 #         newImg = self.RGBD.Cvt2RGBA(newImg)
 #         newImg.paste(self.imgBB,(0,0),self.imgBB)
 #         transfo = self.RGBD.TransfoBB[i]
 #         center = self.RGBD.drawCenter[i]
 #         self.DrawPoint(center[i],radius =1, color = "blue")
-#==============================================================================
-#==============================================================================
 #         vect1 = transfo[0,0:1]-center
 #         vect2 = transfo[1,0:1]-center
 #         vect3 = transfo[2,0:1]-center
 #         self.canvas.create_line(vect1[0,0],vect1[0,1],center[0,0],center[0,1],fill="red")
 #         self.canvas.create_line(vect2[0,0],vect2[0,1],center[0,0],center[0,1],fill="red")
 #         self.canvas.create_line(vect3[0,0],vect3[0,1],center[0,0],center[0,1],fill="red")
-#             coords = self.RGBD.drawCorners[i]
-#             self.canvas.create_line(coords[0],coords[1],coords[2],coords[3],coords[0],\
-#                                     coords[4],coords[5],coords[6],coords[7],coords[4],fill="red")
-#             self.canvas.create_line(coords[1],coords[5],fill="red")
-#             self.canvas.create_line(coords[2],coords[6],fill="red")
-#             self.canvas.create_line(coords[3],coords[7],fill="red")
-#==============================================================================
-#==============================================================================
+#         coords = self.RGBD.drawCorners[i]
+#         self.canvas.create_line(coords[0],coords[1],coords[2],coords[3],coords[0],\
+#                                 coords[4],coords[5],coords[6],coords[7],coords[4],fill="red")
+#         self.canvas.create_line(coords[1],coords[5],fill="red")
+#         self.canvas.create_line(coords[2],coords[6],fill="red")
+#         self.canvas.create_line(coords[3],coords[7],fill="red")
 #         self.imgBB = newImg   
-#         
-#         
-#         self.imgTkBB = ImageTk.PhotoImage(self.imgBB)
-#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB)
 #==============================================================================
         
 #==============================================================================
@@ -273,15 +258,6 @@ class Application(tk.Frame):
 #             imgBB = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
 #             self.imgTkBB.append(ImageTk.PhotoImage(imgBB))
 #             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB[i])
-#==============================================================================
-   
-#==============================================================================
-#         # Display segmentation in 2D
-#         self.canvas = tk.Canvas(self, bg="white", height=self.RGBD.BBox.shape[0], width=self.RGBD.BBox.shape[1])
-#         self.canvas.pack()
-#         imgSeg = Image.fromarray(segm, 'RGB')
-#         self.imgTk2=ImageTk.PhotoImage(imgSeg)
-#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
 #==============================================================================
             
         # 3D reconstruction of the whole image

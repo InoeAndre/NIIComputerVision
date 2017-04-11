@@ -48,13 +48,6 @@ class Segmentation(object):
         self.depthImage = depthImage
         self.pos2D = pos2D
         self.bodyPts = []
-#==============================================================================
-#     def eraseZeros(mat):
-#         """This fonction erase all zeros from the array"""
-#         res = np.where(mat != 0)
-#         res = np.asarray(res)
-#         return res
-#==============================================================================
 
 
     def findSlope(self,A,B):

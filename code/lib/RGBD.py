@@ -372,8 +372,6 @@ class RGBD():
         '''this function threshold the depth image in order to to get the whole body alone with the bounding box (BB)'''
         pos2D = self.BBPos
         max_value = np.iinfo(np.uint16).max # = 65535 for uint16
-        #tmp = self.BBox*max_value
-        #self.BBox = tmp.astype(np.uint16)
         self.BBox = self.BBox.astype(np.uint16)
         # Threshold according to detph of the body
         bdyVals = self.BBox[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
@@ -397,25 +395,11 @@ class RGBD():
 
     def BodySegmentation(self):
         '''this function calls the function in segmentation.py to process the segmentation of the body'''
-        start_time = time.time()
         #Bounding box version
         self.segm = segm.Segmentation(self.BBox,self.BBPos) 
-        segImg = (np.zeros([self.BBox.shape[0],self.BBox.shape[1],self.Size[2],self.numbImages])).astype(np.int8)
-        bdyImg = (np.zeros([self.BBox.shape[0],self.BBox.shape[1],self.Size[2],self.numbImages])).astype(np.int8) 
-        I =  (np.zeros([self.BBox.shape[0],self.BBox.shape[1]])).astype(np.int8)
         #segmentation of the whole body 
         imageWBG = (self.EntireBdyBB()>0)
         B = self.BBox
-        
-          # Visualize the body
-#==============================================================================
-#         M = np.max(self.depth_image) #self.depth_image*(255./M)#
-#         bdyImg[:,:,0,self.Index]=imageWBG*255#self.depth_image*(255./M)#
-#         bdyImg[:,:,1,self.Index]=imageWBG*255#self.depth_image*(255./M)#
-#         bdyImg[:,:,2,self.Index]=imageWBG*255#self.depth_image*(255./M)#
-#         return bdyImg[:,:,:,self.Index]
-#==============================================================================
-    
     
         right = 0
         left = 1
@@ -445,11 +429,7 @@ class RGBD():
         self.labelColor = np.array( ["#0000ff", "#ffc8ff", "#00ff00","#c8ffc8","#ff00ff","#ffb4ff",\
                                    "#ffff00","#ffffb4","#ff0000","#ffffff","#00bfff","#006400",\
                                    "#c715ff","#ffa500"])    
-#==============================================================================
-#         self.AddColors()
-#       
-#     def AddColors(self):
-#==============================================================================
+
         '''
         correspondance between number and body parts and color
         armLeft[0] = forearmL      color = [0,0,255]     = #0000ff     blue                  label = 1
@@ -468,64 +448,6 @@ class RGBD():
         footLeft = left foot       color = [255,165,0]   = #ffa500     orange                label = 14
         '''
         
-        # For Channel color R
-        I = I +self.bdyColor[0,0]*armLeft[0]
-        I = I +self.bdyColor[1,0]*armLeft[1]
-        I = I +self.bdyColor[2,0]*armRight[0]
-        I = I +self.bdyColor[3,0]*armRight[1]
-        I = I +self.bdyColor[4,0]*legRight[0]
-        I = I +self.bdyColor[5,0]*legRight[1]
-        I = I +self.bdyColor[6,0]*legLeft[0]
-        I = I +self.bdyColor[7,0]*legLeft[1]
-        I = I +self.bdyColor[8,0]*head
-        I = I +self.bdyColor[9,0]*body
-        I = I +0*handRight
-        I = I +0*handLeft
-        I = I +199*footRight
-        I = I +255*footLeft
-        segImg[:,:,0,self.Index]=I
-    
-        # For Channel color G
-        #I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
-        I =  (np.zeros([self.BBox.shape[0],self.BBox.shape[1]])).astype(np.int8)
-        I = I +self.bdyColor[0,1]*armLeft[0]
-        I = I +self.bdyColor[1,1]*armLeft[1]
-        I = I +self.bdyColor[2,1]*armRight[0]
-        I = I +self.bdyColor[3,1]*armRight[1]
-        I = I +self.bdyColor[4,1]*legRight[0]
-        I = I +self.bdyColor[5,1]*legRight[1]
-        I = I +self.bdyColor[6,1]*legLeft[0]
-        I = I +self.bdyColor[7,1]*legLeft[1]
-        I = I +self.bdyColor[8,1]*head
-        I = I +self.bdyColor[9,1]*body
-        I = I +100*handRight
-        I = I +191*handLeft
-        I = I +21*footRight
-        I = I +165*footLeft        
-        segImg[:,:,1,self.Index] = I
-    
-        # For Channel color B
-        #I =  (np.zeros([self.Size[0],self.Size[1]])).astype(np.int8)
-        I =  (np.zeros([self.BBox.shape[0],self.BBox.shape[1]])).astype(np.int8)
-        I = I +self.bdyColor[0,2]*armLeft[0]
-        I = I +self.bdyColor[1,2]*armLeft[1]
-        I = I +self.bdyColor[2,2]*armRight[0]
-        I = I +self.bdyColor[3,2]*armRight[1]
-        I = I +self.bdyColor[4,2]*legRight[0]
-        I = I +self.bdyColor[5,2]*legRight[1]
-        I = I +self.bdyColor[6,2]*legLeft[0]
-        I = I +self.bdyColor[7,2]*legLeft[1]
-        I = I +self.bdyColor[8,2]*head
-        I = I +self.bdyColor[9,2]*body
-        I = I +0*handRight
-        I = I +255*handLeft
-        I = I +133*footRight
-        I = I +0*footLeft        
-        segImg[:,:,2,self.Index] = I
-    
-        elapsed_time = time.time() - start_time
-        print "Segmentation: %f" % (elapsed_time)
-        return segImg[:,:,:,self.Index]
 
     def BodyLabelling(self):
         '''Create label for each body part in the depth_image'''
