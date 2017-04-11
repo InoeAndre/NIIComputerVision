@@ -148,7 +148,7 @@ class RGBD():
             else:
                 Size = self.PartBox[i].shape
                 partBox = self.PartBox[i]
-            shift = self.transBB
+            shift = self.transCrop
             d = partBox#[0:Size[0]][0:Size[1]]
             d_pos = d * (d > 0.0)
             x_raw = np.zeros(Size, np.float32)
@@ -287,8 +287,8 @@ class RGBD():
                                                                        ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
     
-    def DrawBB(self, Pose, s, color = 0,im=0) :   
-        self.drawBB = []
+    def DrawCrop(self, Pose, s, color = 0,im=0) :   
+        self.drawCropped = []
         for i in range(self.bdyPart.shape[0]):
             if im == 0:
                 Size = self.bdyPart[i].shape
@@ -329,7 +329,7 @@ class RGBD():
                                                                            ((nmle[ :, :,1]+1.0)*(255./2.))*cdt_line, \
                                                                            ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
             #for others points
-            self.drawBB.append(result)
+            self.drawCropped.append(result)
 
 
 ##################################################################
@@ -348,9 +348,6 @@ class RGBD():
         self.Vtx = np.dot(Pose,pt.transpose(0,2,1)).transpose(1,2,0)[:, :, 0:3]
         self.Nmls = np.dot(Pose[0:3,0:3],self.Nmls.transpose(0,2,1)).transpose(1,2,0)
         
-    
-
-
 
 ##################################################################
 ################### Segmentation Function #######################
@@ -367,39 +364,59 @@ class RGBD():
         keep_labels[0] = 0
         filtered_labeled = keep_labels[labeled]
         return filtered_labeled
-    
-    def EntireBdyBB(self):
+
+    def Crop2Body(self):       
+        '''This will generate a new depthframe but focuses on the human body'''
+        pos2D = self.pos2d[0,self.Index].astype(np.int16)
+        # extremes points of the bodies
+        minV = np.min(pos2D[:,1])
+        maxV = np.max(pos2D[:,1])
+        minH = np.min(pos2D[:,0])
+        maxH = np.max(pos2D[:,0])
+        # distance head to neck. Let us assume this is enough for all borders
+        distH2N = LA.norm( (pos2D[self.connection[0,1]-1]-pos2D[self.connection[0,0]-1])).astype(np.int16)
+        Box = self.lImages[0,self.Index]
+        bwBox = self.bw[0,self.Index]
+        ############ Should check whether the value are in the frame #####################
+        colStart = (minH-distH2N).astype(np.int16)
+        lineStart = (minV-distH2N).astype(np.int16)
+        colEnd = (maxH+distH2N).astype(np.int16)
+        lineEnd = (maxV+distH2N).astype(np.int16)  
+        self.transCrop = np.array([colStart,lineStart,colEnd,lineEnd])
+        self.CroppedBox = Box[lineStart:lineEnd,colStart:colEnd]
+        self.CroppedPos = (pos2D -self.transCrop[0:2]).astype(np.int16)
+        self.Croppedbw = bwBox[lineStart:lineEnd,colStart:colEnd]
+        
+    def BdyThresh(self):
         '''this function threshold the depth image in order to to get the whole body alone with the bounding box (BB)'''
-        pos2D = self.BBPos
+        pos2D = self.CroppedPos
         max_value = np.iinfo(np.uint16).max # = 65535 for uint16
-        self.BBox = self.BBox.astype(np.uint16)
+        self.CroppedBox = self.CroppedBox.astype(np.uint16)
         # Threshold according to detph of the body
-        bdyVals = self.BBox[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
+        bdyVals = self.CroppedBox[pos2D[self.connection[:,0]-1,1]-1,pos2D[self.connection[:,0]-1,0]-1]
         #only keep vales different from 0
         bdy = bdyVals[np.nonzero(bdyVals != 0)]
         mini =  np.min(bdy)
         print "mini: %u" % (mini)
         maxi = np.max(bdy)
         print "max: %u" % (maxi)
-        bwmin = (self.BBox > mini-0.01*max_value) 
-        bwmax = (self.BBox < maxi+0.01*max_value)
+        bwmin = (self.CroppedBox > mini-0.01*max_value) 
+        bwmax = (self.CroppedBox < maxi+0.01*max_value)
         bw0 = bwmin*bwmax
         # Compare with thenoised binary image given by the kinect
-        thresh2,tmp = cv2.threshold(self.BBbw,0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+        thresh2,tmp = cv2.threshold(self.Croppedbw,0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
         res = tmp * bw0        
         # Remove all stand alone object
         bw0 = ( self.RemoveBG(bw0)>0)
-
         return res
-
 
     def BodySegmentation(self):
         '''this function calls the function in segmentation.py to process the segmentation of the body'''
         #Bounding box version
-        self.segm = segm.Segmentation(self.BBox,self.BBPos) 
+        self.segm = segm.Segmentation(self.CroppedBox,self.CroppedPos) 
         #segmentation of the whole body 
-        imageWBG = (self.EntireBdyBB()>0)
-        B = self.BBox
+        imageWBG = (self.BdyThresh()>0)
+        B = self.CroppedBox
     
         right = 0
         left = 1
@@ -453,37 +470,19 @@ class RGBD():
         '''Create label for each body part in the depth_image'''
         Size = self.depth_image.shape
         self.labels = np.zeros(Size,np.int)   
-        Txy = self.transBB
+        Txy = self.transCrop
         for i in range(self.bdyPart.shape[0]):  
             self.labels[Txy[1]:Txy[3],Txy[0]:Txy[2]] += (i+1)*self.bdyPart[i]
 
     
 ###################################################################
 ################### Bounding boxes Function #######################
-##################################################################      
-    def BodyBBox(self):       
-        '''This will generate a new depthframe but focuses on the human body'''
-        pos2D = self.pos2d[0,self.Index].astype(np.int16)
-        # extremes points of the bodies
-        minV = np.min(pos2D[:,1])
-        maxV = np.max(pos2D[:,1])
-        minH = np.min(pos2D[:,0])
-        maxH = np.max(pos2D[:,0])
-        # distance head to neck. Let us assume this is enough for all borders
-        distH2N = LA.norm( (pos2D[self.connection[0,1]-1]-pos2D[self.connection[0,0]-1])).astype(np.int16)
-        Box = self.lImages[0,self.Index]
-        bwBox = self.bw[0,self.Index]
-        ############ Should check whether the value are in the frame #####################
-        colStart = (minH-distH2N).astype(np.int16)
-        lineStart = (minV-distH2N).astype(np.int16)
-        colEnd = (maxH+distH2N).astype(np.int16)
-        lineEnd = (maxV+distH2N).astype(np.int16)  
-        self.transBB = np.array([colStart,lineStart,colEnd,lineEnd])
-        self.BBox = Box[lineStart:lineEnd,colStart:colEnd]
-        self.BBPos = (pos2D -self.transBB[0:2]).astype(np.int16)
-        self.BBbw = bwBox[lineStart:lineEnd,colStart:colEnd]
-        
+##################################################################             
 
+    def computeCenter(self):
+        centers = []
+        return centers
+        
     def SetTransfoMat(self,evecs,i,ctrMass):       
         '''Generate the transformation matrix '''
         e1 = evecs[0]
@@ -502,7 +501,9 @@ class RGBD():
         origine = np.array( [center[0],center[1],center[2],1])
         Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
         self.TransfoBB.append(Transfo.transpose())
-        print self.TransfoBB[i]           
+        print self.TransfoBB[i]        
+        
+
            
     def myPCA(self, dims_rescaled_data=3):
         """
@@ -510,7 +511,7 @@ class RGBD():
         """
         self.TVtxBB = []
         self.TransfoBB = []
-        shift = self.transBB
+        shift = self.transCrop
         #for i in range(self.bdyPart.shape[0]):
         i=0
         ctrMass = []
@@ -637,38 +638,6 @@ class RGBD():
         print self.drawCenter[k]
 
 
-    def Cvt2RGBA(self,im_im):
-        '''
-        convert an RGB image in RGBA to put all zeros as transparent
-        '''
-        img = im_im.convert("RGBA")
-        datas = img.getdata()     
-        newData = []
-        for item in datas:
-            if item[0] == 0 and item[1] == 0 and item[2] == 0:
-                newData.append((0, 0, 0, 0))
-            else:
-                newData.append(item)
-        
-        img.putdata(newData)
-        return img      
-
-                
-    def ChangeColors(self,im_im,color):
-        '''
-        take an RGBA image to color it 
-        '''
-        img = im_im.convert("RGBA")
-        datas = img.getdata()     
-        newData = []
-        for item in datas:
-            if item[0] != 0 and item[1] != 0 and item[2] != 0:
-                newData.append((color[0], color[1], color[2], item[3]))
-            else:
-                newData.append(item)
-        
-        img.putdata(newData)
-        return img                
             
             
 

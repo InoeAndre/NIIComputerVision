@@ -49,17 +49,6 @@ class Application(tk.Frame):
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
 
-#==============================================================================
-#             self.RGBD.DrawBB(self.Pose, self.w.get(), self.color_tag)           
-#             # figure 3D of with each part segmented in 3D but in one image
-#             for i in range(self.RGBD.bdyPart.shape[0]):
-#                 newImg = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
-#                 newImg = self.RGBD.Cvt2RGBA(newImg)
-#                 newImg.paste(self.imgBB,(0,0),self.imgBB)
-#                 self.imgBB = newImg        
-#             self.imgTkBB = ImageTk.PhotoImage(self.imgBB)
-#             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB) 
-#==============================================================================
 
     ## Function to handle mouse press event
     def mouse_press(self, event):
@@ -104,18 +93,6 @@ class Application(tk.Frame):
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-            
-#==============================================================================
-#             self.RGBD.DrawBB(self.Pose, self.w.get(), self.color_tag)           
-#             # figure 3D of with each part segmented in 3D but in one image
-#             for i in range(self.RGBD.bdyPart.shape[0]):
-#                 newImg = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
-#                 newImg = self.RGBD.Cvt2RGBA(newImg)
-#                 newImg.paste(self.imgBB,(0,0),self.imgBB)
-#                 self.imgBB = newImg        
-#             self.imgTkBB = ImageTk.PhotoImage(self.imgBB)
-#             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB) 
-#==============================================================================
 
        
         self.x_init = event.x
@@ -134,7 +111,7 @@ class Application(tk.Frame):
     def DrawColors(self,img):
         '''this function draw the color of each segmented part of the body'''
         newImg = img.copy()
-        Txy = self.RGBD.transBB
+        Txy = self.RGBD.transCrop
         label = self.RGBD.labels
         for k in range(1,self.RGBD.bdyPart.shape[0]+1):
             color = self.RGBD.bdyColor[k-1]
@@ -200,7 +177,7 @@ class Application(tk.Frame):
         self.Index = 20
         self.RGBD.ReadFromMat(self.Index)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.BodyBBox()
+        self.RGBD.Crop2Body()
         segm = self.RGBD.BodySegmentation()
         self.RGBD.BodyLabelling()
         start_time = time.time()
@@ -215,19 +192,18 @@ class Application(tk.Frame):
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])
         start_time2 = time.time()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        self.RGBD.DrawBB(self.Pose, 1, self.color_tag)
+        self.RGBD.DrawCrop(self.Pose, 1, self.color_tag)
         self.RGBD.myPCA()
         self.RGBD.FindCoord()
         self.RGBD.GetCorners(self.Pose, 1, self.color_tag)
         elapsed_time3 = time.time() - start_time2
-        print "DrawBB: %f" % (elapsed_time3)
+        print "bounding boxes process time: %f" % (elapsed_time3)
         
         # Show figure and images
             
             
 #==============================================================================
-#         newImg = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
-#         newImg = self.RGBD.Cvt2RGBA(newImg)
+#         newImg = Image.fromarray(self.RGBD.drawCropped[i], 'RGB')
 #         newImg.paste(self.imgBB,(0,0),self.imgBB)
 #         transfo = self.RGBD.TransfoBB[i]
 #         center = self.RGBD.drawCenter[i]
@@ -249,15 +225,15 @@ class Application(tk.Frame):
         
 #==============================================================================
 #         # All part of the bodies are separated in different images
-#         self.imgTkBB = []
+#         self.imgTkCrop = []
 #         for i in range(self.RGBD.bdyPart.shape[0]):
 #         #i=0
-#             Size = self.RGBD.drawBB[i].shape        
+#             Size = self.RGBD.drawCropped[i].shape        
 #             self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
 #             self.canvas.pack()
-#             imgBB = Image.fromarray(self.RGBD.drawBB[i], 'RGB')
-#             self.imgTkBB.append(ImageTk.PhotoImage(imgBB))
-#             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkBB[i])
+#             imgCrop = Image.fromarray(self.RGBD.drawCropped[i], 'RGB')
+#             self.imgTkCrop.append(ImageTk.PhotoImage(imgCrop))
+#             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkCrop[i])
 #==============================================================================
             
         # 3D reconstruction of the whole image
