@@ -469,29 +469,44 @@ class RGBD():
 ################### Bounding boxes Function #######################
 ##################################################################             
 
-    def computeCenter(self,img,mask):
+    def ComputeCenter(self,img,mask):
         '''Compute the center of mass for one segmented part'''
         ctrVtx = np.zeros([img.shape[2]])
         idx = spm.center_of_mass(img,labels = np.dstack( (mask,mask,mask) ),index = 1)
         ctrVtx = np.array([ int(round(idx[1])) ,int(round(idx[0])) ,  int(round(idx[2])) ])
         return ctrVtx
+
+    def MeanData(self,mask):
+        '''Compute the mean for one segmented part'''
+        data = np.zeros(self.Vtx.shape)
+        mean3D = np.zeros([self.Vtx.shape[2]])
+        for j in range(3):
+             # center of mass the data
+             mean3D[j] = np.sum(self.Vtx[:,:,j]*mask)/np.sum(mask)
+             data[:,:,j] = self.Vtx[:,:,j]-mean3D[j]
+        return data
+
+    def CovMat(self,data):
+        '''Compute a 3*3 covariance matrix from data'''
+        data_cov = np.zeros( [3,3])                
+        # compute the covariance matrix 
+        for j in range(3):
+            for k in range(3):  
+                #compute each term of the covariancecovariance matrix
+                data_cov[j,k] = np.sum(np.dot(data[:,:,j],data[:,:,k].T))/(data.shape[0]-1)
+        self.dataCov = data_cov
+
         
-    def SetTransfoMat(self,evecs,i,ctrMass):       
+    def SetTransfoMat(self,evecs,i):       
         '''Generate the transformation matrix '''
+        ctrMass = self.ctrMass[i]
         e1 = evecs[0]
         e2 = evecs[1]
         e3 = evecs[2]
-#==============================================================================
-#         x = np.min(np.dot(self.VtxBB[i],e1))*e1
-#         y = np.min(np.dot(self.VtxBB[i],e2))*e2
-#         z = np.min(np.dot(self.VtxBB[i],e3))*e3
-#         center = x + y + z
-#==============================================================================
         e1b = np.array( [e1[0],e1[1],e1[2],0])
         e2b = np.array( [e2[0],e2[1],e2[2],0])
         e3b = np.array( [e3[0],e3[1],e3[2],0])
-        center = (ctrMass[0]+ctrMass[1]+ctrMass[2])/3
-        origine = np.array( [center[0],center[1],center[2],1])
+        origine = np.array( [ctrMass[0],ctrMass[1],ctrMass[2],1])
         Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
         self.TransfoBB.append(Transfo.transpose())
         print self.TransfoBB[i]        
@@ -503,50 +518,33 @@ class RGBD():
         returns: data transformed 
         """
         self.ctrMass = []
+        self.TVtxBB = []
+        self.TransfoBB = []
         for i in range(self.bdyPart.shape[0]):
-        #i = 0
             mask = (self.labels == (i+1))
-            self.ctrMass.append(self.computeCenter(self.Vtx,mask))         
-        print "ctrMass indexes :"
-        print self.ctrMass
-#==============================================================================
-#         self.TVtxBB = []
-#         self.TransfoBB = []
-#         shift = self.transCrop
-#         # for now I don't compute the center of the hands and the feets because they have some issues thus self.bdyPart.shape[0]-4
-#         #for i in range(self.bdyPart.shape[0]-4):
-#         #   mask = ( self.labels == (i+1) )
-#         i=0
-#         ctrMass = []
-#         data = np.zeros(self.VtxBB[i].shape)
-#         for j in range(3):
-#             # center of mass the data
-#             idx = spm.center_of_mass(self.VtxBB[i][:,:,j])
-#             ctrMass.append(np.array([idx[1],idx[1],j]))
-#             data[:,:,j] = self.VtxBB[i][:,:,j]-self.VtxBB[i][int(round(idx[0])),int(round(idx[1])),j]
-#         data_cov = np.zeros( [3,3])                
-#         # compute the covariance matrix  
-#         for j in range(3):
-#             for k in range(3):  
-#                 #compute each term of the covariancecovariance matrix
-#                 data_cov[j,k] = np.sum(np.dot(data[:,:,j],data[:,:,k].T))/data.shape[0]
-#         # calculate eigenvectors & eigenvalues of the covariance matrix
-#         # use 'eigh' rather than 'eig' since data_cov is symmetric, 
-#         # the performance gain is substantial
-#         uu,s,vv = np.linalg.svd(data_cov)
-#         # sort eigenvalue in decreasing order
-#         idx = np.argsort(s)[::-1]
-#         vv = vv[:,idx]
-#         # sort eigenvectors according to same index
-#         s = s[idx]
-#         # select the first n eigenvectors (n is desired dimension
-#         # of rescaled data array, or dims_rescaled_data)
-#         vv = vv[:, :dims_rescaled_data]
-#         # carry out the transformation on the data using eigenvectors
-#         # and return the re-scaled data, eigenvalues, and eigenvectors
-#         self.TVtxBB.append( np.dot(self.VtxBB[i],vv))
-#         self.SetTransfoMat(uu,i,ctrMass)       
-#==============================================================================
+            self.ctrMass.append(self.ComputeCenter(self.Vtx,mask))         
+            print "ctrMass indexes :"
+            print self.ctrMass[i]
+            
+            data = self.MeanData(mask)
+            self.CovMat(data)
+            
+            # calculate eigenvectors & eigenvalues of the covariance matrix
+            # use 'eigh' rather than 'eig' since data_cov is symmetric, 
+            # the performance gain is substantial
+            uu,s,vv = np.linalg.svd(self.dataCov)
+            # sort eigenvalue in decreasing order
+            idx = np.argsort(s)[::-1]
+            vv = vv[:,idx]
+            # sort eigenvectors according to same index
+            s = s[idx]
+            # select the first n eigenvectors (n is desired dimension
+            # of rescaled data array, or dims_rescaled_data)
+            vv = vv[:, :dims_rescaled_data]
+            # carry out the transformation on the data using eigenvectors
+            # and return the re-scaled data, eigenvalues, and eigenvectors
+            self.TVtxBB.append( np.dot(self.Vtx[i],vv))
+            self.SetTransfoMat(uu,i)       
 
             
     def FindCoord(self, dims_rescaled_data=3):       

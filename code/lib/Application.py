@@ -174,7 +174,7 @@ class Application(tk.Frame):
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        self.Index = 20
+        self.Index = 0
         self.RGBD.ReadFromMat(self.Index)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.Crop2Body()
@@ -210,7 +210,7 @@ class Application(tk.Frame):
         self.DrawSkeleton()
         for i in range(self.RGBD.bdyPart.shape[0]):
             c = self.RGBD.ctrMass[i]
-            self.DrawPoint(c,4,"yellow")
+            self.DrawPoint(c,2,"yellow")
 
 
 
