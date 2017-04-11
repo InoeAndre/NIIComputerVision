@@ -11,7 +11,7 @@ import time
 import scipy.ndimage.measurements as spm
 import pdb
 from skimage import img_as_ubyte
-from scipy import ndimage
+
 
 
 segm = imp.load_source('segmentation', './lib/segmentation.py')
@@ -138,16 +138,12 @@ class RGBD():
         y = d_pos * y_raw
         self.Vtx = np.dstack((x, y,d))
 
-    def VmapBB(self,im=0): # Create the vertex image from the segmented part of the body and intrinsic matrice
+    def VmapBB(self): # Create the vertex image from the segmented part of the body and intrinsic matrice
         self.VtxBB = []
         #self.corners3D =[]
-        for i in range(self.bdyPart.shape[0]):
-            if im==0:            
-                Size = self.bdyPart[i].shape
-                partBox = self.bdyPart[i]
-            else:
-                Size = self.PartBox[i].shape
-                partBox = self.PartBox[i]
+        for i in range(self.bdyPart.shape[0]):           
+            Size = self.bdyPart[i].shape
+            partBox = self.bdyPart[i]
             shift = self.transCrop
             d = partBox#[0:Size[0]][0:Size[1]]
             d_pos = d * (d > 0.0)
@@ -197,10 +193,7 @@ class RGBD():
         self.NmlsBB = []
 
         for i in range(self.bdyPart.shape[0]):
-            if im==0:
-                Size = self.bdyPart[i].shape
-            else:
-                Size = self.PartBox[i].shape
+            Size = self.bdyPart[i].shape
             Vtx = self.VtxBB[i]
             NmlsBB = np.zeros([Size[0],Size[1],3], np.float32)  
             nmle1 = normalized_cross_prod_optimize(Vtx[2:Size[0]  ][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
@@ -287,13 +280,10 @@ class RGBD():
                                                                        ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
     
-    def DrawCrop(self, Pose, s, color = 0,im=0) :   
+    def DrawCrop(self, Pose, s, color = 0) :   
         self.drawCropped = []
         for i in range(self.bdyPart.shape[0]):
-            if im == 0:
-                Size = self.bdyPart[i].shape
-            else:
-                Size = self.PartBox[i].shape
+            Size = self.bdyPart[i].shape
             Vtx = self.VtxBB[i]
             Nmls = self.NmlsBB[i]          
             result = np.zeros((Size[0], Size[1], 3), dtype = np.uint8)
@@ -479,9 +469,12 @@ class RGBD():
 ################### Bounding boxes Function #######################
 ##################################################################             
 
-    def computeCenter(self):
-        centers = []
-        return centers
+    def computeCenter(self,img,mask):
+        '''Compute the center of mass for one segmented part'''
+        ctrVtx = np.zeros([img.shape[2]])
+        idx = spm.center_of_mass(img,labels = np.dstack( (mask,mask,mask) ),index = 1)
+        ctrVtx = np.array([ int(round(idx[1])) ,int(round(idx[0])) ,  int(round(idx[2])) ])
+        return ctrVtx
         
     def SetTransfoMat(self,evecs,i,ctrMass):       
         '''Generate the transformation matrix '''
@@ -509,44 +502,51 @@ class RGBD():
         """
         returns: data transformed 
         """
-        self.TVtxBB = []
-        self.TransfoBB = []
-        shift = self.transCrop
-        #for i in range(self.bdyPart.shape[0]):
-        i=0
-        ctrMass = []
-        data = np.zeros(self.VtxBB[i].shape)
-        for j in range(3):
-            # center of mass the data
-            idx = ndimage.measurements.center_of_mass(self.VtxBB[i][:,:,j])
-            ctrMass.append(np.array([idx[1],idx[1],j]))
-            data[:,:,j] = self.VtxBB[i][:,:,j]-self.VtxBB[i][int(round(idx[0])),int(round(idx[1])),j]
-        data_cov = np.zeros( [3,3])                
-        # compute the covariance matrix  
-        for j in range(3):
-            for k in range(3):  
-                #compute each term of the covariancecovariance matrix
-                data_cov[j,k] = np.sum(np.dot(data[:,:,j],data[:,:,k].T))/data.shape[0]
-        # calculate eigenvectors & eigenvalues of the covariance matrix
-        # use 'eigh' rather than 'eig' since data_cov is symmetric, 
-        # the performance gain is substantial
-        uu,s,vv = np.linalg.svd(data_cov)
-        # sort eigenvalue in decreasing order
-        idx = np.argsort(s)[::-1]
-        vv = vv[:,idx]
-        # sort eigenvectors according to same index
-        s = s[idx]
-        # select the first n eigenvectors (n is desired dimension
-        # of rescaled data array, or dims_rescaled_data)
-        vv = vv[:, :dims_rescaled_data]
-        # carry out the transformation on the data using eigenvectors
-        # and return the re-scaled data, eigenvalues, and eigenvectors
-        self.TVtxBB.append( np.dot(self.VtxBB[i],vv))
+        self.ctrMass = []
+        for i in range(self.bdyPart.shape[0]):
+        #i = 0
+            mask = (self.labels == (i+1))
+            self.ctrMass.append(self.computeCenter(self.Vtx,mask))         
+        print "ctrMass indexes :"
+        print self.ctrMass
 #==============================================================================
-#             print 'TVtxBB[%d]' %(i)
-#             print self.TVtxBB[i]
+#         self.TVtxBB = []
+#         self.TransfoBB = []
+#         shift = self.transCrop
+#         # for now I don't compute the center of the hands and the feets because they have some issues thus self.bdyPart.shape[0]-4
+#         #for i in range(self.bdyPart.shape[0]-4):
+#         #   mask = ( self.labels == (i+1) )
+#         i=0
+#         ctrMass = []
+#         data = np.zeros(self.VtxBB[i].shape)
+#         for j in range(3):
+#             # center of mass the data
+#             idx = spm.center_of_mass(self.VtxBB[i][:,:,j])
+#             ctrMass.append(np.array([idx[1],idx[1],j]))
+#             data[:,:,j] = self.VtxBB[i][:,:,j]-self.VtxBB[i][int(round(idx[0])),int(round(idx[1])),j]
+#         data_cov = np.zeros( [3,3])                
+#         # compute the covariance matrix  
+#         for j in range(3):
+#             for k in range(3):  
+#                 #compute each term of the covariancecovariance matrix
+#                 data_cov[j,k] = np.sum(np.dot(data[:,:,j],data[:,:,k].T))/data.shape[0]
+#         # calculate eigenvectors & eigenvalues of the covariance matrix
+#         # use 'eigh' rather than 'eig' since data_cov is symmetric, 
+#         # the performance gain is substantial
+#         uu,s,vv = np.linalg.svd(data_cov)
+#         # sort eigenvalue in decreasing order
+#         idx = np.argsort(s)[::-1]
+#         vv = vv[:,idx]
+#         # sort eigenvectors according to same index
+#         s = s[idx]
+#         # select the first n eigenvectors (n is desired dimension
+#         # of rescaled data array, or dims_rescaled_data)
+#         vv = vv[:, :dims_rescaled_data]
+#         # carry out the transformation on the data using eigenvectors
+#         # and return the re-scaled data, eigenvalues, and eigenvectors
+#         self.TVtxBB.append( np.dot(self.VtxBB[i],vv))
+#         self.SetTransfoMat(uu,i,ctrMass)       
 #==============================================================================
-        self.SetTransfoMat(uu,i,ctrMass)       
 
             
     def FindCoord(self, dims_rescaled_data=3):       
@@ -586,22 +586,15 @@ class RGBD():
             
 
     def GetCorners(self, Pose, s=1, color = 0) :   
-        self.drawCorners = []
-        self.drawCenter = []
-        #for k in range(self.bdyPart.shape[0]):
-        k=0
-        # coordinates of boxes corners
-        Size = self.coords[k].shape
-        tmp = np.zeros([Size[0],2])
-        Vtx = self.coords[k]  
         line_index = 0
         column_index = 0
         pix = np.array([0., 0., 1.])
         pt = np.array([0., 0., 0., 1.])
-        for i in range(Size[0]/s):
-            pt[0] = Vtx[i*s][0]
-            pt[1] = Vtx[i*s][1]
-            pt[2] = Vtx[i*s][2]
+        self.drawCenter = []
+        for i in range(2):
+            pt[0] = self.ctrMass[i][0]
+            pt[1] = self.ctrMass[i][1]
+            pt[2] = self.ctrMass[i][2]
             pt = np.dot(Pose, pt)
             if (pt[2] != 0.0):
                 pix[0] = pt[0]/pt[2]
@@ -609,33 +602,13 @@ class RGBD():
                 pix = np.dot(self.intrinsic, pix)
                 column_index = int(round(pix[0]))
                 line_index = int(round(pix[1]))
-                tmp[i,0] = line_index
-                tmp[i,1] = column_index
-        self.drawCorners.append(tmp) 
-        print "drawCorners[%d]" %(k)
-        print self.drawCorners[k]
-        # coordinates system
-        tmp = np.zeros([1,2])
-        bord= self.TransfoBB[k]  
-        line_index = 0
-        column_index = 0
-        pix = np.array([0., 0., 1.])
-        pt = np.array([0., 0., 0., 1.])
-        pt[0] = bord[0][3]
-        pt[1] = bord[1][3]
-        pt[2] = bord[2][3]
-        pt = np.dot(Pose, pt)
-        if (pt[2] != 0.0):
-            pix[0] = pt[0]/pt[2]
-            pix[1] = pt[1]/pt[2]
-            pix = np.dot(self.intrinsic, pix)
-            column_index = int(round(pix[0]))
-            line_index = int(round(pix[1]))
-            tmp[0,0] = line_index
-            tmp[0,1] = column_index
-        self.drawCenter.append(tmp) 
-        print "drawCenter[%d]" %(k)
-        print self.drawCenter[k]
+            else :
+                column_index = 0
+                line_index = 0
+            print "line index : %d" %(line_index)
+            print "column index : %d" %(column_index)
+            self.drawCenter.append(np.array([line_index,column_index]))
+            
 
 
             

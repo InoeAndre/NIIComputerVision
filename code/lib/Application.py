@@ -194,47 +194,11 @@ class Application(tk.Frame):
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
         self.RGBD.DrawCrop(self.Pose, 1, self.color_tag)
         self.RGBD.myPCA()
-        self.RGBD.FindCoord()
-        self.RGBD.GetCorners(self.Pose, 1, self.color_tag)
+        #self.RGBD.FindCoord()
         elapsed_time3 = time.time() - start_time2
         print "bounding boxes process time: %f" % (elapsed_time3)
         
         # Show figure and images
-            
-            
-#==============================================================================
-#         newImg = Image.fromarray(self.RGBD.drawCropped[i], 'RGB')
-#         newImg.paste(self.imgBB,(0,0),self.imgBB)
-#         transfo = self.RGBD.TransfoBB[i]
-#         center = self.RGBD.drawCenter[i]
-#         self.DrawPoint(center[i],radius =1, color = "blue")
-#         vect1 = transfo[0,0:1]-center
-#         vect2 = transfo[1,0:1]-center
-#         vect3 = transfo[2,0:1]-center
-#         self.canvas.create_line(vect1[0,0],vect1[0,1],center[0,0],center[0,1],fill="red")
-#         self.canvas.create_line(vect2[0,0],vect2[0,1],center[0,0],center[0,1],fill="red")
-#         self.canvas.create_line(vect3[0,0],vect3[0,1],center[0,0],center[0,1],fill="red")
-#         coords = self.RGBD.drawCorners[i]
-#         self.canvas.create_line(coords[0],coords[1],coords[2],coords[3],coords[0],\
-#                                 coords[4],coords[5],coords[6],coords[7],coords[4],fill="red")
-#         self.canvas.create_line(coords[1],coords[5],fill="red")
-#         self.canvas.create_line(coords[2],coords[6],fill="red")
-#         self.canvas.create_line(coords[3],coords[7],fill="red")
-#         self.imgBB = newImg   
-#==============================================================================
-        
-#==============================================================================
-#         # All part of the bodies are separated in different images
-#         self.imgTkCrop = []
-#         for i in range(self.RGBD.bdyPart.shape[0]):
-#         #i=0
-#             Size = self.RGBD.drawCropped[i].shape        
-#             self.canvas = tk.Canvas(self, bg="white", height=Size[0], width=Size[1])
-#             self.canvas.pack()
-#             imgCrop = Image.fromarray(self.RGBD.drawCropped[i], 'RGB')
-#             self.imgTkCrop.append(ImageTk.PhotoImage(imgCrop))
-#             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTkCrop[i])
-#==============================================================================
             
         # 3D reconstruction of the whole image
         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
@@ -244,6 +208,9 @@ class Application(tk.Frame):
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
         self.DrawSkeleton()
+        for i in range(self.RGBD.bdyPart.shape[0]):
+            c = self.RGBD.ctrMass[i]
+            self.DrawPoint(c,4,"yellow")
 
 
 
