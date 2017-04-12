@@ -137,7 +137,25 @@ class Application(tk.Frame):
             self.DrawPoint(pt2,radius,color)      
             self.canvas.create_line(pt1[0],pt1[1],pt2[0],pt2[1],fill="red")
 
+    def DrawCenters(self):
+        '''this function draw the center of each oriented coordinates system for each body part''' 
+        for i in range(self.RGBD.bdyPart.shape[0]):
+            c = self.RGBD.ctrMass[i]
+            self.DrawPoint(c,2,"yellow")
 
+            
+            
+    def DrawSys(self):
+        '''this function draw the sys of oriented coordinates system for each body part''' 
+        self.RGBD.GetNewSys(self.Pose,10)
+        for i in range(self.RGBD.bdyPart.shape[0]):
+            c = self.RGBD.ctrMass[i]
+            pt0 = self.RGBD.drawNewSys[i][0]
+            pt1 = self.RGBD.drawNewSys[i][1]
+            pt2 = self.RGBD.drawNewSys[i][2]    
+            self.canvas.create_line(pt0[0],pt0[1],c[0],c[1],fill="gray",width = 2)
+            self.canvas.create_line(pt1[0],pt1[1],c[0],c[1],fill="gray",width = 2)
+            self.canvas.create_line(pt2[0],pt2[1],c[0],c[1],fill="gray",width = 2)
 
     
     ## Constructor function
@@ -174,7 +192,7 @@ class Application(tk.Frame):
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        self.Index = 0
+        self.Index = 20
         self.RGBD.ReadFromMat(self.Index)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.Crop2Body()
@@ -207,11 +225,9 @@ class Application(tk.Frame):
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-        self.DrawSkeleton()
-        for i in range(self.RGBD.bdyPart.shape[0]):
-            c = self.RGBD.ctrMass[i]
-            self.DrawPoint(c,2,"yellow")
-        self.RGBD.GetVects(self.Pose, s=1)
+        #self.DrawSkeleton()
+        self.DrawCenters()
+        self.DrawSys()
 
 
         '''

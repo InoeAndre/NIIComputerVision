@@ -473,7 +473,7 @@ class RGBD():
         '''Compute the center of mass for one segmented part'''
         ctrVtx = np.zeros([img.shape[2]])
         idx = spm.center_of_mass(img,labels = np.dstack( (mask,mask,mask) ),index = 1)
-        ctrVtx = np.array([ int(round(idx[1])) ,int(round(idx[0])) ,  int(round(idx[2])) ])
+        ctrVtx = np.array([ int(round(idx[1])) ,int(round(idx[0])) , int(round(idx[2])) ])
         return ctrVtx
 
     def MeanData(self,mask):
@@ -536,86 +536,99 @@ class RGBD():
             uu,s,vv = np.linalg.svd(self.dataCov)
             # sort eigenvalue in decreasing order
             idx = np.argsort(s)[::-1]
-            vv = vv[:,idx]
+            uu = uu[idx,:]
             # sort eigenvectors according to same index
             s = s[idx]
             # select the first n eigenvectors (n is desired dimension
             # of rescaled data array, or dims_rescaled_data)
-            vv = vv[:, :dims_rescaled_data]
+            uu = uu[:, :dims_rescaled_data]
             # carry out the transformation on the data using eigenvectors
             # and return the re-scaled data, eigenvalues, and eigenvectors
-            self.vects.append(vv)
-            self.TVtxBB.append( np.dot(self.Vtx[i],vv))
+            self.vects.append(uu)
+            self.TVtxBB.append( np.dot(self.Vtx,vv))
             self.SetTransfoMat(uu,i)       
 
             
-    def FindCoord(self, dims_rescaled_data=3):       
-        '''
-        draw the bounding boxes in 3D for each part of the human body
-        '''     
-        self.coords=[]
-        self.coordsT=[]
-        self.borders = []
-       # for i in range(self.bdyPart.shape[0]):
-            # extremes planes of the bodies
-        i=0
-        minX = np.min(self.TVtxBB[i][:,:,0][np.nonzero(self.TVtxBB[i][:,:,0])])#np.min(self.TVtxBB[i][:,:,0])
-        maxX = np.max(self.TVtxBB[i][:,:,0][np.nonzero(self.TVtxBB[i][:,:,0])])#np.max(self.TVtxBB[i][:,:,0])
-        minY = np.min(self.TVtxBB[i][:,:,1][np.nonzero(self.TVtxBB[i][:,:,1])])#np.min(self.TVtxBB[i][:,:,1])
-        maxY = np.max(self.TVtxBB[i][:,:,1][np.nonzero(self.TVtxBB[i][:,:,1])])#np.max(self.TVtxBB[i][:,:,1])
-        minZ = np.min(self.TVtxBB[i][:,:,2][np.nonzero(self.TVtxBB[i][:,:,2])])#np.min(self.TVtxBB[i][:,:,2])
-        maxZ = np.max(self.TVtxBB[i][:,:,2][np.nonzero(self.TVtxBB[i][:,:,2])])#np.max(self.TVtxBB[i][:,:,2])
-        self.borders.append( np.array([minX,maxX,minY,maxY,minZ,maxZ]) )
-        # extremes points of the bodies
-        xymz = np.array([minX,minY,minZ]).astype(np.int16)
-        xYmz = np.array([minX,maxY,minZ]).astype(np.int16)            
-        Xymz = np.array([maxX,minY,minZ]).astype(np.int16)
-        XYmz = np.array([maxX,maxY,minZ]).astype(np.int16)
-        xymZ = np.array([minX,minY,maxZ]).astype(np.int16)
-        xYmZ = np.array([minX,maxY,maxZ]).astype(np.int16)
-        XymZ = np.array([maxX,minY,maxZ]).astype(np.int16)
-        XYmZ = np.array([maxX,maxY,maxZ]).astype(np.int16)           
-        # New coordinates and new images
-        self.coordsT.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
-        print "coordsT[%d]" %(i)
-        print self.coordsT[i]
-        inv = np.linalg.inv(self.TransfoBB[i][0:3,0:3])
-        self.coords.append(np.dot(self.coordsT[i],inv.T))
-        print "coord[%d]" %(i)
-        print self.coords[i]
+#==============================================================================
+#     def FindCoord(self, dims_rescaled_data=3):       
+#         '''
+#         draw the bounding boxes in 3D for each part of the human body
+#         '''     
+#         self.coords=[]
+#         self.coordsT=[]
+#         self.borders = []
+#        # for i in range(self.bdyPart.shape[0]):
+#             # extremes planes of the bodies
+#         i=0
+#         minX = np.min(self.TVtxBB[i][:,:,0][np.nonzero(self.TVtxBB[i][:,:,0])])#np.min(self.TVtxBB[i][:,:,0])
+#         maxX = np.max(self.TVtxBB[i][:,:,0][np.nonzero(self.TVtxBB[i][:,:,0])])#np.max(self.TVtxBB[i][:,:,0])
+#         minY = np.min(self.TVtxBB[i][:,:,1][np.nonzero(self.TVtxBB[i][:,:,1])])#np.min(self.TVtxBB[i][:,:,1])
+#         maxY = np.max(self.TVtxBB[i][:,:,1][np.nonzero(self.TVtxBB[i][:,:,1])])#np.max(self.TVtxBB[i][:,:,1])
+#         minZ = np.min(self.TVtxBB[i][:,:,2][np.nonzero(self.TVtxBB[i][:,:,2])])#np.min(self.TVtxBB[i][:,:,2])
+#         maxZ = np.max(self.TVtxBB[i][:,:,2][np.nonzero(self.TVtxBB[i][:,:,2])])#np.max(self.TVtxBB[i][:,:,2])
+#         self.borders.append( np.array([minX,maxX,minY,maxY,minZ,maxZ]) )
+#         # extremes points of the bodies
+#         xymz = np.array([minX,minY,minZ]).astype(np.int16)
+#         xYmz = np.array([minX,maxY,minZ]).astype(np.int16)            
+#         Xymz = np.array([maxX,minY,minZ]).astype(np.int16)
+#         XYmz = np.array([maxX,maxY,minZ]).astype(np.int16)
+#         xymZ = np.array([minX,minY,maxZ]).astype(np.int16)
+#         xYmZ = np.array([minX,maxY,maxZ]).astype(np.int16)
+#         XymZ = np.array([maxX,minY,maxZ]).astype(np.int16)
+#         XYmZ = np.array([maxX,maxY,maxZ]).astype(np.int16)           
+#         # New coordinates and new images
+#         self.coordsT.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
+#         print "coordsT[%d]" %(i)
+#         print self.coordsT[i]
+#         inv = np.linalg.inv(self.TransfoBB[i][0:3,0:3])
+#         self.coords.append(np.dot(self.coordsT[i],inv.T))
+#         print "coord[%d]" %(i)
+#         print self.coords[i]
+#==============================================================================
             
 
-    def GetVects(self, Pose, s=1) :   
-        line_index = 0
-        column_index = 0
-        v3 = np.array([0., 0., 1.])
-        pix = np.stack((v3,v3,v3),axis = 1)
-        v4 = np.array([0., 0., 0., 1.])
-        pt = np.stack((v4,v4,v4),axis = 1)
-        self.drawVects = []
+#==============================================================================
+#     def GetVects(self, Pose, s=1) :   
+#         line_index = 0
+#         column_index = 0
+#         v3 = np.array([0., 0., 1.])
+#         pix = np.stack((v3,v3,v3),axis = 1)
+#         v4 = np.array([0., 0., 0., 1.])
+#         pt = np.stack((v4,v4,v4),axis = 1)
+#         self.drawVects = []
+#         for i in range(len(self.vects)):
+#             pt[0] = self.vects[i][0]
+#             pt[1] = self.vects[i][1]
+#             pt[2] = self.vects[i][2]
+#             pt = np.dot(Pose, pt)
+#             if (pt[2].all() != 0.0):
+#                 pix[0] = pt[0]/pt[2]
+#                 pix[1] = pt[1]/pt[2]
+#                 pix = np.dot(self.intrinsic, pix)
+#                 column_index = pix[0].astype(np.int)
+#                 line_index = pix[1].astype(np.int)
+#             else :
+#                 column_index = 0
+#                 line_index = 0
+#             print "line index :" 
+#             print line_index
+#             print "column index " 
+#             print column_index
+#             self.drawVects.append(np.array([line_index,column_index]))
+#==============================================================================
+            
+            
+            
+    def GetNewSys(self, Pose,nbPix, s=1) : 
+        ''' compute the coordinates of the points that will create the coordinates system '''
+        self.drawNewSys = []
         for i in range(len(self.vects)):
-            pt[0] = self.vects[i][0]
-            pt[1] = self.vects[i][1]
-            pt[2] = self.vects[i][2]
-            pt = np.dot(Pose, pt)
-            if (pt[2].all() != 0.0):
-                pix[0] = pt[0]/pt[2]
-                pix[1] = pt[1]/pt[2]
-                pix = np.dot(self.intrinsic, pix)
-                column_index = pix[0].astype(np.int)
-                line_index = pix[1].astype(np.int)
-            else :
-                column_index = 0
-                line_index = 0
-            print "line index :" 
-            print line_index
-            print "column index " 
-            print column_index
-            self.drawVects.append(np.array([line_index,column_index]))
-            
+            vect = self.vects[i]
+            newPt = np.zeros(vect.shape)
+            for j in range(vect.shape[0]):
+                newPt[j] = self.ctrMass[i]-nbPix*vect[j]
+            self.drawNewSys.append(newPt)
 
-
-            
             
 
             
