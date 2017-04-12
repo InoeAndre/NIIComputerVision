@@ -520,6 +520,7 @@ class RGBD():
         self.ctrMass = []
         self.TVtxBB = []
         self.TransfoBB = []
+        self.vects = []
         for i in range(self.bdyPart.shape[0]):
             mask = (self.labels == (i+1))
             self.ctrMass.append(self.ComputeCenter(self.Vtx,mask))         
@@ -543,6 +544,7 @@ class RGBD():
             vv = vv[:, :dims_rescaled_data]
             # carry out the transformation on the data using eigenvectors
             # and return the re-scaled data, eigenvalues, and eigenvectors
+            self.vects.append(vv)
             self.TVtxBB.append( np.dot(self.Vtx[i],vv))
             self.SetTransfoMat(uu,i)       
 
@@ -583,29 +585,33 @@ class RGBD():
         print self.coords[i]
             
 
-    def GetCorners(self, Pose, s=1, color = 0) :   
+    def GetVects(self, Pose, s=1) :   
         line_index = 0
         column_index = 0
-        pix = np.array([0., 0., 1.])
-        pt = np.array([0., 0., 0., 1.])
-        self.drawCenter = []
-        for i in range(2):
-            pt[0] = self.ctrMass[i][0]
-            pt[1] = self.ctrMass[i][1]
-            pt[2] = self.ctrMass[i][2]
+        v3 = np.array([0., 0., 1.])
+        pix = np.stack((v3,v3,v3),axis = 1)
+        v4 = np.array([0., 0., 0., 1.])
+        pt = np.stack((v4,v4,v4),axis = 1)
+        self.drawVects = []
+        for i in range(len(self.vects)):
+            pt[0] = self.vects[i][0]
+            pt[1] = self.vects[i][1]
+            pt[2] = self.vects[i][2]
             pt = np.dot(Pose, pt)
-            if (pt[2] != 0.0):
+            if (pt[2].all() != 0.0):
                 pix[0] = pt[0]/pt[2]
                 pix[1] = pt[1]/pt[2]
                 pix = np.dot(self.intrinsic, pix)
-                column_index = int(round(pix[0]))
-                line_index = int(round(pix[1]))
+                column_index = pix[0].astype(np.int)
+                line_index = pix[1].astype(np.int)
             else :
                 column_index = 0
                 line_index = 0
-            print "line index : %d" %(line_index)
-            print "column index : %d" %(column_index)
-            self.drawCenter.append(np.array([line_index,column_index]))
+            print "line index :" 
+            print line_index
+            print "column index " 
+            print column_index
+            self.drawVects.append(np.array([line_index,column_index]))
             
 
 

@@ -211,7 +211,7 @@ class Application(tk.Frame):
         for i in range(self.RGBD.bdyPart.shape[0]):
             c = self.RGBD.ctrMass[i]
             self.DrawPoint(c,2,"yellow")
-
+        self.RGBD.GetVects(self.Pose, s=1)
 
 
         '''
