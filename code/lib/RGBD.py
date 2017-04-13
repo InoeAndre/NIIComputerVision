@@ -11,7 +11,7 @@ import time
 import scipy.ndimage.measurements as spm
 import pdb
 from skimage import img_as_ubyte
-
+from sklearn.decomposition import PCA
 
 
 segm = imp.load_source('segmentation', './lib/segmentation.py')
@@ -512,6 +512,18 @@ class RGBD():
         print self.TransfoBB[i]        
         
 
+    def bdyPts(self, mask):
+        nbPts = sum(sum(mask))
+        res = np.zeros((nbPts, 3), dtype = np.float32)
+        k = 0
+        for i in range(self.Size[0]):
+            for j in range(self.Size[1]):
+                if(mask[i,j]):
+                    res[k] = self.Vtx[i,j]
+                    k = k+1
+        
+        return res
+            
            
     def myPCA(self, dims_rescaled_data=3):
         """
@@ -521,8 +533,12 @@ class RGBD():
         self.TVtxBB = []
         self.TransfoBB = []
         self.vects = []
+        pca = PCA(n_components=3)
         for i in range(self.bdyPart.shape[0]):
             mask = (self.labels == (i+1))
+            PtCloud = self.bdyPts(mask)
+            pca.fit(PtCloud)
+            
             self.ctrMass.append(self.ComputeCenter(self.Vtx,mask))         
             print "ctrMass indexes :"
             print self.ctrMass[i]
@@ -544,7 +560,9 @@ class RGBD():
             uu = uu[:, :dims_rescaled_data]
             # carry out the transformation on the data using eigenvectors
             # and return the re-scaled data, eigenvalues, and eigenvectors
-            self.vects.append(uu)
+            
+            #self.vects.append(uu)
+            self.vects.append(pca.components_)
             self.TVtxBB.append( np.dot(self.Vtx,vv))
             self.SetTransfoMat(uu,i)       
 
