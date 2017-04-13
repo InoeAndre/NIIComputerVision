@@ -518,14 +518,17 @@ class RGBD():
             
             
             
-    def GetNewSys(self, Pose,nbPix, s=1) : 
+    def GetNewSys(self, Pose,ctr2D,nbPix, s=1) : 
         ''' compute the coordinates of the points that will create the coordinates system '''
         self.drawNewSys = []
+        maxDepth = np.max(self.Vtx[:,:,2])
         for i in range(len(self.vects3D)):
             vect = self.vects3D[i]
             newPt = np.zeros(vect.shape)
             for j in range(vect.shape[0]):
-                newPt[j] = self.ctr3D[i]-nbPix*vect[j]
+                newPt[j][0] = ctr2D[i][0]-nbPix*vect[j][0]
+                newPt[j][1] = ctr2D[i][1]-nbPix*vect[j][1]
+                newPt[j][2] = vect[j][2]-nbPix*vect[j][2]/maxDepth
             self.drawNewSys.append(newPt)
 
             

@@ -145,7 +145,7 @@ class Application(tk.Frame):
 
     def DrawSys2D(self,Pose):
         '''this function draw the sys of oriented coordinates system for each body part''' 
-        self.RGBD.GetNewSys(Pose,10)
+        self.RGBD.GetNewSys(Pose,self.ctr2D,10)
         for i in range(self.RGBD.bdyPart.shape[0]):
             c = self.ctr2D[i]
             pt0 = self.RGBD.drawNewSys[i][0]
@@ -220,9 +220,9 @@ class Application(tk.Frame):
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-        #self.DrawSkeleton2D()
+        self.DrawSkeleton2D(self.Pose)
         self.DrawCenters2D(self.Pose)
-        #self.DrawSys2D(self.Pose)
+        self.DrawSys2D(self.Pose)
 
 
         '''
