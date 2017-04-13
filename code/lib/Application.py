@@ -98,7 +98,7 @@ class Application(tk.Frame):
         self.x_init = event.x
         self.y_init = event.y
 
-    def DrawPoint(self,point,radius,color):
+    def DrawPoint2D(self,point,radius,color):
         if point[0]>0 and point[1]>0:
             x1, y1 = (point[0] - radius), (point[1] - radius)
             x2, y2 = (point[0] + radius), (point[1] + radius)
@@ -108,7 +108,7 @@ class Application(tk.Frame):
         self.canvas.create_oval(x1, y1, x2, y2, fill=color)
 
 
-    def DrawColors(self,img):
+    def DrawColors2D(self,img,Pose):
         '''this function draw the color of each segmented part of the body'''
         newImg = img.copy()
         Txy = self.RGBD.transCrop
@@ -123,9 +123,8 @@ class Application(tk.Frame):
                         newImg[i,j] = newImg[i,j] 
         return newImg               
 
-            
-            
-    def DrawSkeleton(self):
+                      
+    def DrawSkeleton2D(self,Pose):
         '''this function draw the Skeleton of a human and make connections between each part'''
         pos = self.pos2d[0][self.Index]
         for i in range(np.size(self.connection,0)): 
@@ -133,23 +132,22 @@ class Application(tk.Frame):
             pt2 = (pos[self.connection[i,1]-1,0],pos[self.connection[i,1]-1,1])
             radius = 1
             color = "blue"        
-            self.DrawPoint(pt1,radius,color)
-            self.DrawPoint(pt2,radius,color)      
+            self.DrawPoint2D(pt1,radius,color)
+            self.DrawPoint2D(pt2,radius,color)      
             self.canvas.create_line(pt1[0],pt1[1],pt2[0],pt2[1],fill="red")
 
-    def DrawCenters(self):
+    def DrawCenters2D(self,Pose,s=1):
         '''this function draw the center of each oriented coordinates system for each body part''' 
+        self.ctr2D = self.RGBD.GetProjPts2D(self.RGBD.ctr3D,Pose)        
         for i in range(self.RGBD.bdyPart.shape[0]):
-            c = self.RGBD.ctrMass[i]
-            self.DrawPoint(c,2,"yellow")
+            c = self.ctr2D[i]
+            self.DrawPoint2D(c,2,"yellow")
 
-            
-            
-    def DrawSys(self):
+    def DrawSys2D(self,Pose):
         '''this function draw the sys of oriented coordinates system for each body part''' 
-        self.RGBD.GetNewSys(self.Pose,10)
+        self.RGBD.GetNewSys(Pose,10)
         for i in range(self.RGBD.bdyPart.shape[0]):
-            c = self.RGBD.ctrMass[i]
+            c = self.ctr2D[i]
             pt0 = self.RGBD.drawNewSys[i][0]
             pt1 = self.RGBD.drawNewSys[i][1]
             pt2 = self.RGBD.drawNewSys[i][2]    
@@ -199,18 +197,15 @@ class Application(tk.Frame):
         segm = self.RGBD.BodySegmentation()
         self.RGBD.BodyLabelling()
         start_time = time.time()
-        self.RGBD.VmapBB()    
         self.RGBD.Vmap_optimize()  
         elapsed_time = time.time() - start_time
-        print "VmapBB: %f" % (elapsed_time)
-        self.RGBD.NMapBB()
+        print "Vmap: %f" % (elapsed_time)
         self.RGBD.NMap_optimize()
         elapsed_time2 = time.time() - start_time - elapsed_time
-        print "NmapBB: %f" % (elapsed_time2)
+        print "Nmap: %f" % (elapsed_time2)
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])
         start_time2 = time.time()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        self.RGBD.DrawCrop(self.Pose, 1, self.color_tag)
         self.RGBD.myPCA()
         #self.RGBD.FindCoord()
         elapsed_time3 = time.time() - start_time2
@@ -221,13 +216,13 @@ class Application(tk.Frame):
         # 3D reconstruction of the whole image
         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()
-        rendering = self.DrawColors(rendering)
+        rendering = self.DrawColors2D(rendering,self.Pose)
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-        #self.DrawSkeleton()
-        self.DrawCenters()
-        self.DrawSys()
+        #self.DrawSkeleton2D()
+        self.DrawCenters2D(self.Pose)
+        #self.DrawSys2D(self.Pose)
 
 
         '''

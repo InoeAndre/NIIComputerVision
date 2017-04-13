@@ -138,24 +138,6 @@ class RGBD():
         y = d_pos * y_raw
         self.Vtx = np.dstack((x, y,d))
 
-    def VmapBB(self): # Create the vertex image from the segmented part of the body and intrinsic matrice
-        self.VtxBB = []
-        #self.corners3D =[]
-        for i in range(self.bdyPart.shape[0]):           
-            Size = self.bdyPart[i].shape
-            partBox = self.bdyPart[i]
-            shift = self.transCrop
-            d = partBox#[0:Size[0]][0:Size[1]]
-            d_pos = d * (d > 0.0)
-            x_raw = np.zeros(Size, np.float32)
-            y_raw = np.zeros(Size, np.float32)
-            # change the matrix so that the first row is on all rows for x respectively colunm for y.
-            x_raw[0:-1,:] = ( np.arange(Size[1]) - self.intrinsic[0,2] )/self.intrinsic[0,0]
-            y_raw[:,0:-1] = np.tile( ( np.arange(Size[0]) - self.intrinsic[1,2])/self.intrinsic[1,1],(1,1)).transpose()
-            # multiply point by point d_pos and raw matrices
-            x = d_pos * x_raw
-            y = d_pos * y_raw
-            self.VtxBB.append(np.dstack( (x, y,d) ))
 
                 
     ##### Compute normals
@@ -188,29 +170,6 @@ class RGBD():
         #norm division 
         nmle = division_by_norm(nmle,norm_mat_nmle)
         self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
-        
-    def NMapBB(self, im = 0):
-        self.NmlsBB = []
-
-        for i in range(self.bdyPart.shape[0]):
-            Size = self.bdyPart[i].shape
-            Vtx = self.VtxBB[i]
-            NmlsBB = np.zeros([Size[0],Size[1],3], np.float32)  
-            nmle1 = normalized_cross_prod_optimize(Vtx[2:Size[0]  ][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
-                                                   Vtx[1:Size[0]-1][:,2:Size[1]  ] - Vtx[1:Size[0]-1][:,1:Size[1]-1])        
-            nmle2 = normalized_cross_prod_optimize(Vtx[1:Size[0]-1][:,2:Size[1]  ] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
-                                                   Vtx[0:Size[0]-2][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1])
-            nmle3 = normalized_cross_prod_optimize(Vtx[0:Size[0]-2][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
-                                                   Vtx[1:Size[0]-1][:,0:Size[1]-2] - Vtx[1:Size[0]-1][:,1:Size[1]-1])
-            nmle4 = normalized_cross_prod_optimize(Vtx[1:Size[0]-1][:,0:Size[1]-2] - Vtx[1:Size[0]-1][:,1:Size[1]-1], \
-                                                   Vtx[2:Size[0]  ][:,1:Size[1]-1] - Vtx[1:Size[0]-1][:,1:Size[1]-1])
-            nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
-            norm_mat_nmle = np.sqrt(np.sum(nmle*nmle,axis=2))
-            norm_mat_nmle = in_mat_zero2one(norm_mat_nmle)
-            #norm division 
-            nmle = division_by_norm(nmle,norm_mat_nmle)
-            NmlsBB[1:Size[0]-1][:,1:Size[1]-1] = nmle
-            self.NmlsBB.append(NmlsBB)
 
                 
     def Draw(self, Pose, s, color = 0) :
@@ -280,47 +239,6 @@ class RGBD():
                                                                        ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
     
-    def DrawCrop(self, Pose, s, color = 0) :   
-        self.drawCropped = []
-        for i in range(self.bdyPart.shape[0]):
-            Size = self.bdyPart[i].shape
-            Vtx = self.VtxBB[i]
-            Nmls = self.NmlsBB[i]          
-            result = np.zeros((Size[0], Size[1], 3), dtype = np.uint8)
-            stack_pix = np.ones((Size[0], Size[1]), dtype = np.float32)
-            stack_pt = np.ones((np.size(Vtx[ ::s, ::s,:],0), np.size(Vtx[ ::s, ::s,:],1)), dtype = np.float32)
-            pix = np.zeros((Size[0], Size[1],2), dtype = np.float32)
-            pix = np.dstack((pix,stack_pix))
-            pt = np.dstack((Vtx[ ::s, ::s, :],stack_pt))
-            pt = np.dot(Pose,pt.transpose(0,2,1)).transpose(1,2,0)
-            nmle = np.zeros((Size[0], Size[1],3), dtype = np.float32)
-            nmle[ ::s, ::s,:] = np.dot(Pose[0:3,0:3],Nmls[ ::s, ::s,:].transpose(0,2,1)).transpose(1,2,0)
-            #if (pt[2] != 0.0):
-            lpt = np.dsplit(pt,4)
-            lpt[2] = in_mat_zero2one(lpt[2])
-            # if in 1D pix[0] = pt[0]/pt[2]
-            pix[ ::s, ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(Vtx[ ::s, ::s,:],0), np.size(Vtx[ ::s, ::s,:],1))
-            # if in 1D pix[1] = pt[1]/pt[2]
-            pix[ ::s, ::s,1] = (lpt[1]/lpt[2]).reshape(np.size(Vtx[ ::s, ::s,:],0), np.size(Vtx[ ::s, ::s,:],1))
-            pix = np.dot(self.intrinsic,pix[0:Size[0],0:Size[1]].transpose(0,2,1)).transpose(1,2,0)
-            column_index = (np.round(pix[:,:,0])).astype(int)
-            line_index = (np.round(pix[:,:,1])).astype(int)
-            # create matrix that have 0 when the conditions are not verified and 1 otherwise
-            cdt_column = (column_index > -1) * (column_index < Size[1])
-            cdt_line = (line_index > -1) * (line_index < Size[0])
-            line_index = line_index*cdt_line
-            column_index = column_index*cdt_column
-            if (color == 0):
-                result[line_index[:][:], column_index[:][:]]= np.dstack((self.color_image[ ::s, ::s,2], \
-                                                                         self.color_image[ ::s, ::s,1]*cdt_line, \
-                                                                         self.color_image[ ::s, ::s,0]*cdt_column) )
-            else:
-                result[line_index[:][:], column_index[:][:]]= np.dstack( ( (nmle[ :, :,0]+1.0)*(255./2.), \
-                                                                           ((nmle[ :, :,1]+1.0)*(255./2.))*cdt_line, \
-                                                                           ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
-            #for others points
-            self.drawCropped.append(result)
-
 
 ##################################################################
 ###################Bilateral Smooth Funtion#######################
@@ -469,37 +387,16 @@ class RGBD():
 ################### Bounding boxes Function #######################
 ##################################################################             
 
-    def ComputeCenter(self,img,mask):
-        '''Compute the center of mass for one segmented part'''
-        ctrVtx = np.zeros([img.shape[2]])
-        idx = spm.center_of_mass(img,labels = np.dstack( (mask,mask,mask) ),index = 1)
-        ctrVtx = np.array([ int(round(idx[1])) ,int(round(idx[0])) , int(round(idx[2])) ])
-        return ctrVtx
-
-    def MeanData(self,mask):
+    def GetCenter3D(self,mask):
         '''Compute the mean for one segmented part'''
-        data = np.zeros(self.Vtx.shape)
-        mean3D = np.zeros([self.Vtx.shape[2]])
-        for j in range(3):
-             # center of mass the data
-             mean3D[j] = np.sum(self.Vtx[:,:,j]*mask)/np.sum(mask)
-             data[:,:,j] = self.Vtx[:,:,j]-mean3D[j]
-        return data
-
-    def CovMat(self,data):
-        '''Compute a 3*3 covariance matrix from data'''
-        data_cov = np.zeros( [3,3])                
-        # compute the covariance matrix 
-        for j in range(3):
-            for k in range(3):  
-                #compute each term of the covariancecovariance matrix
-                data_cov[j,k] = np.sum(np.dot(data[:,:,j],data[:,:,k].T))/(data.shape[0]-1)
-        self.dataCov = data_cov
+        self.PtCloud = self.bdyPts3D(mask)
+        mean3D = np.mean(self.PtCloud,axis = 0)
+        return mean3D
 
         
-    def SetTransfoMat(self,evecs,i):       
+    def SetTransfoMat3D(self,evecs,i):       
         '''Generate the transformation matrix '''
-        ctrMass = self.ctrMass[i]
+        ctrMass = self.ctr3D[i]
         e1 = evecs[0]
         e2 = evecs[1]
         e3 = evecs[2]
@@ -512,7 +409,7 @@ class RGBD():
         print self.TransfoBB[i]        
         
 
-    def bdyPts(self, mask):
+    def bdyPts3D(self, mask):
         nbPts = sum(sum(mask))
         res = np.zeros((nbPts, 3), dtype = np.float32)
         k = 0
@@ -529,42 +426,27 @@ class RGBD():
         """
         returns: data transformed 
         """
-        self.ctrMass = []
+        self.ctr3D = []
         self.TVtxBB = []
         self.TransfoBB = []
-        self.vects = []
+        self.vects3D = []
         pca = PCA(n_components=3)
         for i in range(self.bdyPart.shape[0]):
             mask = (self.labels == (i+1))
-            PtCloud = self.bdyPts(mask)
-            pca.fit(PtCloud)
             
-            self.ctrMass.append(self.ComputeCenter(self.Vtx,mask))         
-            print "ctrMass indexes :"
-            print self.ctrMass[i]
+            # compute center of 3D
+            self.ctr3D.append(self.GetCenter3D(mask))         
+            print "ctr3D indexes :"
+            print self.ctr3D[i]
             
-            data = self.MeanData(mask)
-            self.CovMat(data)
+            #PtCloud = self.bdyPts(mask)
+            pca.fit(self.PtCloud)
             
-            # calculate eigenvectors & eigenvalues of the covariance matrix
-            # use 'eigh' rather than 'eig' since data_cov is symmetric, 
-            # the performance gain is substantial
-            uu,s,vv = np.linalg.svd(self.dataCov)
-            # sort eigenvalue in decreasing order
-            idx = np.argsort(s)[::-1]
-            uu = uu[idx,:]
-            # sort eigenvectors according to same index
-            s = s[idx]
-            # select the first n eigenvectors (n is desired dimension
-            # of rescaled data array, or dims_rescaled_data)
-            uu = uu[:, :dims_rescaled_data]
-            # carry out the transformation on the data using eigenvectors
-            # and return the re-scaled data, eigenvalues, and eigenvectors
             
             #self.vects.append(uu)
-            self.vects.append(pca.components_)
-            self.TVtxBB.append( np.dot(self.Vtx,vv))
-            self.SetTransfoMat(uu,i)       
+            self.vects3D.append(pca.components_)
+            self.TVtxBB.append( pca.transform(self.PtCloud[i]))
+            self.SetTransfoMat3D(pca.components_,i)       
 
             
 #==============================================================================
@@ -605,46 +487,45 @@ class RGBD():
 #==============================================================================
             
 
-#==============================================================================
-#     def GetVects(self, Pose, s=1) :   
-#         line_index = 0
-#         column_index = 0
-#         v3 = np.array([0., 0., 1.])
-#         pix = np.stack((v3,v3,v3),axis = 1)
-#         v4 = np.array([0., 0., 0., 1.])
-#         pt = np.stack((v4,v4,v4),axis = 1)
-#         self.drawVects = []
-#         for i in range(len(self.vects)):
-#             pt[0] = self.vects[i][0]
-#             pt[1] = self.vects[i][1]
-#             pt[2] = self.vects[i][2]
-#             pt = np.dot(Pose, pt)
-#             if (pt[2].all() != 0.0):
-#                 pix[0] = pt[0]/pt[2]
-#                 pix[1] = pt[1]/pt[2]
-#                 pix = np.dot(self.intrinsic, pix)
-#                 column_index = pix[0].astype(np.int)
-#                 line_index = pix[1].astype(np.int)
-#             else :
-#                 column_index = 0
-#                 line_index = 0
-#             print "line index :" 
-#             print line_index
-#             print "column index " 
-#             print column_index
-#             self.drawVects.append(np.array([line_index,column_index]))
-#==============================================================================
+    def GetProjPts2D(self, vects3D, Pose, s=1) :   
+        line_index = 0
+        column_index = 0
+        pix = np.array([0., 0., 1.])
+        #pix = np.stack((v3,v3,v3),axis = 1)
+        pt = np.array([0., 0., 0., 1.])
+        #pt = np.stack((v4,v4,v4),axis = 1)
+        drawVects = []
+        for i in range(len(vects3D)):
+            pt[0] = vects3D[i][0]
+            pt[1] = vects3D[i][1]
+            pt[2] = vects3D[i][2]
+            pt = np.dot(Pose, pt)
+            if (pt[2] != 0.0):
+                pix[0] = pt[0]/pt[2]
+                pix[1] = pt[1]/pt[2]
+                pix = np.dot(self.intrinsic, pix)
+                column_index = pix[0].astype(np.int)
+                line_index = pix[1].astype(np.int)
+            else :
+                column_index = 0
+                line_index = 0
+            print "line index :" 
+            print line_index
+            print "column index " 
+            print column_index
+            drawVects.append(np.array([column_index,line_index]))
+        return drawVects
             
             
             
     def GetNewSys(self, Pose,nbPix, s=1) : 
         ''' compute the coordinates of the points that will create the coordinates system '''
         self.drawNewSys = []
-        for i in range(len(self.vects)):
-            vect = self.vects[i]
+        for i in range(len(self.vects3D)):
+            vect = self.vects3D[i]
             newPt = np.zeros(vect.shape)
             for j in range(vect.shape[0]):
-                newPt[j] = self.ctrMass[i]-nbPix*vect[j]
+                newPt[j] = self.ctr3D[i]-nbPix*vect[j]
             self.drawNewSys.append(newPt)
 
             
