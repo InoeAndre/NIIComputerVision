@@ -48,6 +48,9 @@ class Application(tk.Frame):
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+            self.DrawCenters2D(self.Pose)
+            self.DrawSys2D(self.Pose)
+            self.DrawOBBox2D(self.Pose)
 
 
     ## Function to handle mouse press event
@@ -93,7 +96,9 @@ class Application(tk.Frame):
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-
+            self.DrawCenters2D(self.Pose)
+            self.DrawSys2D(self.Pose)
+            self.DrawOBBox2D(self.Pose)
        
         self.x_init = event.x
         self.y_init = event.y
@@ -161,7 +166,7 @@ class Application(tk.Frame):
         for i in range(len(self.RGBD.coords)):
             self.OBBcoords2D.append(self.RGBD.GetProjPts2D(self.RGBD.coords[i],Pose))
             pt = self.OBBcoords2D[i]
-            print pt
+            #print pt
             for j in range(3):
                 self.canvas.create_line(pt[j][0],pt[j][1],pt[j+1][0],pt[j+1][1],fill="red",width =2)
                 self.canvas.create_line(pt[j+4][0],pt[j+4][1],pt[j+5][0],pt[j+5][1],fill="red",width = 2)

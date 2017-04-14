@@ -459,7 +459,6 @@ class RGBD():
         '''
         draw the bounding boxes in 3D for each part of the human body
         '''     
-        #for i in range(self.bdyPart.shape[0]-5):
         # extremes planes of the bodies
         minX = np.min(self.TVtxBB[i][:,0])
         maxX = np.max(self.TVtxBB[i][:,0])
@@ -476,14 +475,16 @@ class RGBD():
         xYmZ = np.array([minX,maxY,maxZ])
         XymZ = np.array([maxX,minY,maxZ])
         XYmZ = np.array([maxX,maxY,maxZ])           
+        
         # New coordinates and new images
         self.coordsT.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
-        print "coordsT[%d]" %(i)
-        print self.coordsT[i]
+        #print "coordsT[%d]" %(i)
+        #print self.coordsT[i]
+        
         # transform back
         self.coords.append( self.pca.inverse_transform(self.coordsT[i]))
-        print "coord[%d]" %(i)
-        print self.coords[i]
+        #print "coord[%d]" %(i)
+        #print self.coords[i]
             
 
     def GetProjPts2D(self, vects3D, Pose, s=1) :  
@@ -516,7 +517,9 @@ class RGBD():
         ''' compute the coordinates of the points that will create the coordinates system '''
         self.drawNewSys = []
         maxDepth = np.max(self.Vtx[:,:,2])
+
         for i in range(len(self.vects3D)):
+            self.vects3D[i] = np.dot(self.vects3D[i],Pose[0:3,0:3].T )
             vect = self.vects3D[i]
             newPt = np.zeros(vect.shape)
             for j in range(vect.shape[0]):
