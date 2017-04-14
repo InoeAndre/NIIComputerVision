@@ -334,6 +334,7 @@ class RGBD():
         legLeft = self.segm.legSeg(imageWBG,left)
         head = self.segm.headSeg(imageWBG)
         
+        
         tmp = armLeft[0]+armLeft[1]+armRight[0]+armRight[1]+legRight[0]+legRight[1]+legLeft[0]+legLeft[1]+head
         MidBdyImage =((imageWBG-(tmp>0))>0)
 
@@ -357,6 +358,7 @@ class RGBD():
 
         '''
         correspondance between number and body parts and color
+        background should have :   color = [0,0,0]       = #000000     black                 label = 0
         armLeft[0] = forearmL      color = [0,0,255]     = #0000ff     blue                  label = 1
         armLeft[1] = upperarmL     color = [200,200,255] = #ffc8ff     very light blue       label = 2
         armRight[0]= forearmR      color = [0,255,0]     = #00ff00     green                 label = 3
@@ -379,18 +381,19 @@ class RGBD():
         Size = self.depth_image.shape
         self.labels = np.zeros(Size,np.int)   
         Txy = self.transCrop
-        for i in range(self.bdyPart.shape[0]):  
+        for i in range(self.bdyPart.shape[0]): 
             self.labels[Txy[1]:Txy[3],Txy[0]:Txy[2]] += (i+1)*self.bdyPart[i]
+            overlap = (self.labels > (i+1) )
+            self.labels[overlap] = i+1
 
     
 ###################################################################
 ################### Bounding boxes Function #######################
 ##################################################################             
 
-    def GetCenter3D(self,mask):
+    def GetCenter3D(self,mask,i):
         '''Compute the mean for one segmented part'''
-        self.PtCloud = self.bdyPts3D(mask)
-        mean3D = np.mean(self.PtCloud,axis = 0)
+        mean3D = np.mean(self.PtCloud[i],axis = 0)
         return mean3D
 
         
@@ -430,70 +433,64 @@ class RGBD():
         self.TVtxBB = []
         self.TransfoBB = []
         self.vects3D = []
-        pca = PCA(n_components=3)
+        self.PtCloud = []
+        self.pca = PCA(n_components=3)
+        self.coords=[]
+        self.coordsT=[]
         for i in range(self.bdyPart.shape[0]):
             mask = (self.labels == (i+1))
             
             # compute center of 3D
-            self.ctr3D.append(self.GetCenter3D(mask))         
-            print "ctr3D indexes :"
-            print self.ctr3D[i]
+            self.PtCloud.append(self.bdyPts3D(mask))
+            self.pca.fit(self.PtCloud[i]) 
             
-            #PtCloud = self.bdyPts(mask)
-            pca.fit(self.PtCloud)
+            # Compute 3D centers
+            self.ctr3D.append(self.GetCenter3D(mask,i))         
+            #print "ctr3D indexes :"
+            #print self.ctr3D[i]
             
-            
-            #self.vects.append(uu)
-            self.vects3D.append(pca.components_)
-            self.TVtxBB.append( pca.transform(self.PtCloud[i]))
-            self.SetTransfoMat3D(pca.components_,i)       
+            self.vects3D.append(self.pca.components_)
+            self.TVtxBB.append( self.pca.transform(self.PtCloud[i]))
+            self.FindCoord3D(i)
+            self.SetTransfoMat3D(self.pca.components_,i)       
 
             
-#==============================================================================
-#     def FindCoord(self, dims_rescaled_data=3):       
-#         '''
-#         draw the bounding boxes in 3D for each part of the human body
-#         '''     
-#         self.coords=[]
-#         self.coordsT=[]
-#         self.borders = []
-#        # for i in range(self.bdyPart.shape[0]):
-#             # extremes planes of the bodies
-#         i=0
-#         minX = np.min(self.TVtxBB[i][:,:,0][np.nonzero(self.TVtxBB[i][:,:,0])])#np.min(self.TVtxBB[i][:,:,0])
-#         maxX = np.max(self.TVtxBB[i][:,:,0][np.nonzero(self.TVtxBB[i][:,:,0])])#np.max(self.TVtxBB[i][:,:,0])
-#         minY = np.min(self.TVtxBB[i][:,:,1][np.nonzero(self.TVtxBB[i][:,:,1])])#np.min(self.TVtxBB[i][:,:,1])
-#         maxY = np.max(self.TVtxBB[i][:,:,1][np.nonzero(self.TVtxBB[i][:,:,1])])#np.max(self.TVtxBB[i][:,:,1])
-#         minZ = np.min(self.TVtxBB[i][:,:,2][np.nonzero(self.TVtxBB[i][:,:,2])])#np.min(self.TVtxBB[i][:,:,2])
-#         maxZ = np.max(self.TVtxBB[i][:,:,2][np.nonzero(self.TVtxBB[i][:,:,2])])#np.max(self.TVtxBB[i][:,:,2])
-#         self.borders.append( np.array([minX,maxX,minY,maxY,minZ,maxZ]) )
-#         # extremes points of the bodies
-#         xymz = np.array([minX,minY,minZ]).astype(np.int16)
-#         xYmz = np.array([minX,maxY,minZ]).astype(np.int16)            
-#         Xymz = np.array([maxX,minY,minZ]).astype(np.int16)
-#         XYmz = np.array([maxX,maxY,minZ]).astype(np.int16)
-#         xymZ = np.array([minX,minY,maxZ]).astype(np.int16)
-#         xYmZ = np.array([minX,maxY,maxZ]).astype(np.int16)
-#         XymZ = np.array([maxX,minY,maxZ]).astype(np.int16)
-#         XYmZ = np.array([maxX,maxY,maxZ]).astype(np.int16)           
-#         # New coordinates and new images
-#         self.coordsT.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
-#         print "coordsT[%d]" %(i)
-#         print self.coordsT[i]
-#         inv = np.linalg.inv(self.TransfoBB[i][0:3,0:3])
-#         self.coords.append(np.dot(self.coordsT[i],inv.T))
-#         print "coord[%d]" %(i)
-#         print self.coords[i]
-#==============================================================================
+    def FindCoord3D(self,i):       
+        '''
+        draw the bounding boxes in 3D for each part of the human body
+        '''     
+        #for i in range(self.bdyPart.shape[0]-5):
+        # extremes planes of the bodies
+        minX = np.min(self.TVtxBB[i][:,0])
+        maxX = np.max(self.TVtxBB[i][:,0])
+        minY = np.min(self.TVtxBB[i][:,1])
+        maxY = np.max(self.TVtxBB[i][:,1])
+        minZ = np.min(self.TVtxBB[i][:,2])
+        maxZ = np.max(self.TVtxBB[i][:,2])
+        # extremes points of the bodies
+        xymz = np.array([minX,minY,minZ])
+        xYmz = np.array([minX,maxY,minZ])           
+        Xymz = np.array([maxX,minY,minZ])
+        XYmz = np.array([maxX,maxY,minZ])
+        xymZ = np.array([minX,minY,maxZ])
+        xYmZ = np.array([minX,maxY,maxZ])
+        XymZ = np.array([maxX,minY,maxZ])
+        XYmZ = np.array([maxX,maxY,maxZ])           
+        # New coordinates and new images
+        self.coordsT.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
+        print "coordsT[%d]" %(i)
+        print self.coordsT[i]
+        # transform back
+        self.coords.append( self.pca.inverse_transform(self.coordsT[i]))
+        print "coord[%d]" %(i)
+        print self.coords[i]
             
 
-    def GetProjPts2D(self, vects3D, Pose, s=1) :   
+    def GetProjPts2D(self, vects3D, Pose, s=1) :  
         line_index = 0
         column_index = 0
         pix = np.array([0., 0., 1.])
-        #pix = np.stack((v3,v3,v3),axis = 1)
         pt = np.array([0., 0., 0., 1.])
-        #pt = np.stack((v4,v4,v4),axis = 1)
         drawVects = []
         for i in range(len(vects3D)):
             pt[0] = vects3D[i][0]
@@ -509,10 +506,7 @@ class RGBD():
             else :
                 column_index = 0
                 line_index = 0
-            print "line index :" 
-            print line_index
-            print "column index " 
-            print column_index
+            #print "line,column index : (%d,%d)" %(line_index,column_index) 
             drawVects.append(np.array([column_index,line_index]))
         return drawVects
             

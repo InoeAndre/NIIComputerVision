@@ -139,14 +139,14 @@ class Application(tk.Frame):
     def DrawCenters2D(self,Pose,s=1):
         '''this function draw the center of each oriented coordinates system for each body part''' 
         self.ctr2D = self.RGBD.GetProjPts2D(self.RGBD.ctr3D,Pose)        
-        for i in range(self.RGBD.bdyPart.shape[0]):
+        for i in range( len(self.RGBD.ctr3D)):
             c = self.ctr2D[i]
             self.DrawPoint2D(c,2,"yellow")
 
     def DrawSys2D(self,Pose):
         '''this function draw the sys of oriented coordinates system for each body part''' 
         self.RGBD.GetNewSys(Pose,self.ctr2D,10)
-        for i in range(self.RGBD.bdyPart.shape[0]):
+        for i in range(len(self.ctr2D)):
             c = self.ctr2D[i]
             pt0 = self.RGBD.drawNewSys[i][0]
             pt1 = self.RGBD.drawNewSys[i][1]
@@ -155,7 +155,23 @@ class Application(tk.Frame):
             self.canvas.create_line(pt1[0],pt1[1],c[0],c[1],fill="gray",width = 2)
             self.canvas.create_line(pt2[0],pt2[1],c[0],c[1],fill="gray",width = 2)
 
-    
+    def DrawOBBox2D(self,Pose):
+        '''Draw in the canvas the oriented bounding boxes for each body part''' 
+        self.OBBcoords2D = []
+        for i in range(len(self.RGBD.coords)):
+            self.OBBcoords2D.append(self.RGBD.GetProjPts2D(self.RGBD.coords[i],Pose))
+            pt = self.OBBcoords2D[i]
+            print pt
+            for j in range(3):
+                self.canvas.create_line(pt[j][0],pt[j][1],pt[j+1][0],pt[j+1][1],fill="red",width =2)
+                self.canvas.create_line(pt[j+4][0],pt[j+4][1],pt[j+5][0],pt[j+5][1],fill="red",width = 2)
+                self.canvas.create_line(pt[j][0],pt[j][1],pt[j+4][0],pt[j+4][1],fill="red",width = 2)
+            self.canvas.create_line(pt[3][0],pt[3][1],pt[0][0],pt[0][1],fill="red",width = 2)
+            self.canvas.create_line(pt[7][0],pt[7][1],pt[4][0],pt[4][1],fill="red",width = 2)
+            self.canvas.create_line(pt[3][0],pt[3][1],pt[7][0],pt[7][1],fill="red",width = 2)
+            for j in range(8):
+                self.DrawPoint2D(pt[j],2,"black")
+            
     ## Constructor function
     def __init__(self, path, master=None):
         self.root = master
@@ -207,7 +223,6 @@ class Application(tk.Frame):
         start_time2 = time.time()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
         self.RGBD.myPCA()
-        #self.RGBD.FindCoord()
         elapsed_time3 = time.time() - start_time2
         print "bounding boxes process time: %f" % (elapsed_time3)
         
@@ -220,9 +235,10 @@ class Application(tk.Frame):
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-        self.DrawSkeleton2D(self.Pose)
+        #self.DrawSkeleton2D(self.Pose)
         self.DrawCenters2D(self.Pose)
         self.DrawSys2D(self.Pose)
+        self.DrawOBBox2D(self.Pose)
 
 
         '''
