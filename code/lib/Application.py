@@ -49,6 +49,9 @@ class Application(tk.Frame):
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+            self.DrawCenters2D(self.Pose)
+            self.DrawSys2D(self.Pose)
+            self.DrawOBBox2D(self.Pose)
 
 
     ## Function to handle mouse press event
@@ -94,10 +97,87 @@ class Application(tk.Frame):
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-            
+            self.DrawCenters2D(self.Pose)
+            self.DrawSys2D(self.Pose)
+            self.DrawOBBox2D(self.Pose)
+       
         self.x_init = event.x
         self.y_init = event.y
-    
+
+    def DrawPoint2D(self,point,radius,color):
+        if point[0]>0 and point[1]>0:
+            x1, y1 = (point[0] - radius), (point[1] - radius)
+            x2, y2 = (point[0] + radius), (point[1] + radius)
+        else:
+            x1, y1 = (point[0]), (point[1])
+            x2, y2 = (point[0]), (point[1]) 
+        self.canvas.create_oval(x1, y1, x2, y2, fill=color)
+
+
+    def DrawColors2D(self,img,Pose):
+        '''this function draw the color of each segmented part of the body'''
+        newImg = img.copy()
+        Txy = self.RGBD.transCrop
+        label = self.RGBD.labels
+        for k in range(1,self.RGBD.bdyPart.shape[0]+1):
+            color = self.RGBD.bdyColor[k-1]
+            for i in range(Txy[1],Txy[3]):
+                for j in range(Txy[0],Txy[2]):
+                    if label[i][j]==k :
+                        newImg[i,j] = color
+                    else :
+                        newImg[i,j] = newImg[i,j] 
+        return newImg               
+
+                      
+    def DrawSkeleton2D(self,Pose):
+        '''this function draw the Skeleton of a human and make connections between each part'''
+        pos = self.pos2d[0][self.Index]
+        for i in range(np.size(self.connection,0)): 
+            pt1 = (pos[self.connection[i,0]-1,0],pos[self.connection[i,0]-1,1])
+            pt2 = (pos[self.connection[i,1]-1,0],pos[self.connection[i,1]-1,1])
+            radius = 1
+            color = "blue"        
+            self.DrawPoint2D(pt1,radius,color)
+            self.DrawPoint2D(pt2,radius,color)      
+            self.canvas.create_line(pt1[0],pt1[1],pt2[0],pt2[1],fill="red")
+
+    def DrawCenters2D(self,Pose,s=1):
+        '''this function draw the center of each oriented coordinates system for each body part''' 
+        self.ctr2D = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Pose)        
+        for i in range( len(self.RGBD.ctr3D)):
+            c = self.ctr2D[i]
+            self.DrawPoint2D(c,2,"yellow")
+
+    def DrawSys2D(self,Pose):
+        '''this function draw the sys of oriented coordinates system for each body part''' 
+        self.RGBD.GetNewSys(Pose,self.ctr2D,10)
+        for i in range(len(self.ctr2D)):
+            c = self.ctr2D[i]
+            pt0 = self.RGBD.drawNewSys[i][0]
+            pt1 = self.RGBD.drawNewSys[i][1]
+            pt2 = self.RGBD.drawNewSys[i][2]    
+            self.canvas.create_line(pt0[0],pt0[1],c[0],c[1],fill="gray",width = 2)
+            self.canvas.create_line(pt1[0],pt1[1],c[0],c[1],fill="gray",width = 2)
+            self.canvas.create_line(pt2[0],pt2[1],c[0],c[1],fill="gray",width = 2)
+
+    def DrawOBBox2D(self,Pose):
+        '''Draw in the canvas the oriented bounding boxes for each body part''' 
+        self.OBBcoords2D = []
+        for i in range(len(self.RGBD.coords)):
+            self.OBBcoords2D.append(self.RGBD.GetProjPts2D_optimize(self.RGBD.coords[i],Pose))
+            pt = self.OBBcoords2D[i]
+            #print pt
+            for j in range(3):
+                self.canvas.create_line(pt[j][0],pt[j][1],pt[j+1][0],pt[j+1][1],fill="red",width =2)
+                self.canvas.create_line(pt[j+4][0],pt[j+4][1],pt[j+5][0],pt[j+5][1],fill="red",width = 2)
+                self.canvas.create_line(pt[j][0],pt[j][1],pt[j+4][0],pt[j+4][1],fill="red",width = 2)
+            self.canvas.create_line(pt[3][0],pt[3][1],pt[0][0],pt[0][1],fill="red",width = 2)
+            self.canvas.create_line(pt[7][0],pt[7][1],pt[4][0],pt[4][1],fill="red",width = 2)
+            self.canvas.create_line(pt[3][0],pt[3][1],pt[7][0],pt[7][1],fill="red",width = 2)
+            for j in range(8):
+                self.DrawPoint2D(pt[j],2,"black")
+            
     ## Constructor function
     def __init__(self, path, GPUManager, master=None):
         self.root = master
@@ -108,7 +188,7 @@ class Application(tk.Frame):
 
         tk.Frame.__init__(self, master)
         self.pack()
-        
+
         self.color_tag = 1
         calib_file = open(self.path + '/Calib.txt', 'r')
         calib_data = calib_file.readlines()
@@ -119,34 +199,55 @@ class Application(tk.Frame):
     
         print self.intrinsic
     
-        mat = scipy.io.loadmat(self.path + '/FixedPose.mat')
-        connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
+
+        mat = scipy.io.loadmat(self.path + '/String4b.mat')
         self.lImages = mat['DepthImg']
         self.pos2d = mat['Pos2D']
+        self.bdyIdx = mat['BodyIndex']
+
+        connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
         self.connection = connectionMat['SkeletonConnectionMap']
+
         
-        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
-        self.canvas.pack()
-        
+
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
-        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection)
-        self.RGBD.ReadFromMat()
+        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
+        self.Index = 20
+        self.RGBD.ReadFromMat(self.Index)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
-        #self.RGBD.DrawSkeleton()
+        self.RGBD.Crop2Body()
+        segm = self.RGBD.BodySegmentation()
+        self.RGBD.BodyLabelling()
         start_time = time.time()
-        self.RGBD.Vmap_optimize()
+        self.RGBD.Vmap_optimize()  
         elapsed_time = time.time() - start_time
-        print "Vmap_optimize: %f" % (elapsed_time)
+        print "Vmap: %f" % (elapsed_time)
         self.RGBD.NMap_optimize()
         elapsed_time2 = time.time() - start_time - elapsed_time
         print "Nmap_optimize: %f" % (elapsed_time2)
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         start_time2 = time.time()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+        self.RGBD.myPCA()
         elapsed_time3 = time.time() - start_time2
-        print "Draw_optimize: %f" % (elapsed_time3)
+        print "bounding boxes process time: %f" % (elapsed_time3)
         
+        # Show figure and images
+            
+        # 3D reconstruction of the whole image
+        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+        self.canvas.pack()
+        rendering = self.DrawColors2D(rendering,self.Pose)
+        img = Image.fromarray(rendering, 'RGB')
+        self.imgTk=ImageTk.PhotoImage(img)
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+        #self.DrawSkeleton2D(self.Pose)
+        self.DrawCenters2D(self.Pose)
+        self.DrawSys2D(self.Pose)
+        self.DrawOBBox2D(self.Pose)
+
+
         '''
         Test Register
         '''
@@ -206,7 +307,9 @@ class Application(tk.Frame):
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+
         
+        #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)
         self.root.bind("<Button-1>", self.mouse_press)
         self.root.bind("<ButtonRelease-1>", self.mouse_release)
