@@ -426,7 +426,25 @@ class RGBD():
         print "making pointcloud process time: %f" % (elapsed_time3)       
         return res
 
+    def bdyPts3D_optimize(self, mask):
+        start_time2 = time.time()
+        nbPts = sum(sum(mask))
+        
+        x = self.Vtx[:,:,0]*mask
+        y = self.Vtx[:,:,1]*mask
+        z = self.Vtx[:,:,2]*mask
+        
+        x_res = x[~(x==0)]
+        y_res = y[~(y==0)]
+        z_res = z[~(z==0)]
+        
+        res = np.dstack((x_res,y_res,z_res)).reshape(nbPts,3)
 
+        elapsed_time3 = time.time() - start_time2
+        print "making pointcloud process time: %f" % (elapsed_time3)       
+        return res
+    
+    
            
     def myPCA(self, dims_rescaled_data=3):
         """
@@ -444,7 +462,7 @@ class RGBD():
             mask = (self.labels == (i+1))
             
             # compute center of 3D
-            self.PtCloud.append(self.bdyPts3D(mask))
+            self.PtCloud.append(self.bdyPts3D_optimize(mask))
             self.pca.fit(self.PtCloud[i]) 
             
             # Compute 3D centers
