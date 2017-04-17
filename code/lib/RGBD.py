@@ -413,6 +413,7 @@ class RGBD():
         
 
     def bdyPts3D(self, mask):
+        start_time2 = time.time()
         nbPts = sum(sum(mask))
         res = np.zeros((nbPts, 3), dtype = np.float32)
         k = 0
@@ -421,9 +422,11 @@ class RGBD():
                 if(mask[i,j]):
                     res[k] = self.Vtx[i,j]
                     k = k+1
-        
+        elapsed_time3 = time.time() - start_time2
+        print "making pointcloud process time: %f" % (elapsed_time3)       
         return res
-            
+
+
            
     def myPCA(self, dims_rescaled_data=3):
         """
@@ -511,7 +514,24 @@ class RGBD():
             drawVects.append(np.array([column_index,line_index]))
         return drawVects
             
-            
+    def GetProjPts2D_optimize(self, vects3D, Pose, s=1) :  
+        line_index = 0
+        column_index = 0
+        pix = np.array([0., 0., 1.])
+        pt = np.array([0., 0., 0., 1.])
+        pix = np.stack((pix for i in range(len(vects3D)) ))
+        pt = np.stack((pt for i in range(len(vects3D)) ))
+        drawVects = np.zeros([len(vects3D),2])
+        pt[:,0:3] = vects3D
+        pt = np.dot(pt,Pose.T)
+        pt[:,2] = in_mat_zero2one(pt[:,2])
+        pix[:,0] = pt[:,0]/pt[:,2]
+        pix[:,1] = pt[:,1]/pt[:,2]
+        pix = np.dot( pix,self.intrinsic.T)
+        column_index = pix[:,0].astype(np.int)
+        line_index = pix[:,1].astype(np.int)        
+        drawVects = np.array([column_index,line_index]).T
+        return drawVects            
             
     def GetNewSys(self, Pose,ctr2D,nbPix, s=1) : 
         ''' compute the coordinates of the points that will create the coordinates system '''

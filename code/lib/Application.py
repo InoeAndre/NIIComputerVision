@@ -143,7 +143,7 @@ class Application(tk.Frame):
 
     def DrawCenters2D(self,Pose,s=1):
         '''this function draw the center of each oriented coordinates system for each body part''' 
-        self.ctr2D = self.RGBD.GetProjPts2D(self.RGBD.ctr3D,Pose)        
+        self.ctr2D = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Pose)        
         for i in range( len(self.RGBD.ctr3D)):
             c = self.ctr2D[i]
             self.DrawPoint2D(c,2,"yellow")
@@ -164,7 +164,7 @@ class Application(tk.Frame):
         '''Draw in the canvas the oriented bounding boxes for each body part''' 
         self.OBBcoords2D = []
         for i in range(len(self.RGBD.coords)):
-            self.OBBcoords2D.append(self.RGBD.GetProjPts2D(self.RGBD.coords[i],Pose))
+            self.OBBcoords2D.append(self.RGBD.GetProjPts2D_optimize(self.RGBD.coords[i],Pose))
             pt = self.OBBcoords2D[i]
             #print pt
             for j in range(3):
