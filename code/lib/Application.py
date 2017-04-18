@@ -213,12 +213,12 @@ class Application(tk.Frame):
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        self.Index = 20
+        self.Index = 0
         self.RGBD.ReadFromMat(self.Index)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.Crop2Body()
-        segm = self.RGBD.BodySegmentation()
-        self.RGBD.BodyLabelling()
+        #self.RGBD.Crop2Body()
+        #segm = self.RGBD.BodySegmentation()
+        #self.RGBD.BodyLabelling()
         start_time = time.time()
         self.RGBD.Vmap_optimize()  
         elapsed_time = time.time() - start_time
@@ -228,32 +228,18 @@ class Application(tk.Frame):
         print "Nmap_optimize: %f" % (elapsed_time2)
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         start_time2 = time.time()
-        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        self.RGBD.myPCA()
+        #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+        #self.RGBD.myPCA()
         elapsed_time3 = time.time() - start_time2
         print "bounding boxes process time: %f" % (elapsed_time3)
-        
-        # Show figure and images
-            
-        # 3D reconstruction of the whole image
-        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
-        self.canvas.pack()
-        rendering = self.DrawColors2D(rendering,self.Pose)
-        img = Image.fromarray(rendering, 'RGB')
-        self.imgTk=ImageTk.PhotoImage(img)
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-        #self.DrawSkeleton2D(self.Pose)
-        self.DrawCenters2D(self.Pose)
-        self.DrawSys2D(self.Pose)
-        self.DrawOBBox2D(self.Pose)
 
 
         '''
         Test Register
         '''
-        '''
+        
         ImageTest = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
-        ImageTest.LoadMat(self.lImages,self.pos2d,self.connection)
+        ImageTest.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx)
         ImageTest.ReadFromMat()
         ImageTest.BilateralFilter(-1, 0.02, 3)
         ImageTest.Vmap_optimize()
@@ -272,7 +258,7 @@ class Application(tk.Frame):
         
         #Tracker = TrackManager.Tracker(0.1, 0.2, 1, [10], 0.001)
         #Tracker.RegisterRGBD(ImageTest, self.RGBD)
-        '''
+        
         '''
         End test
         '''
@@ -280,7 +266,7 @@ class Application(tk.Frame):
         '''
         Test TSDF
         '''
-        
+        '''
         TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
         start_time = time.time()
         TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
@@ -294,14 +280,31 @@ class Application(tk.Frame):
         self.RGBD.Vmap_optimize()
         self.RGBD.NMap_optimize()
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        
+        '''
         '''
         End Test
         '''
-        
+
+        # Show figure and images
+            
+        # 3D reconstruction of the whole image
+        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+        self.canvas.pack()
+        #rendering = self.DrawColors2D(rendering,self.Pose)
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+        self.DrawSkeleton2D(self.Pose)
+        self.DrawCenters2D(self.Pose)
+        self.DrawSys2D(self.Pose)
+        #self.DrawOBBox2D(self.Pose)
+
+        
+#==============================================================================
+#         img = Image.fromarray(rendering, 'RGB')
+#         self.imgTk=ImageTk.PhotoImage(img)
+#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+#==============================================================================
 
         
         #enable keyboard and mouse monitoring

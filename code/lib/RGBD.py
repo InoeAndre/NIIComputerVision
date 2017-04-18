@@ -391,7 +391,7 @@ class RGBD():
 ################### Bounding boxes Function #######################
 ##################################################################             
 
-    def GetCenter3D(self,mask,i):
+    def GetCenter3D(self,i):
         '''Compute the mean for one segmented part'''
         mean3D = np.mean(self.PtCloud[i],axis = 0)
         return mean3D
@@ -409,6 +409,7 @@ class RGBD():
         origine = np.array( [ctrMass[0],ctrMass[1],ctrMass[2],1])
         Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
         self.TransfoBB.append(Transfo.transpose())
+        print "TransfoBB[%d]" %(i)
         print self.TransfoBB[i]        
         
 
@@ -427,7 +428,7 @@ class RGBD():
         return res
 
     def bdyPts3D_optimize(self, mask):
-        start_time2 = time.time()
+        #start_time2 = time.time()
         nbPts = sum(sum(mask))
         
         x = self.Vtx[:,:,0]*mask
@@ -440,8 +441,8 @@ class RGBD():
         
         res = np.dstack((x_res,y_res,z_res)).reshape(nbPts,3)
 
-        elapsed_time3 = time.time() - start_time2
-        print "making pointcloud process time: %f" % (elapsed_time3)       
+        #elapsed_time3 = time.time() - start_time2
+        #print "making pointcloud process time: %f" % (elapsed_time3)       
         return res
     
     
@@ -458,15 +459,16 @@ class RGBD():
         self.pca = PCA(n_components=3)
         self.coords=[]
         self.coordsT=[]
+        self.mask=[]
         for i in range(self.bdyPart.shape[0]):
-            mask = (self.labels == (i+1))
+            self.mask.append( (self.labels == (i+1)) )
             
             # compute center of 3D
-            self.PtCloud.append(self.bdyPts3D_optimize(mask))
+            self.PtCloud.append(self.bdyPts3D_optimize(self.mask[i]))
             self.pca.fit(self.PtCloud[i]) 
             
             # Compute 3D centers
-            self.ctr3D.append(self.GetCenter3D(mask,i))         
+            self.ctr3D.append(self.GetCenter3D(i))         
             #print "ctr3D indexes :"
             #print self.ctr3D[i]
             
