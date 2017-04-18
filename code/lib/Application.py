@@ -290,11 +290,6 @@ class Application(tk.Frame):
         self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
         elapsed_time = time.time() - start_time
         print "RayTracing_GPU: %f" % (elapsed_time)
-        #start_time = time.time()
-        #TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
-        #elapsed_time = time.time() - start_time
-        #print "FuseRGBD_optimized: %f" % (elapsed_time)
-        #self.RGBD.depth_image = TSDFManager.RayTracing(self.RGBD, self.Pose)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.Vmap_optimize()
         self.RGBD.NMap_optimize()
