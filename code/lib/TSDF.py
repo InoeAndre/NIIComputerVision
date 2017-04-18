@@ -222,8 +222,5 @@ class TSDFManager():
         
         return result
         
-        
-        
-                        
-                        
+
                     

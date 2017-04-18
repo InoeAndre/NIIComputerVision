@@ -207,104 +207,72 @@ class Application(tk.Frame):
 
         connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
         self.connection = connectionMat['SkeletonConnectionMap']
-
-        
-
-        self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
-        #self.RGBD.ReadFromDisk()
-        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        self.Index = 0
-        self.RGBD.ReadFromMat(self.Index)
-        self.RGBD.BilateralFilter(-1, 0.02, 3)
-        #self.RGBD.Crop2Body()
-        #segm = self.RGBD.BodySegmentation()
-        #self.RGBD.BodyLabelling()
-        start_time = time.time()
-        self.RGBD.Vmap_optimize()  
-        elapsed_time = time.time() - start_time
-        print "Vmap: %f" % (elapsed_time)
-        self.RGBD.NMap_optimize()
-        elapsed_time2 = time.time() - start_time - elapsed_time
-        print "Nmap_optimize: %f" % (elapsed_time2)
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
-        start_time2 = time.time()
-        #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        #self.RGBD.myPCA()
-        elapsed_time3 = time.time() - start_time2
-        print "bounding boxes process time: %f" % (elapsed_time3)
+        
+        # Create the space to draw the result image
+        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+        self.canvas.pack()
+        
+        # Current Depth Image (i.e: i)
+        self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
+        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )        
+        
+        # Following Depth Image (i.e: i+1)
+        self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
+        self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
+        
+        for i in range(10):
+        #i=1
+            start_time = time.time()
 
-
-        '''
-        Test Register
-        '''
+            # depth map conversion + segmentation
+            self.Index = i
+            self.RGBD.ReadFromMat(self.Index)
+            self.RGBD.BilateralFilter(-1, 0.02, 3)
+            self.RGBD.Crop2Body()
+            self.RGBD.BodySegmentation()
+            self.RGBD.BodyLabelling()
+            self.RGBD.Vmap_optimize()  
+            self.RGBD.NMap_optimize()
+            self.RGBD.myPCA()
+            
+            # surface rendering TSDF
+            TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
+            TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)          
+            # new surface prediction
+            self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
+            self.RGBD.BilateralFilter(-1, 0.02, 3)
+            self.RGBD.Vmap_optimize()
+            self.RGBD.NMap_optimize()
+            TSDFrendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)            
+    
+            # new image depth map conversion
+            self.Index = i+1
+            self.RGBD2.ReadFromMat(self.Index)
+            self.RGBD2.BilateralFilter(-1, 0.02, 3)
+            self.RGBD2.Vmap_optimize()  
+            self.RGBD2.NMap_optimize()
+            #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+            
+            # new pose estimation
+            Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
+            self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
         
-        ImageTest = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
-        ImageTest.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx)
-        ImageTest.ReadFromMat()
-        ImageTest.BilateralFilter(-1, 0.02, 3)
-        ImageTest.Vmap_optimize()
-        ImageTest.NMap_optimize()
-        test_v = np.array([0.01, 0.02,0.015, 0.01, 0.02, 0.03]) #[random.random()/10 for _ in range(6)])
-        A = TrackManager.Exponential(test_v)
-        R = LA.inv(A[0:3,0:3])
-        tra = -np.dot(R,A[0:3,3])
-        print A
-        print R
-        print tra
-        ImageTest.Transform(A)
-        
-        Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
-        Tracker.RegisterRGBD_optimize(ImageTest, self.RGBD)
-        
-        #Tracker = TrackManager.Tracker(0.1, 0.2, 1, [10], 0.001)
-        #Tracker.RegisterRGBD(ImageTest, self.RGBD)
-        
-        '''
-        End test
-        '''
-        
-        '''
-        Test TSDF
-        '''
-        '''
-        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
-        start_time = time.time()
-        TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
-        elapsed_time = time.time() - start_time
-        print "FuseRGBD_GPU: %f" % (elapsed_time)
-        start_time = time.time()
-        self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
-        elapsed_time = time.time() - start_time
-        print "RayTracing_GPU: %f" % (elapsed_time)
-        self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.Vmap_optimize()
-        self.RGBD.NMap_optimize()
-        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        '''
-        '''
-        End Test
-        '''
+            elapsed_time = time.time() - start_time
+            print "one full cycle process time: %f" % (elapsed_time)
 
         # Show figure and images
             
         # 3D reconstruction of the whole image
-        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
-        self.canvas.pack()
-        #rendering = self.DrawColors2D(rendering,self.Pose)
-        img = Image.fromarray(rendering, 'RGB')
+
+        #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
+        img = Image.fromarray(TSDFrendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-        self.DrawSkeleton2D(self.Pose)
-        self.DrawCenters2D(self.Pose)
-        self.DrawSys2D(self.Pose)
+        #self.DrawSkeleton2D(self.Pose)
+        #self.DrawCenters2D(self.Pose)
+        #self.DrawSys2D(self.Pose)
         #self.DrawOBBox2D(self.Pose)
-
-        
-#==============================================================================
-#         img = Image.fromarray(rendering, 'RGB')
-#         self.imgTk=ImageTk.PhotoImage(img)
-#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-#==============================================================================
 
         
         #enable keyboard and mouse monitoring
