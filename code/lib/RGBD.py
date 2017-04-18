@@ -570,5 +570,19 @@ class RGBD():
 
             
 
-            
+    def Cvt2RGBA(self,im_im):
+        '''
+        convert an RGB image in RGBA to put all zeros as transparent
+        '''
+        img = im_im.convert("RGBA")
+        datas = img.getdata()     
+        newData = []
+        for item in datas:
+            if item[0] == 0 and item[1] == 0 and item[2] == 0:
+                newData.append((0, 0, 0, 0))
+            else:
+                newData.append(item)
+        
+        img.putdata(newData)
+        return img                
                 

@@ -221,12 +221,14 @@ class Application(tk.Frame):
         self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
         
-        for i in range(10):
+        #self.TSDFrendering = []
+        for i in range(3):
         #i=1
             start_time = time.time()
 
             # depth map conversion + segmentation
             self.Index = i
+         #   for j in range(2):
             self.RGBD.ReadFromMat(self.Index)
             self.RGBD.BilateralFilter(-1, 0.02, 3)
             self.RGBD.Crop2Body()
@@ -235,6 +237,7 @@ class Application(tk.Frame):
             self.RGBD.Vmap_optimize()  
             self.RGBD.NMap_optimize()
             self.RGBD.myPCA()
+            #self.RGBD.depth_image *= self.RGBD.mask[j+8] 
             
             # surface rendering TSDF
             TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
@@ -244,7 +247,7 @@ class Application(tk.Frame):
             self.RGBD.BilateralFilter(-1, 0.02, 3)
             self.RGBD.Vmap_optimize()
             self.RGBD.NMap_optimize()
-            TSDFrendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)            
+            self.TSDFrendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
     
             # new image depth map conversion
             self.Index = i+1
@@ -252,21 +255,19 @@ class Application(tk.Frame):
             self.RGBD2.BilateralFilter(-1, 0.02, 3)
             self.RGBD2.Vmap_optimize()  
             self.RGBD2.NMap_optimize()
-            #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-            
+                
             # new pose estimation
             Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
             self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
-        
+            
             elapsed_time = time.time() - start_time
             print "one full cycle process time: %f" % (elapsed_time)
 
         # Show figure and images
             
         # 3D reconstruction of the whole image
-
         #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
-        img = Image.fromarray(TSDFrendering, 'RGB')
+        img = Image.fromarray(self.TSDFrendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
         #self.DrawSkeleton2D(self.Pose)
@@ -274,6 +275,14 @@ class Application(tk.Frame):
         #self.DrawSys2D(self.Pose)
         #self.DrawOBBox2D(self.Pose)
 
+#==============================================================================
+# 
+#         #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
+#         self.imgTk=ImageTk.PhotoImage(self.TSDFrendering[8])
+#         self.imgTk9=ImageTk.PhotoImage(self.TSDFrendering[9])
+#         self.imgTk.paste(self.imgTk9, (0, 0), self.RGBD.mask[9])
+#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+#==============================================================================
         
         #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)
