@@ -15,6 +15,7 @@ import imp
 import scipy.io
 import time
 import random
+import mcubes
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 TrackManager = imp.load_source('TrackManager', './lib/tracking.py')
@@ -274,6 +275,8 @@ class Application(tk.Frame):
         # 3D reconstruction of the whole image
 
         #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
+        # Extract the 0-isosurface
+        vertices1, triangles1 = mcubes.marching_cubes(self.RGBD.Nmls, 0)
         img = Image.fromarray(self.TSDFrendering[2], 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -281,7 +284,9 @@ class Application(tk.Frame):
         #self.DrawCenters2D(self.Pose)
         #self.DrawSys2D(self.Pose)
         #self.DrawOBBox2D(self.Pose)
+        mcubes.export_mesh(vertices1, triangles1, "segmentedBdy.dae", "MySegBdy")
 
+        print("Done. Result saved in 'segmentedBdy.dae'.")
 #==============================================================================
 # 
 #         #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
@@ -299,3 +304,14 @@ class Application(tk.Frame):
 
         self.w = tk.Scale(master, from_=1, to=10, orient=tk.HORIZONTAL)
         self.w.pack()
+
+        try:
+            print("Plotting mesh...")
+            from mayavi import mlab
+            mlab.triangular_mesh(
+                vertices1[:, 0], vertices1[:, 1], vertices1[:, 2],
+                triangles1)
+            print("Done.")
+            mlab.show()
+        except ImportError:
+            print("Could not import mayavi. Interactive demo not available.")
