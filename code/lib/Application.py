@@ -221,41 +221,47 @@ class Application(tk.Frame):
         self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
         
-        #self.TSDFrendering = []
-        for i in range(3):
+        self.TSDFrendering = []
+        nbfus = 3
+        
+        for i in range(nbfus):
         #i=1
             start_time = time.time()
-
+            rendering = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
             # depth map conversion + segmentation
             self.Index = i
-         #   for j in range(2):
-            self.RGBD.ReadFromMat(self.Index)
-            self.RGBD.BilateralFilter(-1, 0.02, 3)
-            self.RGBD.Crop2Body()
-            self.RGBD.BodySegmentation()
-            self.RGBD.BodyLabelling()
-            self.RGBD.Vmap_optimize()  
-            self.RGBD.NMap_optimize()
-            self.RGBD.myPCA()
-            #self.RGBD.depth_image *= self.RGBD.mask[j+8] 
-            
-            # surface rendering TSDF
-            TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
-            TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)          
-            # new surface prediction
-            self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
-            self.RGBD.BilateralFilter(-1, 0.02, 3)
-            self.RGBD.Vmap_optimize()
-            self.RGBD.NMap_optimize()
-            self.TSDFrendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
-    
-            # new image depth map conversion
-            self.Index = i+1
-            self.RGBD2.ReadFromMat(self.Index)
-            self.RGBD2.BilateralFilter(-1, 0.02, 3)
-            self.RGBD2.Vmap_optimize()  
-            self.RGBD2.NMap_optimize()
+            for j in range(14):
+                self.RGBD.ReadFromMat(self.Index)
+                self.RGBD.BilateralFilter(-1, 0.02, 3)
+                self.RGBD.Crop2Body()
+                self.RGBD.BodySegmentation()
+                self.RGBD.BodyLabelling()
+                self.RGBD.Vmap_optimize()  
+                self.RGBD.NMap_optimize()
+                self.RGBD.myPCA()
+                #kernel = np.ones((3,3),np.uint8)*self.RGBD.TransfoBB[i][0:3,0:3]
+                #kernel = np.convolve(kernel,kernel)
+                #mask = cv2.dilate(self.RGBD.mask[j].astype(np.uint8), kernel,iterations = 1)
+                self.RGBD.depth_image *= self.RGBD.mask[j] # mask
                 
+                # surface rendering TSDF
+                TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
+                TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)          
+                # new surface prediction
+                self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
+                self.RGBD.BilateralFilter(-1, 0.02, 3)
+                self.RGBD.Vmap_optimize()
+                self.RGBD.NMap_optimize()
+                rendering += self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
+        
+                # new image depth map conversion
+                self.Index = i+1
+                self.RGBD2.ReadFromMat(self.Index)
+                self.RGBD2.BilateralFilter(-1, 0.02, 3)
+                self.RGBD2.Vmap_optimize()  
+                self.RGBD2.NMap_optimize()
+            
+            self.TSDFrendering.append(rendering)
             # new pose estimation
             Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
             self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
@@ -266,8 +272,9 @@ class Application(tk.Frame):
         # Show figure and images
             
         # 3D reconstruction of the whole image
+
         #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
-        img = Image.fromarray(self.TSDFrendering, 'RGB')
+        img = Image.fromarray(self.TSDFrendering[2], 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
         #self.DrawSkeleton2D(self.Pose)

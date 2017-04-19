@@ -409,8 +409,8 @@ class RGBD():
         origine = np.array( [ctrMass[0],ctrMass[1],ctrMass[2],1])
         Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
         self.TransfoBB.append(Transfo.transpose())
-        print "TransfoBB[%d]" %(i)
-        print self.TransfoBB[i]        
+        #print "TransfoBB[%d]" %(i)
+        #print self.TransfoBB[i]        
         
 
     def bdyPts3D(self, mask):
