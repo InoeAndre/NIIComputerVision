@@ -199,7 +199,7 @@ class Application(tk.Frame):
                                    [float(calib_data[8]), float(calib_data[9]), float(calib_data[10])]], dtype = np.float32)
     
         print self.intrinsic
-    
+        self.fact = 1000.0
 
         mat = scipy.io.loadmat(self.path + '/String4b.mat')
         self.lImages = mat['DepthImg']
@@ -214,53 +214,75 @@ class Application(tk.Frame):
         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()
         
+        # Current Depth Image for TSDF(i.e: i)
+        self.RGBD_TSDF = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
+        self.RGBD_TSDF.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
+        self.Index = 0
+        self.RGBD_TSDF.ReadFromMat(self.Index)
+        self.RGBD_TSDF.BilateralFilter(-1, 0.02, 3)
+        self.RGBD_TSDF.Crop2Body()
+        self.RGBD_TSDF.BodySegmentation()
+        self.RGBD_TSDF.BodyLabelling()
+        self.RGBD_TSDF.Vmap_optimize()  
+        self.RGBD_TSDF.NMap_optimize()
         # Current Depth Image (i.e: i)
-        self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
-        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )        
+        self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
+        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
+        self.RGBD.ReadFromMat(self.Index)
+        self.RGBD.BilateralFilter(-1, 0.02, 3)
+        self.RGBD.Crop2Body()
+        self.RGBD.BodySegmentation()
+        self.RGBD.BodyLabelling()
+        self.RGBD.depth_image *= (self.RGBD.labels >0)
+        self.RGBD.BilateralFilter(-1, 0.02, 3)
+        self.RGBD.Vmap_optimize()  
+        self.RGBD.NMap_optimize()
+        self.RGBD.myPCA()        
         
-        # Following Depth Image (i.e: i+1)
-        self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
+        # Following Depth Image (i.e: i+1)  # new image depth map conversion
+        self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        
+        self.RGBD2.ReadFromMat(self.Index+1)
+        self.RGBD2.BilateralFilter(-1, 0.02, 3)
+        self.RGBD2.Crop2Body()
+        self.RGBD2.BodySegmentation()
+        self.RGBD2.BodyLabelling()        
+        self.RGBD2.depth_image *= (self.RGBD2.labels >0)
+        self.RGBD2.BilateralFilter(-1, 0.02, 3)
+        self.RGBD2.Vmap_optimize()  
+        self.RGBD2.NMap_optimize()
+            
         self.TSDFrendering = []
-        nbfus = 3
-        
-        for i in range(0,nbfus):
+        nbfus = 23
+        nbLabel = self.RGBD.bdyPart.shape[0]
+        for i in range(20,nbfus):
         #i=1
             start_time = time.time()
             rendering = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
             # depth map conversion + segmentation
             self.Index = i
-            for j in range(14):
-                self.RGBD.ReadFromMat(self.Index)
-                self.RGBD.BilateralFilter(-1, 0.02, 3)
-                self.RGBD.Crop2Body()
-                self.RGBD.BodySegmentation()
-                self.RGBD.BodyLabelling()
-                self.RGBD.Vmap_optimize()  
-                self.RGBD.NMap_optimize()
-                self.RGBD.myPCA()
+            for j in range(nbLabel):
+                start_time2 = time.time()
+                depth_in = self.lImages[0][self.Index]
+                depth_image = depth_in.astype(np.float32) / self.fact
+                
                 #kernel = np.ones((3,3),np.uint8)*self.RGBD.TransfoBB[i][0:3,0:3]
                 #kernel = np.convolve(kernel,kernel)
                 #mask = cv2.dilate(self.RGBD.mask[j].astype(np.uint8), kernel,iterations = 1)
-                self.RGBD.depth_image *= self.RGBD.mask[j] # mask
+                self.RGBD_TSDF.depth_image = depth_image*self.RGBD.mask[j]
                 
                 # surface rendering TSDF
-                TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
-                TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)          
+                TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD_TSDF, self.GPUManager)
+                TSDFManager.FuseRGBD_GPU(self.RGBD_TSDF, self.Pose)          
                 # new surface prediction
-                self.RGBD.depth_image += TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
+                self.RGBD.depth_image +=  TSDFManager.RayTracing_GPU(self.RGBD_TSDF, self.Pose)
                 self.RGBD.BilateralFilter(-1, 0.02, 3)
                 self.RGBD.Vmap_optimize()
                 self.RGBD.NMap_optimize()
                 rendering += self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
-        
-                # new image depth map conversion
-                self.Index = i+1
-                self.RGBD2.ReadFromMat(self.Index)
-                self.RGBD2.BilateralFilter(-1, 0.02, 3)
-                self.RGBD2.Vmap_optimize()  
-                self.RGBD2.NMap_optimize()
+                
+                elapsed_time2 = time.time() - start_time2
+                print "one body part process time: %f" % (elapsed_time2)
             
             self.TSDFrendering.append(rendering)
             # new pose estimation
@@ -276,8 +298,8 @@ class Application(tk.Frame):
 
         #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
         # Extract the 0-isosurface
-        vertices1, triangles1 = mcubes.marching_cubes(self.TSDFrendering[-1], 100)
-        img = Image.fromarray(self.TSDFrendering[-1], 'RGB')
+        vertices1, triangles1 = mcubes.marching_cubes(self.TSDFrendering[0], 100)
+        img = Image.fromarray(self.TSDFrendering[0], 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
         #self.DrawSkeleton2D(self.Pose)

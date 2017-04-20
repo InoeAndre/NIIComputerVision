@@ -137,6 +137,7 @@ class RGBD():
         x = d_pos * x_raw
         y = d_pos * y_raw
         self.Vtx = np.dstack((x, y,d))
+        return self.Vtx
 
 
                 
@@ -170,7 +171,7 @@ class RGBD():
         #norm division 
         nmle = division_by_norm(nmle,norm_mat_nmle)
         self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
-
+        return self.Nmls
                 
     def Draw(self, Pose, s, color = 0) :
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
@@ -305,9 +306,9 @@ class RGBD():
         #only keep vales different from 0
         bdy = bdyVals[np.nonzero(bdyVals != 0)]
         mini =  np.min(bdy)
-        print "mini: %u" % (mini)
+        #print "mini: %u" % (mini)
         maxi = np.max(bdy)
-        print "max: %u" % (maxi)
+        #print "max: %u" % (maxi)
         bwmin = (self.CroppedBox > mini-0.01*max_value) 
         bwmax = (self.CroppedBox < maxi+0.01*max_value)
         bw0 = bwmin*bwmax
