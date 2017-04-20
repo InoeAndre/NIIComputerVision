@@ -253,22 +253,20 @@ class Application(tk.Frame):
         self.RGBD2.NMap_optimize()
             
         self.TSDFrendering = []
-        nbfus = 23
+        nbfus = 3
         nbLabel = self.RGBD.bdyPart.shape[0]
-        for i in range(20,nbfus):
+        for i in range(0,nbfus):
         #i=1
             start_time = time.time()
             rendering = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-            # depth map conversion + segmentation
+
             self.Index = i
+            depth_in = self.lImages[0][self.Index]
+            depth_image = depth_in.astype(np.float32) / self.fact
+            
             for j in range(nbLabel):
                 start_time2 = time.time()
-                depth_in = self.lImages[0][self.Index]
-                depth_image = depth_in.astype(np.float32) / self.fact
-                
-                #kernel = np.ones((3,3),np.uint8)*self.RGBD.TransfoBB[i][0:3,0:3]
-                #kernel = np.convolve(kernel,kernel)
-                #mask = cv2.dilate(self.RGBD.mask[j].astype(np.uint8), kernel,iterations = 1)
+
                 self.RGBD_TSDF.depth_image = depth_image*self.RGBD.mask[j]
                 
                 # surface rendering TSDF
@@ -284,8 +282,6 @@ class Application(tk.Frame):
             self.RGBD.Vmap_optimize()
             self.RGBD.NMap_optimize()
             rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
-                
-
             
             self.TSDFrendering.append(rendering)
             # new pose estimation
