@@ -225,7 +225,7 @@ class Application(tk.Frame):
         self.TSDFrendering = []
         nbfus = 3
         
-        for i in range(nbfus):
+        for i in range(0,nbfus):
         #i=1
             start_time = time.time()
             rendering = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
@@ -249,7 +249,7 @@ class Application(tk.Frame):
                 TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
                 TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)          
                 # new surface prediction
-                self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
+                self.RGBD.depth_image += TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
                 self.RGBD.BilateralFilter(-1, 0.02, 3)
                 self.RGBD.Vmap_optimize()
                 self.RGBD.NMap_optimize()
@@ -276,8 +276,8 @@ class Application(tk.Frame):
 
         #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
         # Extract the 0-isosurface
-        vertices1, triangles1 = mcubes.marching_cubes(self.RGBD.Nmls, 0)
-        img = Image.fromarray(self.TSDFrendering[2], 'RGB')
+        vertices1, triangles1 = mcubes.marching_cubes(self.TSDFrendering[-1], 100)
+        img = Image.fromarray(self.TSDFrendering[-1], 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
         #self.DrawSkeleton2D(self.Pose)

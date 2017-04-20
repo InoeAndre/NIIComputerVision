@@ -14,4 +14,7 @@ PyMCubes :
         http://pycollada.github.io/install.html
         and meshLab :
         http://www.meshlab.net/
+        
+mayavi :
+    conda install mayavi
 
