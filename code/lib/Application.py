@@ -296,7 +296,7 @@ class Application(tk.Frame):
         # 3D reconstruction of the whole image
 
         #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
-        # Extract the 0-isosurface
+        # Extract the 100-isosurface
         vertices1, triangles1 = mcubes.marching_cubes(self.TSDFrendering[-1], 100)
         img = Image.fromarray(self.TSDFrendering[-1], 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
