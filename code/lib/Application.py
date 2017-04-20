@@ -52,7 +52,7 @@ class Application(tk.Frame):
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
             self.DrawCenters2D(self.Pose)
             self.DrawSys2D(self.Pose)
-            self.DrawOBBox2D(self.Pose)
+            #self.DrawOBBox2D(self.Pose)
 
 
     ## Function to handle mouse press event
@@ -100,7 +100,7 @@ class Application(tk.Frame):
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
             self.DrawCenters2D(self.Pose)
             self.DrawSys2D(self.Pose)
-            self.DrawOBBox2D(self.Pose)
+            #self.DrawOBBox2D(self.Pose)
        
         self.x_init = event.x
         self.y_init = event.y
@@ -276,13 +276,16 @@ class Application(tk.Frame):
                 TSDFManager.FuseRGBD_GPU(self.RGBD_TSDF, self.Pose)          
                 # new surface prediction
                 self.RGBD.depth_image +=  TSDFManager.RayTracing_GPU(self.RGBD_TSDF, self.Pose)
-                self.RGBD.BilateralFilter(-1, 0.02, 3)
-                self.RGBD.Vmap_optimize()
-                self.RGBD.NMap_optimize()
-                rendering += self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
                 
                 elapsed_time2 = time.time() - start_time2
                 print "one body part process time: %f" % (elapsed_time2)
+                
+            self.RGBD.BilateralFilter(-1, 0.02, 3)
+            self.RGBD.Vmap_optimize()
+            self.RGBD.NMap_optimize()
+            rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
+                
+
             
             self.TSDFrendering.append(rendering)
             # new pose estimation
@@ -298,8 +301,8 @@ class Application(tk.Frame):
 
         #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
         # Extract the 0-isosurface
-        vertices1, triangles1 = mcubes.marching_cubes(self.TSDFrendering[0], 100)
-        img = Image.fromarray(self.TSDFrendering[0], 'RGB')
+        vertices1, triangles1 = mcubes.marching_cubes(self.TSDFrendering[-1], 100)
+        img = Image.fromarray(self.TSDFrendering[-1], 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
         #self.DrawSkeleton2D(self.Pose)
