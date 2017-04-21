@@ -254,7 +254,7 @@ class Application(tk.Frame):
 #         self.RGBD2.Vmap_optimize()  
 #         self.RGBD2.NMap_optimize()
 #==============================================================================
-            
+        self.TSDF = np.zeros((512,512,512),np.float32)
         self.TSDFrendering = []
         nbfus = 3
         nbLabel = self.RGBD.bdyPart.shape[0]
@@ -281,7 +281,7 @@ class Application(tk.Frame):
                 
                 # surface rendering TSDF
                 TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD_TSDF, self.GPUManager)
-                TSDFManager.FuseRGBD_GPU(self.RGBD_TSDF, self.Pose)          
+                self.TSDF += TSDFManager.FuseRGBD_GPU(self.RGBD_TSDF, self.Pose)          
                 # new surface prediction          
                 self.RGBD.depth_image +=  TSDFManager.RayTracing_GPU(self.RGBD_TSDF, self.Pose)
 
@@ -308,7 +308,7 @@ class Application(tk.Frame):
 
         #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
         # Extract the 100-isosurface
-        vertices1, triangles1 = mcubes.marching_cubes(self.TSDFrendering[-1], 100)
+        vertices1, triangles1 = mcubes.marching_cubes(self.TSDF, 100)
         img = Image.fromarray(self.TSDFrendering[-1], 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
