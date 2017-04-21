@@ -17,7 +17,7 @@ __kernel void Test(__global float *TSDF) {
 
 #__read_only image2d_t VMap
 Kernel_FuseTSDF = """
-__kernel void FuseTSDF(__global float *TSDF, __global float *Depth, __constant float *Param, __constant int *Dim,
+__kernel void FuseTSDF(__global float *TSDF, __global float *prevTSDF, __global float *Weight, __global float *Depth, __constant float *Param, __constant int *Dim,
                            __constant float *Pose, __constant float *calib, const int n_row, const int m_col) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
         const float nu = 0.1f;
@@ -33,6 +33,11 @@ __kernel void FuseTSDF(__global float *TSDF, __global float *Depth, __constant f
         float x_T =  Pose[0]*pt.x + Pose[1]*pt.y + Pose[3];
         float y_T =  Pose[4]*pt.x + Pose[5]*pt.y + Pose[7];
         float z_T =  Pose[8]*pt.x + Pose[9]*pt.y + Pose[11];
+             
+        
+        //Global computation
+
+        float Wlim = 10;
         
         for (int z = 0; z < 512; z++) { /*depth*/
             // Transform voxel coordinates into 3D point coordinates
@@ -58,6 +63,12 @@ __kernel void FuseTSDF(__global float *TSDF, __global float *Depth, __constant f
             
             TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = (pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
             
+            // Global update
+            int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
+            TSDF[idx] = (prevTSDF[idx]*Weight[idx] + TSDF[idx])/(1+Weight[idx]);
+            
+            if (Weight[idx]+1 > Wlim) Weight[idx] = Wlim;
+            else Weight[idx] = Weight[idx]+1;
             
             /*************************** Diego **************************************/
             // Project onto Image
@@ -80,6 +91,7 @@ __kernel void FuseTSDF(__global float *TSDF, __global float *Depth, __constant f
             //else
             //    TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = max(-1.0f, dist/nu);
         }
+        
 }
 """
 

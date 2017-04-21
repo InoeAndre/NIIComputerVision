@@ -74,42 +74,6 @@ class RGBD():
         self.colorname = colorname
         self.intrinsic = intrinsic
         self.fact = fact
- 
-#==============================================================================
-#     def copy(self,RGBD):
-#         RGBD.depthname  = self.depthname 
-#         RGBD.colorname = self.colorname
-#         RGBD.intrinsic  = self.intrinsic 
-#         RGBD.fact  = self.fact 
-#         RGBD.lImages = self.lImages 
-#         RGBD.numbImages = self.numbImages 
-#         RGBD.Index = self.Index 
-#         RGBD.pos2d = self.pos2d 
-#         RGBD.connection = self.connection 
-#         RGBD.bw = self.bw 
-#         RGBD.bw = self.Size
-#         RGBD.bw = self.depth_image 
-#         RGBD.bw = self.skel       
-#         RGBD.bw = self.Vtx 
-#         RGBD.bw = self.Nmls
-#         RGBD.bw = self.transCrop
-#         RGBD.bw = self.CroppedBox 
-#         RGBD.bw = self.CroppedPos 
-#         RGBD.bw = self.Croppedbw 
-#         RGBD.bw = self.bdyPart
-#         RGBD.bw = self.bdyColor
-#         RGBD.bw = self.labelColor
-#         RGBD.bw = self.labels
-#         RGBD.bw = self.ctr3D
-#         RGBD.bw = self.TVtxBB 
-#         RGBD.bw = self.TransfoBB
-#         RGBD.bw = self.vects3D 
-#         RGBD.bw = self.PtCloud 
-#         RGBD.bw = self.pca 
-#         RGBD.bw = self.coords
-#         RGBD.bw = self.coordsT
-#         RGBD.bw = self.mask
-#==============================================================================
         
     def LoadMat(self, Images,Pos_2D,BodyConnection,binImage):
         self.lImages = Images

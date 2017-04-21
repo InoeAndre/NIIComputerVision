@@ -1,4 +1,5 @@
 # File created by Diego Thomas the 21-11-2016
+# Second Author Inoe AMDRE
 
 # File to handle program main loop
 import sys
@@ -242,15 +243,17 @@ class Application(tk.Frame):
         # Following Depth Image (i.e: i+1)  # new image depth map conversion
         self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        self.RGBD2.ReadFromMat(self.Index+1)
-        self.RGBD2.BilateralFilter(-1, 0.02, 3)
-        self.RGBD2.Crop2Body()
-        self.RGBD2.BodySegmentation()
-        self.RGBD2.BodyLabelling()        
-        self.RGBD2.depth_image *= (self.RGBD2.labels >0)
-        self.RGBD2.BilateralFilter(-1, 0.02, 3)
-        self.RGBD2.Vmap_optimize()  
-        self.RGBD2.NMap_optimize()
+#==============================================================================
+#         self.RGBD2.ReadFromMat(self.Index+1)
+#         self.RGBD2.BilateralFilter(-1, 0.02, 3)
+#         self.RGBD2.Crop2Body()
+#         self.RGBD2.BodySegmentation()
+#         self.RGBD2.BodyLabelling()        
+#         self.RGBD2.depth_image *= (self.RGBD2.labels >0)
+#         self.RGBD2.BilateralFilter(-1, 0.02, 3)
+#         self.RGBD2.Vmap_optimize()  
+#         self.RGBD2.NMap_optimize()
+#==============================================================================
             
         self.TSDFrendering = []
         nbfus = 3
@@ -259,21 +262,29 @@ class Application(tk.Frame):
         #i=1
             start_time = time.time()
             rendering = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-
-            self.Index = i
-            depth_in = self.lImages[0][self.Index]
-            depth_image = depth_in.astype(np.float32) / self.fact
+            
+            self.RGBD2.ReadFromMat(self.Index)
+            self.RGBD2.BilateralFilter(-1, 0.02, 3)
+            self.RGBD2.Crop2Body()
+            self.RGBD2.BodySegmentation()
+            self.RGBD2.BodyLabelling()        
+            self.RGBD2.depth_image *= (self.RGBD2.labels >0)
+            self.RGBD2.BilateralFilter(-1, 0.02, 3)
+            self.RGBD2.Vmap_optimize()  
+            self.RGBD2.NMap_optimize()
+            
             
             for j in range(nbLabel):
                 start_time2 = time.time()
 
-                self.RGBD_TSDF.depth_image = depth_image*self.RGBD.mask[j]
+                self.RGBD_TSDF.depth_image = self.RGBD2.depth_image*self.RGBD.mask[j]
                 
                 # surface rendering TSDF
                 TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD_TSDF, self.GPUManager)
                 TSDFManager.FuseRGBD_GPU(self.RGBD_TSDF, self.Pose)          
-                # new surface prediction
+                # new surface prediction          
                 self.RGBD.depth_image +=  TSDFManager.RayTracing_GPU(self.RGBD_TSDF, self.Pose)
+
                 
                 elapsed_time2 = time.time() - start_time2
                 print "one body part process time: %f" % (elapsed_time2)
