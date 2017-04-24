@@ -214,119 +214,54 @@ class Application(tk.Frame):
         # Create the space to draw the result image
         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()
-        
-        # Current Depth Image for TSDF(i.e: i)
-        self.RGBD_TSDF = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
-        self.RGBD_TSDF.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
-        self.Index = 0
-        self.RGBD_TSDF.ReadFromMat(self.Index)
-        self.RGBD_TSDF.BilateralFilter(-1, 0.02, 3)
-        self.RGBD_TSDF.Crop2Body()
-        self.RGBD_TSDF.BodySegmentation()
-        self.RGBD_TSDF.BodyLabelling()
-        self.RGBD_TSDF.Vmap_optimize()  
-        self.RGBD_TSDF.NMap_optimize()
+            
         # Current Depth Image (i.e: i)
+        start_time = time.time()
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
+        self.Index = 0
         self.RGBD.ReadFromMat(self.Index)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.Crop2Body()
         self.RGBD.BodySegmentation()
         self.RGBD.BodyLabelling()
         self.RGBD.depth_image *= (self.RGBD.labels >0)
-        self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.Vmap_optimize()  
         self.RGBD.NMap_optimize()
-        self.RGBD.myPCA()        
-        
-        # Following Depth Image (i.e: i+1)  # new image depth map conversion
-        self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
-        self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-#==============================================================================
-#         self.RGBD2.ReadFromMat(self.Index+1)
-#         self.RGBD2.BilateralFilter(-1, 0.02, 3)
-#         self.RGBD2.Crop2Body()
-#         self.RGBD2.BodySegmentation()
-#         self.RGBD2.BodyLabelling()        
-#         self.RGBD2.depth_image *= (self.RGBD2.labels >0)
-#         self.RGBD2.BilateralFilter(-1, 0.02, 3)
-#         self.RGBD2.Vmap_optimize()  
-#         self.RGBD2.NMap_optimize()
-#==============================================================================
-        self.TSDF = np.zeros((512,512,512),np.float32)
-        self.TSDFrendering = []
-        nbfus = 3
-        nbLabel = self.RGBD.bdyPart.shape[0]
-        for i in range(0,nbfus):
-        #i=1
-            start_time = time.time()
-            rendering = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-            
-            self.RGBD2.ReadFromMat(self.Index)
-            self.RGBD2.BilateralFilter(-1, 0.02, 3)
-            self.RGBD2.Crop2Body()
-            self.RGBD2.BodySegmentation()
-            self.RGBD2.BodyLabelling()        
-            self.RGBD2.depth_image *= (self.RGBD2.labels >0)
-            self.RGBD2.BilateralFilter(-1, 0.02, 3)
-            self.RGBD2.Vmap_optimize()  
-            self.RGBD2.NMap_optimize()
-            
-            
-            for j in range(nbLabel):
-                start_time2 = time.time()
-
-                self.RGBD_TSDF.depth_image = self.RGBD2.depth_image*self.RGBD.mask[j]
-                
-                # surface rendering TSDF
-                TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD_TSDF, self.GPUManager)
-                self.TSDF += TSDFManager.FuseRGBD_GPU(self.RGBD_TSDF, self.Pose)          
-                # new surface prediction          
-                self.RGBD.depth_image +=  TSDFManager.RayTracing_GPU(self.RGBD_TSDF, self.Pose)
-
-                
-                elapsed_time2 = time.time() - start_time2
-                print "one body part process time: %f" % (elapsed_time2)
-                
-            self.RGBD.BilateralFilter(-1, 0.02, 3)
-            self.RGBD.Vmap_optimize()
-            self.RGBD.NMap_optimize()
-            rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
-            
-            self.TSDFrendering.append(rendering)
-            # new pose estimation
-            Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
-            self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
-            
-            elapsed_time = time.time() - start_time
-            print "one full cycle process time: %f" % (elapsed_time)
-
+        self.RGBD.myPCA()
+        elapsed_time = time.time() - start_time
+        print "depth conversion: %f" % (elapsed_time)
+        # surface rendering TSDF
+        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
+        self.TSDF = TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)          
+        elapsed_time = time.time() - start_time - elapsed_time
+        print "TSDF: %f" % (elapsed_time)
+        # new surface prediction          
+        self.RGBD.depth_image =  TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
+        self.RGBD.Vmap_optimize()
+        self.RGBD.NMap_optimize()
+        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
+        # new pose estimation
+        #Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
+        #self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
+        elapsed_time = time.time() - start_time - elapsed_time
+        print "Tracking: %f" % (elapsed_time)
         # Show figure and images
             
         # 3D reconstruction of the whole image
-
-        #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
+        
         # Extract the 100-isosurface
-        vertices1, triangles1 = mcubes.marching_cubes(self.TSDF, 100)
-        img = Image.fromarray(self.TSDFrendering[-1], 'RGB')
+        vertices1, triangles1 = mcubes.marching_cubes(self.TSDF, 0)
+        mcubes.export_mesh(vertices1, triangles1, "segmentedBdy.dae", "MySegBdy")
+        print("Done. Result saved in 'segmentedBdy.dae'.")
+        img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
         #self.DrawSkeleton2D(self.Pose)
         #self.DrawCenters2D(self.Pose)
         #self.DrawSys2D(self.Pose)
         #self.DrawOBBox2D(self.Pose)
-        mcubes.export_mesh(vertices1, triangles1, "segmentedBdy.dae", "MySegBdy")
 
-        print("Done. Result saved in 'segmentedBdy.dae'.")
-#==============================================================================
-# 
-#         #TSDFrendering = self.DrawColors2D(TSDFrendering,self.Pose)
-#         self.imgTk=ImageTk.PhotoImage(self.TSDFrendering[8])
-#         self.imgTk9=ImageTk.PhotoImage(self.TSDFrendering[9])
-#         self.imgTk.paste(self.imgTk9, (0, 0), self.RGBD.mask[9])
-#         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-#==============================================================================
         
         #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)
@@ -337,13 +272,15 @@ class Application(tk.Frame):
         self.w = tk.Scale(master, from_=1, to=10, orient=tk.HORIZONTAL)
         self.w.pack()
 
-        try:
-            print("Plotting mesh...")
-            from mayavi import mlab
-            mlab.triangular_mesh(
-                vertices1[:, 0], vertices1[:, 1], vertices1[:, 2],
-                triangles1)
-            print("Done.")
-            mlab.show()
-        except ImportError:
-            print("Could not import mayavi. Interactive demo not available.")
+#==============================================================================
+#         try:
+#             print("Plotting mesh...")
+#             from mayavi import mlab
+#             mlab.triangular_mesh(
+#                 vertices1[:, 0], vertices1[:, 1], vertices1[:, 2],
+#                 triangles1)
+#             print("Done.")
+#             mlab.show()
+#         except ImportError:
+#             print("Could not import mayavi. Interactive demo not available.")
+#==============================================================================

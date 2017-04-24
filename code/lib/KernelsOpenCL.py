@@ -20,7 +20,7 @@ Kernel_FuseTSDF = """
 __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant float *Param, __constant int *Dim,
                            __constant float *Pose, __constant float *calib, const int n_row, const int m_col) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
-        const float nu = 0.1f;
+        const float nu = 0.1;
             
         float4 pt;
         float4 pt_T;
@@ -45,8 +45,8 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
             pt.z = ((float)(z)-Param[4])/Param[5];
             
             // Transfom the voxel into the Image coordinate space
-            pt_T.x = x_T + Pose[2]*pt.z; //Pose is column major
-            pt_T.y = y_T + Pose[6]*pt.z;
+            pt_T.x = x_T + Pose[2]*pt.x; //Pose is column major
+            pt_T.y = y_T + Pose[6]*pt.y;
             pt_T.z = z_T + Pose[10]*pt.z;
             
             /* from here there is the copy for Diego's device and Inoe's device. */
@@ -61,7 +61,16 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
                 continue;
             }
             
-            TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = (pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
+            //float4 Proj_pt = read_imagef(VMap, smp, (int2){pix.x, pix.y});
+            float dist = (pt_T.z - Depth[pix.x + m_col*pix.y]);
+            
+            if (dist > -nu)
+               TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = min(1.0f, dist/nu);
+            else
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = max(-1.0f, dist/nu);//NULL;//
+            
+            
+            
             
             // Global update
             //int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
