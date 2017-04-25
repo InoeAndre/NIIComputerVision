@@ -45,8 +45,8 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
             pt.z = ((float)(z)-Param[4])/Param[5];
             
             // Transfom the voxel into the Image coordinate space
-            pt_T.x = x_T + Pose[2]*pt.x; //Pose is column major
-            pt_T.y = y_T + Pose[6]*pt.y;
+            pt_T.x = x_T + Pose[2]*pt.z; //Pose is column major
+            pt_T.y = y_T + Pose[6]*pt.z;
             pt_T.z = z_T + Pose[10]*pt.z;
             
             /* from here there is the copy for Diego's device and Inoe's device. */
@@ -57,7 +57,7 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
             if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1) {
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = -1.0f;
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1.0f;
                 continue;
             }
             
@@ -67,7 +67,7 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
             if (dist > -nu)
                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = min(1.0f, dist/nu);
             else
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = max(-1.0f, dist/nu);//NULL;//
+               TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = max(1.0f, dist/nu);//NULL;//
             
             
             

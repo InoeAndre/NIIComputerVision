@@ -172,6 +172,7 @@ class RGBD():
         nmle = division_by_norm(nmle,norm_mat_nmle)
         self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
         return self.Nmls
+
                 
     def Draw(self, Pose, s, color = 0) :
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
@@ -239,7 +240,42 @@ class RGBD():
                                                                        ((nmle[ :, :,1]+1.0)*(255./2.))*cdt_line, \
                                                                        ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
-    
+
+    def DrawMesh(self, Vtx,Nmls,Pose, s, color = 0) :   
+        result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
+        stack_pix = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
+        stack_pt = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
+        pix = np.zeros( (np.size(Vtx[ ::s,:],0),2) , dtype = np.float32)
+        pix = np.stack((pix[:,0],pix[:,1],stack_pix),axis = 1)
+        pt = np.stack( (Vtx[ ::s,0],Vtx[ ::s,1],Vtx[ ::s,2],stack_pt),axis =1 )
+        pt = np.dot(pt,Pose)
+
+        nmle = np.zeros((Nmls.shape[0], Nmls.shape[1]), dtype = np.float32)
+        nmle[ ::s,:] = np.dot(Nmls[ ::s,:],Pose[0:3,0:3])
+        #if (pt[2] != 0.0):
+        lpt = np.split(pt,4,axis=1)
+        lpt[2] = in_mat_zero2one(lpt[2])
+        # if in 1D pix[0] = pt[0]/pt[2]
+        pix[ ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
+        # if in 1D pix[1] = pt[1]/pt[2]
+        pix[ ::s,1] = (lpt[1]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
+        pix = np.dot(pix,self.intrinsic)
+        column_index = (np.round(pix[:,0])).astype(int)
+        line_index = (np.round(pix[:,1])).astype(int)
+        # create matrix that have 0 when the conditions are not verified and 1 otherwise
+        cdt_column = (column_index > -1) * (column_index < self.Size[1])
+        cdt_line = (line_index > -1) * (line_index < self.Size[0])
+        line_index = line_index*cdt_line
+        column_index = column_index*cdt_column
+        if (color == 0):
+            result[line_index[:], column_index[:]]= np.dstack((self.color_image[ ::s, ::s,2], \
+                                                                    self.color_image[ ::s, ::s,1]*cdt_line, \
+                                                                    self.color_image[ ::s, ::s,0]*cdt_column) )
+        else:
+            result[line_index[:], column_index[:]]= np.dstack( ( (nmle[ :,0]+1.0)*(255./2.), \
+                                                                       ((nmle[ :,1]+1.0)*(255./2.))*cdt_line, \
+                                                                       ((nmle[ :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
+        return result    
 
 ##################################################################
 ###################Bilateral Smooth Funtion#######################

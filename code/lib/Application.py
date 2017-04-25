@@ -17,6 +17,7 @@ import scipy.io
 import time
 import random
 import mcubes
+from skimage import measure
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 TrackManager = imp.load_source('TrackManager', './lib/tracking.py')
@@ -219,7 +220,7 @@ class Application(tk.Frame):
         start_time = time.time()
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
-        self.Index = 0
+        self.Index = 20
         self.RGBD.ReadFromMat(self.Index)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.Crop2Body()
@@ -230,17 +231,38 @@ class Application(tk.Frame):
         self.RGBD.NMap_optimize()
         self.RGBD.myPCA()
         elapsed_time = time.time() - start_time
-        print "depth conversion: %f" % (elapsed_time)
+        print "depth conversion: %f s" % (elapsed_time)
         # surface rendering TSDF
         TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
-        self.TSDF = TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)          
+        self.TSDF = TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose) 
         elapsed_time = time.time() - start_time - elapsed_time
-        print "TSDF: %f" % (elapsed_time)
-        # new surface prediction          
-        self.RGBD.depth_image =  TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
-        self.RGBD.Vmap_optimize()
-        self.RGBD.NMap_optimize()
-        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
+        print "TSDF: %f s" % (elapsed_time)
+        # Extract the 0.01-isosurface
+        verts, faces, normals, values = measure.marching_cubes(self.TSDF, 0.01) 
+#==============================================================================
+#         vertices1, triangles1 = mcubes.marching_cubes(self.TSDF, 0)
+#         mcubes.export_mesh(vertices1, triangles1, "segmentedBdy.dae", "MySegBdy")
+#         print("Done. Result saved in 'segmentedBdy.dae'.")         
+#==============================================================================
+        elapsed_time = time.time() - start_time - elapsed_time
+        print "marching cubes: %f s" % (elapsed_time)
+        print "vertices size: "
+        print verts.shape
+        print verts.shape[0]/512.
+        print "normals size: "
+        print normals.shape
+        print normals.shape[0]/512.
+        print normals
+        # new surface prediction  
+        verts2 = np.copy(verts)
+
+        
+#==============================================================================
+#         self.RGBD.depth_image =  TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
+#         self.RGBD.Vmap_optimize()
+#         self.RGBD.NMap_optimize()
+#==============================================================================
+        rendering = self.RGBD.DrawMesh(verts2,normals,self.Pose, 1, self.color_tag) 
         # new pose estimation
         #Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
         #self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
@@ -250,10 +272,8 @@ class Application(tk.Frame):
             
         # 3D reconstruction of the whole image
         
-        # Extract the 100-isosurface
-        vertices1, triangles1 = mcubes.marching_cubes(self.TSDF, 0)
-        mcubes.export_mesh(vertices1, triangles1, "segmentedBdy.dae", "MySegBdy")
-        print("Done. Result saved in 'segmentedBdy.dae'.")
+        
+
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -284,3 +304,15 @@ class Application(tk.Frame):
 #         except ImportError:
 #             print("Could not import mayavi. Interactive demo not available.")
 #==============================================================================
+
+        from mayavi import mlab 
+        mlab.triangular_mesh([vert[0] for vert in verts],\
+                             [vert[1] for vert in verts],\
+                             [vert[2] for vert in verts],faces) 
+        mlab.show()
+
+
+     
+
+
+
