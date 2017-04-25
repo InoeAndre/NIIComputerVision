@@ -18,7 +18,8 @@ __kernel void Test(__global float *TSDF) {
 #__read_only image2d_t VMap
 Kernel_FuseTSDF = """
 __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant float *Param, __constant int *Dim,
-                           __constant float *Pose, __constant float *calib, const int n_row, const int m_col) {
+                           __constant float *Pose, __constant float *calib, const int n_row, const int m_col, 
+                           __global float *prevTSDF, __global float *Weight) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
         const float nu = 0.1;
             
@@ -37,7 +38,7 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
         
         //Global computation
 
-        //float Wlim = 10;
+        float Wmax = 100;
         
         for (int z = 0; z < 512; z++) { /*depth*/
             // Transform voxel coordinates into 3D point coordinates
@@ -67,17 +68,17 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
             if (dist > -nu)
                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = min(1.0f, dist/nu);
             else
-               TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = max(1.0f, dist/nu);//NULL;//
+               TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = max(1.0f, dist/nu);
             
             
             
             
             // Global update
-            //int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
-            //TSDF[idx] = (prevTSDF[idx]*Weight[idx] + TSDF[idx])/(1+Weight[idx]);
+            int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
+            TSDF[idx] = (prevTSDF[idx]*Weight[idx] + TSDF[idx])/(1+Weight[idx]);
             
-            //if (Weight[idx]+1 > Wlim) Weight[idx] = Wlim;
-            //else Weight[idx] = Weight[idx]+1;
+            if (Weight[idx]+1 > Wmax) Weight[idx] = Wmax;
+            else Weight[idx] = Weight[idx]+1;
             
             /*************************** Diego **************************************/
             // Project onto Image

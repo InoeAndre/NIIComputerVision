@@ -180,7 +180,19 @@ class Application(tk.Frame):
             self.canvas.create_line(pt[3][0],pt[3][1],pt[7][0],pt[7][1],fill="red",width = 2)
             for j in range(8):
                 self.DrawPoint2D(pt[j],2,"black")
+
+    def DrawMesh2D(self,Pose,vertex,triangle):
+        '''Draw in the canvas the triangles of the Mesh in 2D''' 
+        python_green = "#476042"
+        for i in range(triangle.shape[0]):
+            pt0 = vertex[triangle[i][0]]
+            pt1 = vertex[triangle[i][1]]
+            pt2 = vertex[triangle[i][2]]
+            self.canvas.create_polygon(pt0[0],pt0[1],pt1[0],pt1[1],pt2[0],pt2[1],outline = python_green, fill='yellow', width=1)
+
             
+
+                
     ## Constructor function
     def __init__(self, path, GPUManager, master=None):
         self.root = master
@@ -232,48 +244,54 @@ class Application(tk.Frame):
         self.RGBD.myPCA()
         elapsed_time = time.time() - start_time
         print "depth conversion: %f s" % (elapsed_time)
-        # surface rendering TSDF
-        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
-        self.TSDF = TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose) 
-        elapsed_time = time.time() - start_time - elapsed_time
-        print "TSDF: %f s" % (elapsed_time)
-        # Extract the 0.01-isosurface
-        verts, faces, normals, values = measure.marching_cubes(self.TSDF, 0.01) 
-#==============================================================================
-#         vertices1, triangles1 = mcubes.marching_cubes(self.TSDF, 0)
-#         mcubes.export_mesh(vertices1, triangles1, "segmentedBdy.dae", "MySegBdy")
-#         print("Done. Result saved in 'segmentedBdy.dae'.")         
-#==============================================================================
-        elapsed_time = time.time() - start_time - elapsed_time
-        print "marching cubes: %f s" % (elapsed_time)
-        print "vertices size: "
-        print verts.shape
-        print verts.shape[0]/512.
-        print "normals size: "
-        print normals.shape
-        print normals.shape[0]/512.
-        print normals
-        # new surface prediction  
-        verts2 = np.copy(verts)
-
         
-#==============================================================================
-#         self.RGBD.depth_image =  TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
-#         self.RGBD.Vmap_optimize()
-#         self.RGBD.NMap_optimize()
-#==============================================================================
-        rendering = self.RGBD.DrawMesh(verts2,normals,self.Pose, 1, self.color_tag) 
-        # new pose estimation
-        #Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
-        #self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
-        elapsed_time = time.time() - start_time - elapsed_time
-        print "Tracking: %f" % (elapsed_time)
+ 
+        self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact) 
+        self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )         
+        
+        # surface rendering TSDF
+        nbfus = 3 
+        deb = 20
+        
+        for i in range(deb,deb+nbfus): 
+            self.Index = i
+            self.RGBD2.ReadFromMat(self.Index) 
+            self.RGBD2.BilateralFilter(-1, 0.02, 3) 
+            self.RGBD2.Crop2Body() 
+            self.RGBD2.BodySegmentation() 
+            self.RGBD2.BodyLabelling()         
+            self.RGBD2.depth_image *= (self.RGBD2.labels >0) 
+            self.RGBD2.Vmap_optimize()   
+            self.RGBD2.NMap_optimize()  
+            
+            
+            TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager)
+            self.TSDF = TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose) 
+            elapsed_time = time.time() - start_time - elapsed_time
+            print "TSDF: %f s" % (elapsed_time)
+            # Extract the 0.01-isosurface
+            verts, faces, normals, values = measure.marching_cubes(self.TSDF, 0.01)       
+            elapsed_time = time.time() - start_time - elapsed_time
+            print "marching cubes: %f s" % (elapsed_time)
+            self.RGBD.depth_image[verts[:][0].astype(np.int),verts[:][1].astype(np.int)]= verts[:][2]
+            self.RGBD.depth_image *= (self.RGBD.labels >0)
+            self.RGBD.Vmap_optimize()  
+            self.RGBD.NMap_optimize()    
+            rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
+            # new surface prediction  
+            #rendering = self.RGBD.DrawMesh(verts,normals,self.Pose, 1, self.color_tag) 
+            # new pose estimation
+            Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
+            self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
+            elapsed_time = time.time() - start_time - elapsed_time
+            print "Tracking: %f" % (elapsed_time)
+
+ 
+
+            
         # Show figure and images
             
         # 3D reconstruction of the whole image
-        
-        
-
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -281,7 +299,7 @@ class Application(tk.Frame):
         #self.DrawCenters2D(self.Pose)
         #self.DrawSys2D(self.Pose)
         #self.DrawOBBox2D(self.Pose)
-
+        #self.DrawMesh2D(self.Pose,verts,faces)
         
         #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)
@@ -292,19 +310,6 @@ class Application(tk.Frame):
         self.w = tk.Scale(master, from_=1, to=10, orient=tk.HORIZONTAL)
         self.w.pack()
 
-#==============================================================================
-#         try:
-#             print("Plotting mesh...")
-#             from mayavi import mlab
-#             mlab.triangular_mesh(
-#                 vertices1[:, 0], vertices1[:, 1], vertices1[:, 2],
-#                 triangles1)
-#             print("Done.")
-#             mlab.show()
-#         except ImportError:
-#             print("Could not import mayavi. Interactive demo not available.")
-#==============================================================================
-
         from mayavi import mlab 
         mlab.triangular_mesh([vert[0] for vert in verts],\
                              [vert[1] for vert in verts],\
@@ -312,7 +317,8 @@ class Application(tk.Frame):
         mlab.show()
 
 
-     
+        
+
 
 
 
