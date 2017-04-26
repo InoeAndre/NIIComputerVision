@@ -57,8 +57,8 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
             pix.x = convert_int(round((pt_T.x/fabs(pt_T.z))*calib[0] + calib[2])); 
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
-            if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1) {
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1.0f;
+            if (pix.x <= 0 || pix.x > m_col || pix.y <= 0 || pix.y > n_row) {
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = -1.0f;
                 continue;
             }
             
@@ -68,7 +68,7 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
             if (dist > -nu)
                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = min(1.0f, dist/nu);
             else
-               TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = max(1.0f, dist/nu);
+               TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = max(-1.0f, dist/nu);
             
             
             

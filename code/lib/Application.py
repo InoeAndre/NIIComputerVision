@@ -192,7 +192,14 @@ class Application(tk.Frame):
             pt2 = vertex[triangle[i][2]]
             self.canvas.create_polygon(pt0[0],pt0[1],pt1[0],pt1[1],pt2[0],pt2[1],outline = python_green, fill='yellow', width=1)
 
-            
+    def CheckVerts(self,verts):
+        '''Change the indexes values that are outside the frame''' 
+        #make sure there are not false values
+        cdt_line = (verts[:][0] > -1) * (verts[:][0] < self.Size[0])
+        cdt_column = (verts[:][1] > -1) * (verts[:][1] < self.Size[1])
+        verts[:][0] = verts[:][0]*cdt_line
+        verts[:][1] = verts[:][1]*cdt_column
+        return verts            
 
                 
     ## Constructor function
@@ -263,20 +270,20 @@ class Application(tk.Frame):
         TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager)      
         
         # surface rendering TSDF
-        nbfus = 10 
+        nbfus = 30 
         deb = 0
         
         for i in range(deb,deb+nbfus): 
             start_time = time.time()
             
-            #TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager)
             self.TSDF = TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose) 
             elapsed_time = time.time() - start_time
             print "TSDF: %f s" % (elapsed_time)
             # Extract the 0.01-isosurface
-            self.verts, self.faces, self.normals, self.values = measure.marching_cubes(self.TSDF, 0.01)       
+            self.verts, self.faces, self.normals, self.values = measure.marching_cubes(self.TSDF, 0.0)       
             elapsed_time = time.time() - start_time - elapsed_time
             print "marching cubes: %f s" % (elapsed_time)
+            self.verts = self.CheckVerts(self.verts)
             self.RGBD.depth_image[self.verts[:][0].astype(np.int),self.verts[:][1].astype(np.int)]= self.verts[:][2]
             self.RGBD.depth_image *= (self.RGBD.labels >0)
             self.RGBD.Vmap_optimize()  
