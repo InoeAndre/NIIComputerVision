@@ -75,7 +75,7 @@ class TSDFManager():
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
                                 np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.prevTSDFGPU, self.WeightGPU)
-        
+
         cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
         
         return self.TSDF

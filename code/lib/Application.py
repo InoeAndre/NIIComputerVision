@@ -48,12 +48,13 @@ class Application(tk.Frame):
 
         if (event.keysym != 'Escape'):
             self.Pose = np.dot(self.Pose, Transfo)
-            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            rendering = self.RGBD.DrawMesh(self.verts,self.normals,self.Pose, 1, self.color_tag) 
+            #rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-            self.DrawCenters2D(self.Pose)
-            self.DrawSys2D(self.Pose)
+            #self.DrawCenters2D(self.Pose)
+            #self.DrawSys2D(self.Pose)
             #self.DrawOBBox2D(self.Pose)
 
 
@@ -96,12 +97,13 @@ class Application(tk.Frame):
                             [0., 0., 0., 1.]])
             self.Pose = np.dot(self.Pose, RotX)
             
-            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            #rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            rendering = self.RGBD.DrawMesh(self.verts,self.normals,self.Pose, 1, self.color_tag) 
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-            self.DrawCenters2D(self.Pose)
-            self.DrawSys2D(self.Pose)
+            #self.DrawCenters2D(self.Pose)
+            #self.DrawSys2D(self.Pose)
             #self.DrawOBBox2D(self.Pose)
        
         self.x_init = event.x
@@ -232,7 +234,7 @@ class Application(tk.Frame):
         start_time = time.time()
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
-        self.Index = 20
+        self.Index = 0
         self.RGBD.ReadFromMat(self.Index)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.Crop2Body()
@@ -248,13 +250,47 @@ class Application(tk.Frame):
  
         self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact) 
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )         
+        self.RGBD2.ReadFromMat(self.Index) 
+        self.RGBD2.BilateralFilter(-1, 0.02, 3) 
+        self.RGBD2.Crop2Body() 
+        self.RGBD2.BodySegmentation() 
+        self.RGBD2.BodyLabelling()         
+        self.RGBD2.depth_image *= (self.RGBD2.labels >0) 
+        self.RGBD2.Vmap_optimize()   
+        self.RGBD2.NMap_optimize()  
+        self.RGBD2.myPCA()
+        
+        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager)      
         
         # surface rendering TSDF
-        nbfus = 3 
-        deb = 20
+        nbfus = 10 
+        deb = 0
         
         for i in range(deb,deb+nbfus): 
-            self.Index = i
+            start_time = time.time()
+            
+            #TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager)
+            self.TSDF = TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose) 
+            elapsed_time = time.time() - start_time
+            print "TSDF: %f s" % (elapsed_time)
+            # Extract the 0.01-isosurface
+            self.verts, self.faces, self.normals, self.values = measure.marching_cubes(self.TSDF, 0.01)       
+            elapsed_time = time.time() - start_time - elapsed_time
+            print "marching cubes: %f s" % (elapsed_time)
+            self.RGBD.depth_image[self.verts[:][0].astype(np.int),self.verts[:][1].astype(np.int)]= self.verts[:][2]
+            self.RGBD.depth_image *= (self.RGBD.labels >0)
+            self.RGBD.Vmap_optimize()  
+            self.RGBD.NMap_optimize()    
+            #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
+            # new surface prediction  
+            rendering = self.RGBD.DrawMesh(self.verts,self.normals,self.Pose, 1, self.color_tag) 
+            # new pose estimation
+            Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
+            self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
+            elapsed_time = time.time() - start_time - elapsed_time
+            print "Tracking: %f" % (elapsed_time)
+            print "Image number %d done" % (i)
+            self.Index = i+1
             self.RGBD2.ReadFromMat(self.Index) 
             self.RGBD2.BilateralFilter(-1, 0.02, 3) 
             self.RGBD2.Crop2Body() 
@@ -263,29 +299,7 @@ class Application(tk.Frame):
             self.RGBD2.depth_image *= (self.RGBD2.labels >0) 
             self.RGBD2.Vmap_optimize()   
             self.RGBD2.NMap_optimize()  
-            
-            
-            TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager)
-            self.TSDF = TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose) 
-            elapsed_time = time.time() - start_time - elapsed_time
-            print "TSDF: %f s" % (elapsed_time)
-            # Extract the 0.01-isosurface
-            verts, faces, normals, values = measure.marching_cubes(self.TSDF, 0.01)       
-            elapsed_time = time.time() - start_time - elapsed_time
-            print "marching cubes: %f s" % (elapsed_time)
-            self.RGBD.depth_image[verts[:][0].astype(np.int),verts[:][1].astype(np.int)]= verts[:][2]
-            self.RGBD.depth_image *= (self.RGBD.labels >0)
-            self.RGBD.Vmap_optimize()  
-            self.RGBD.NMap_optimize()    
-            rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
-            # new surface prediction  
-            #rendering = self.RGBD.DrawMesh(verts,normals,self.Pose, 1, self.color_tag) 
-            # new pose estimation
-            Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
-            self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
-            elapsed_time = time.time() - start_time - elapsed_time
-            print "Tracking: %f" % (elapsed_time)
-
+            #self.RGBD2.myPCA()
  
 
             
@@ -311,9 +325,9 @@ class Application(tk.Frame):
         self.w.pack()
 
         from mayavi import mlab 
-        mlab.triangular_mesh([vert[0] for vert in verts],\
-                             [vert[1] for vert in verts],\
-                             [vert[2] for vert in verts],faces) 
+        mlab.triangular_mesh([vert[0] for vert in self.verts],\
+                             [vert[1] for vert in self.verts],\
+                             [vert[2] for vert in self.verts],self.faces) 
         mlab.show()
 
 
