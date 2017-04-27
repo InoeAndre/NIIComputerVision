@@ -242,7 +242,7 @@ class RGBD():
         return result
 
     def DrawMesh(self, Vtx,Nmls,Pose, s, color = 0) :   
-        result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
+        result = self.depth_image#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         stack_pix = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
         stack_pt = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
         pix = np.zeros( (np.size(Vtx[ ::s,:],0),2) , dtype = np.float32)
