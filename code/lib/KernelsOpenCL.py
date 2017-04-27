@@ -58,17 +58,20 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
             if (pix.x <= 0 || pix.x > m_col || pix.y <= 0 || pix.y > n_row) {
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = -1.0f;
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1.0f;
                 continue;
             }
             
             //float4 Proj_pt = read_imagef(VMap, smp, (int2){pix.x, pix.y});
             float dist = (pt_T.z - Depth[pix.x + m_col*pix.y]);
             
-            if (dist > -nu)
-               TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = min(1.0f, dist/nu);
+            if (dist < -nu)
+               TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = max(1.0f, dist/nu);
+            else if( dist > nu)
+               TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1.0f; 
             else
-               TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = max(-1.0f, dist/nu);
+               TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = min(1.0f, dist/nu);
+               
             
             
             

@@ -48,8 +48,8 @@ class Application(tk.Frame):
 
         if (event.keysym != 'Escape'):
             self.Pose = np.dot(self.Pose, Transfo)
-            rendering = self.RGBD.DrawMesh(self.verts,self.normals,self.Pose, 1, self.color_tag) 
-            #rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            #rendering = self.RGBD.DrawMesh(self.verts,self.normals,self.Pose, 1, self.color_tag) 
+            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -97,8 +97,8 @@ class Application(tk.Frame):
                             [0., 0., 0., 1.]])
             self.Pose = np.dot(self.Pose, RotX)
             
-            #rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
-            rendering = self.RGBD.DrawMesh(self.verts,self.normals,self.Pose, 1, self.color_tag) 
+            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            #rendering = self.RGBD.DrawMesh(self.verts,self.normals,self.Pose, 1, self.color_tag) 
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -236,7 +236,8 @@ class Application(tk.Frame):
         # Create the space to draw the result image
         self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()
-            
+
+           
         # Current Depth Image (i.e: i)
         start_time = time.time()
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
@@ -250,6 +251,7 @@ class Application(tk.Frame):
         self.RGBD.depth_image *= (self.RGBD.labels >0)
         self.RGBD.Vmap_optimize()  
         self.RGBD.NMap_optimize()
+        nmlsTmp = self.RGBD.Nmls
         self.RGBD.myPCA()
         elapsed_time = time.time() - start_time
         print "depth conversion: %f s" % (elapsed_time)
@@ -267,27 +269,56 @@ class Application(tk.Frame):
         self.RGBD2.NMap_optimize()  
         self.RGBD2.myPCA()
         
-        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager)      
-        
+        nbLabel = self.RGBD.bdyPart.shape[0] 
+        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,0)     
+        self.SizeGPU = (512,512,512)
+        self.TSDF = np.zeros(self.SizeGPU, dtype = np.float32) 
         # surface rendering TSDF
-        nbfus = 30 
+        nbfus = 5 
         deb = 0
         
         for i in range(deb,deb+nbfus): 
             start_time = time.time()
-            
             self.TSDF = TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose) 
+            #i=0
+    #==============================================================================
+    #         for j in range(nbLabel): 
+    #             start_time2 = time.time() 
+    #             self.RGBD2.depth_image *= self.RGBD2.mask[j] 
+    #             # surface rendering TSDF 
+    #             tmp = TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)  
+    #             self.TSDF +=tmp
+    #             overlap = (self.TSDF > 2 )
+    #             self.TSDF[overlap] = tmp[overlap]
+    #     
+    #             elapsed_time2 = time.time() - start_time2 
+    #             print "one body part process time: %f" % (elapsed_time2) 
+    #==============================================================================
+                
             elapsed_time = time.time() - start_time
             print "TSDF: %f s" % (elapsed_time)
+            print "TSDF max"
+            print np.max(self.TSDF)
+            print "TSDF min"
+            print np.min(self.TSDF)
+            
             # Extract the 0.01-isosurface
             self.verts, self.faces, self.normals, self.values = measure.marching_cubes(self.TSDF, 0.0)       
             elapsed_time = time.time() - start_time - elapsed_time
             print "marching cubes: %f s" % (elapsed_time)
+            
             self.verts = self.CheckVerts(self.verts)
             self.RGBD.depth_image[self.verts[:][0].astype(np.int),self.verts[:][1].astype(np.int)]= self.verts[:][2]
             self.RGBD.depth_image *= (self.RGBD.labels >0)
             self.RGBD.Vmap_optimize()  
             self.RGBD.NMap_optimize()    
+            #compare normals
+            print "nmlsTmp"
+            print np.max(nmlsTmp)
+            print "RGBD.Nmls"
+            print np.max(self.RGBD.Nmls)
+            if ((nmlsTmp[:][:]-self.RGBD.Nmls[:][:]) < 0.1).all():
+                print "Normals are corresponding"        
             #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
             # new surface prediction  
             rendering = self.RGBD.DrawMesh(self.verts,self.normals,self.Pose, 1, self.color_tag) 
@@ -307,7 +338,7 @@ class Application(tk.Frame):
             self.RGBD2.Vmap_optimize()   
             self.RGBD2.NMap_optimize()  
             #self.RGBD2.myPCA()
- 
+            #rendering2 = self.RGBD2.Draw_optimize(self.Pose, 1, self.color_tag)
 
             
         # Show figure and images
@@ -321,6 +352,16 @@ class Application(tk.Frame):
         #self.DrawSys2D(self.Pose)
         #self.DrawOBBox2D(self.Pose)
         #self.DrawMesh2D(self.Pose,verts,faces)
+
+#==============================================================================
+#         # Create the space to draw the result image
+#         self.canvas2 = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+#         self.canvas2.pack()
+#         img2 = Image.fromarray(rendering2, 'RGB')
+#         self.imgTk2=ImageTk.PhotoImage(img2)
+#         self.canvas2.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
+# 
+#==============================================================================
         
         #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)

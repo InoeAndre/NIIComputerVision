@@ -30,11 +30,25 @@ mf = cl.mem_flags
 class TSDFManager():
     
     # Constructor
-    def __init__(self, Size, Image, GPUManager):
+    def __init__(self, Size, Image, GPUManager,nbLabel):
         self.Size = Size
         self.TSDF = np.zeros(self.Size, dtype = np.float32)
         self.prevTSDF = np.zeros(self.Size, dtype = np.float32)
         self.Weight = np.ones(self.Size, dtype = np.float32)
+        
+        self.SizeSeg = []
+        self.TSDFSeg = []
+        self.prevTSDFSeg = []
+        self.WeightSeg = []
+        self.TSDFSegGPU = []
+        self.prevTSDFSegGPU = []
+        self.WeightSegGPU = []
+        for i in range(nbLabel):
+            self.SizeSeg.append( (self.Size[0],self.Size[1],self.Size[2]) )
+            self.TSDFSeg.append(np.zeros(self.SizeSeg[i], dtype = np.float32) )
+            self.prevTSDFSeg.append(np.zeros(self.SizeSeg[i], dtype = np.float32) )
+            self.WeightSeg.append(np.ones(self.SizeSeg[i], dtype = np.float32) )
+
         self.c_x = self.Size[0]/2
         self.c_y = self.Size[1]/2
         self.c_z = -0.1
@@ -48,6 +62,12 @@ class TSDFManager():
         self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
         self.prevTSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.prevTSDF.nbytes)
         self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
+        
+        for i in range(nbLabel):
+            self.TSDFSegGPU.append( cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDFSeg[i].nbytes) )
+            self.prevTSDFSegGPU.append( cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.prevTSDFSeg[i].nbytes) )
+            self.WeightSegGPU.append( cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.WeightSeg[i].nbytes) )  
+
         self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32))
         
@@ -79,6 +99,23 @@ class TSDFManager():
         cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
         
         return self.TSDF
+
+    # Fuse on the GPU
+    def FuseRGBDSeg_GPU(self, Image, Pose, idx ):
+        Transform = LA.inv(Pose)
+        
+        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
+        cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
+        #isSeg = 0
+        #add this in the function self.prevTSDFGPU, self.WeightGPU,
+        self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
+                                self.TSDFSegGPU[idx], self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
+                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.prevTSDFSegGPU[idx], self.WeightSegGPU[idx])
+        
+        cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFSegGPU[idx], self.TSDFSeg[idx]).wait()
+        
+        return self.TSDFSeg[idx]
+    
         
     # Reay tracing on the GPU
     def RayTracing_GPU(self, Image, Pose):
