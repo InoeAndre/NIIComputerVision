@@ -344,11 +344,11 @@ class Application(tk.Frame):
         self.w = tk.Scale(master, from_=1, to=10, orient=tk.HORIZONTAL)
         self.w.pack()
 
-        from mayavi import mlab 
-        mlab.triangular_mesh([vert[0] for vert in self.verts],\
-                             [vert[1] for vert in self.verts],\
-                             [vert[2] for vert in self.verts],self.faces) 
-        mlab.show()
+        #from mayavi import mlab 
+        #mlab.triangular_mesh([vert[0] for vert in self.verts],\
+        #                     [vert[1] for vert in self.verts],\
+        #                     [vert[2] for vert in self.verts],self.faces) 
+        #mlab.show()
 
 
         
