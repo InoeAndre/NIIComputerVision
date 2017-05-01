@@ -241,8 +241,8 @@ class RGBD():
                                                                        ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
 
-    def DrawMesh(self, Vtx,Nmls,Pose, s, color = 0) :   
-        result = self.depth_image#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
+    def DrawMesh(self, rendering,Vtx,Nmls,Pose, s, color = 0) :   
+        result = rendering#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)#
         stack_pix = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
         stack_pt = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
         pix = np.zeros( (np.size(Vtx[ ::s,:],0),2) , dtype = np.float32)
@@ -252,14 +252,25 @@ class RGBD():
 
         nmle = np.zeros((Nmls.shape[0], Nmls.shape[1]), dtype = np.float32)
         nmle[ ::s,:] = np.dot(Nmls[ ::s,:],Pose[0:3,0:3])
-        #if (pt[2] != 0.0):
+        
+
+        # projection in 2D space
         lpt = np.split(pt,4,axis=1)
         lpt[2] = in_mat_zero2one(lpt[2])
-        # if in 1D pix[0] = pt[0]/pt[2]
         pix[ ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
-        # if in 1D pix[1] = pt[1]/pt[2]
         pix[ ::s,1] = (lpt[1]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
         pix = np.dot(pix,self.intrinsic)
+        
+#==============================================================================
+#         # change of origin
+#         rearange = range(pix.shape[0]-1,-1,-1)
+#         pix[:,1] = pix[rearange,1]
+#         nmle[ ::s,0] = nmle[rearange,0]
+#         nmle[ ::s,1] = nmle[rearange,1]
+#         nmle[ ::s,2] = nmle[rearange,2]
+#==============================================================================
+
+
         column_index = (np.round(pix[:,0])).astype(int)
         line_index = (np.round(pix[:,1])).astype(int)
         # create matrix that have 0 when the conditions are not verified and 1 otherwise
@@ -275,7 +286,7 @@ class RGBD():
             result[line_index[:], column_index[:]]= np.dstack( ( (nmle[ :,0]+1.0)*(255./2.), \
                                                                        ((nmle[ :,1]+1.0)*(255./2.))*cdt_line, \
                                                                        ((nmle[ :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
-        return result    
+        return result       
 
 ##################################################################
 ###################Bilateral Smooth Funtion#######################
@@ -589,6 +600,8 @@ class RGBD():
         line_index = pix[:,1].astype(np.int)        
         drawVects = np.array([column_index,line_index]).T
         return drawVects            
+
+
             
     def GetNewSys(self, Pose,ctr2D,nbPix, s=1) : 
         ''' compute the coordinates of the points that will create the coordinates system '''

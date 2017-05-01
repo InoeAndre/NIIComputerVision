@@ -18,6 +18,8 @@ import time
 import random
 import mcubes
 from skimage import measure
+from tempfile import TemporaryFile
+
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 TrackManager = imp.load_source('TrackManager', './lib/tracking.py')
@@ -195,10 +197,10 @@ class Application(tk.Frame):
     def CheckVerts2D(self,verts):
         '''Change the indexes values that are outside the frame''' 
         #make sure there are not false values
-        cdt_line = (verts[:,0] > -1) * (verts[:,0] < self.Size[0])
-        cdt_column = (verts[:,1] > -1) * (verts[:,1] < self.Size[1])
-        verts[:,0] = verts[:,0]*cdt_line
-        verts[:,1] = verts[:,1]*cdt_column
+        cdt_line = (verts[:,1] > -1) * (verts[:,1] < self.Size[0])
+        cdt_column = (verts[:,0] > -1) * (verts[:,0] < self.Size[1])
+        verts[:,0] = verts[:,0]*cdt_column
+        verts[:,1] = verts[:,1]*cdt_line
         return verts            
 
                 
@@ -243,16 +245,10 @@ class Application(tk.Frame):
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
         self.Index = 0
-        self.RGBD.ReadFromMat(self.Index)
-        self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.Crop2Body()
-        self.RGBD.BodySegmentation()
-        self.RGBD.BodyLabelling()
-        self.RGBD.depth_image *= (self.RGBD.labels >0)
-        self.RGBD.Vmap_optimize()  
-        self.RGBD.NMap_optimize()
-        nmlsTmp = self.RGBD.Nmls
-        self.RGBD.myPCA()
+        self.RGBD.depth_image = np.zeros(self.Size,np.float32)#self.lImages[0][self.Index].astype(np.float32) / self.fact#  
+        self.RGBD.Size = (self.Size[0], self.Size[1], 3)
+                                        
+
         elapsed_time = time.time() - start_time
         print "depth conversion: %f s" % (elapsed_time)
         
@@ -268,6 +264,7 @@ class Application(tk.Frame):
         self.RGBD2.Vmap_optimize()   
         self.RGBD2.NMap_optimize()  
         self.RGBD2.myPCA()
+        nmlsTmp = self.RGBD2.Nmls
         
         TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,0)     
         self.SizeGPU = (512,512,512)
@@ -276,6 +273,9 @@ class Application(tk.Frame):
 
         start_time = time.time()
         self.TSDF = TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose) 
+        
+        #np.save("tsdf2", self.TSDF)
+        
         i=0
 
             
@@ -286,22 +286,24 @@ class Application(tk.Frame):
         print "TSDF min"
         print np.min(self.TSDF)
         
-        # Extract the 0.01-isosurface
-        self.verts, self.faces, self.normals, self.values = measure.marching_cubes(self.TSDF, 0.0)       
+        # Extract the 0.0-isosurface
+        self.verts, self.faces, self.normals, self.values = measure.marching_cubes(self.TSDF, 0.0)   
+        #self.verts, self.faces = mcubes.marching_cubes( self.TSDF, 0.0)            
         elapsed_time = time.time() - start_time - elapsed_time
         print "marching cubes: %f s" % (elapsed_time)
         
-        vertices1 = self.verts.astype(np.ndarray)
-        triangles1 = self.faces.astype(np.ndarray)
-        mcubes.export_mesh(vertices1, triangles1, "BdyMesh.dae", "MySegBdy") 
-        print("Done. Result saved in 'BdyMesh.dae'.")
+        #mcubes.export_mesh(self.verts, self.faces, "BdyMesh.dae", "MySegBdy") 
+        #print("Done. Result saved in 'BdyMesh.dae'.")
         
+
+        rearange = range(self.verts.shape[0]-1,-1,-1)
+        self.verts[:,0] = self.verts[rearange,0]-255
+        self.verts[:,1] = self.verts[rearange,1]-255
+        self.verts[:,2] = self.verts[rearange,2]#-256
         self.verts2D = self.RGBD.GetProjPts2D_optimize(self.verts,self.Pose) 
-        print self.verts2D[:,0]
-        print self.verts2D[:,1]
-        print self.verts[:,2]
+
         self.verts2D = self.CheckVerts2D(self.verts2D)
-        self.RGBD.depth_image[self.verts2D[:,0].astype(np.int),self.verts2D[:,1].astype(np.int)]= self.verts[:,2]
+        self.RGBD.depth_image[self.verts2D[:,1].astype(np.int),self.verts2D[:,0].astype(np.int)]= self.verts[:,2]
         self.RGBD.Vmap_optimize()  
         self.RGBD.NMap_optimize()    
         #compare normals
@@ -313,7 +315,14 @@ class Application(tk.Frame):
             print "Normals are corresponding"        
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
         # new surface prediction  
-        #rendering = self.RGBD2.DrawMesh(self.verts,self.normals,self.Pose, 1, self.color_tag) 
+        self.verts[:,0] = self.verts[:,0]+270
+        self.verts[:,1] = self.verts[:,1]+230
+        self.normals = np.fliplr(self.normals)
+        rearange = range(self.normals.shape[0]-1,-1,-1)
+        self.normals[:,0] = self.normals[rearange,0]-0.5
+        self.normals[:,1] = self.normals[rearange,1]-0.5
+        self.normals[:,2] = self.normals[rearange,2]-0.5        
+        rendering = self.RGBD2.DrawMesh(rendering,self.verts,self.normals,self.Pose, 1, self.color_tag) 
         # new pose estimation
         Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
         self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
@@ -344,11 +353,13 @@ class Application(tk.Frame):
         self.w = tk.Scale(master, from_=1, to=10, orient=tk.HORIZONTAL)
         self.w.pack()
 
-        from mayavi import mlab 
-        mlab.triangular_mesh([vert[0] for vert in self.verts],\
-                             [vert[1] for vert in self.verts],\
-                             [vert[2] for vert in self.verts],self.faces) 
-        mlab.show()
+#==============================================================================
+#         from mayavi import mlab 
+#         mlab.triangular_mesh([vert[0] for vert in self.verts],\
+#                              [vert[1] for vert in self.verts],\
+#                              [vert[2] for vert in self.verts],self.faces) 
+#         mlab.show()
+#==============================================================================
 
 
         
