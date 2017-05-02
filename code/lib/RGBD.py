@@ -259,17 +259,7 @@ class RGBD():
         lpt[2] = in_mat_zero2one(lpt[2])
         pix[ ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
         pix[ ::s,1] = (lpt[1]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
-        pix = np.dot(pix,self.intrinsic)
-        
-#==============================================================================
-#         # change of origin
-#         rearange = range(pix.shape[0]-1,-1,-1)
-#         pix[:,1] = pix[rearange,1]
-#         nmle[ ::s,0] = nmle[rearange,0]
-#         nmle[ ::s,1] = nmle[rearange,1]
-#         nmle[ ::s,2] = nmle[rearange,2]
-#==============================================================================
-
+        pix = np.dot(pix,self.intrinsic.T)
 
         column_index = (np.round(pix[:,0])).astype(int)
         line_index = (np.round(pix[:,1])).astype(int)

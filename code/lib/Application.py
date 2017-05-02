@@ -50,8 +50,9 @@ class Application(tk.Frame):
 
         if (event.keysym != 'Escape'):
             self.Pose = np.dot(self.Pose, Transfo)
-            #rendering = self.RGBD.DrawMesh(self.verts,self.normals,self.Pose, 1, self.color_tag) 
             rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            Transform = LA.inv(self.Pose)
+            rendering = self.RGBD.DrawMesh(rendering,self.verts,self.normals,Transform, self.w.get(), self.color_tag) 
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -97,10 +98,10 @@ class Application(tk.Frame):
                             [0., cos(anglex), -sin(anglex), 0.], \
                             [0., sin(anglex), cos(anglex), 0.], \
                             [0., 0., 0., 1.]])
-            self.Pose = np.dot(self.Pose, RotX)
-            
+            self.Pose = np.dot(self.Pose, RotX)          
             rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
-            #rendering = self.RGBD.DrawMesh(self.verts,self.normals,self.Pose, 1, self.color_tag) 
+            Transform = LA.inv(self.Pose)
+            rendering = self.RGBD.DrawMesh(rendering,self.verts,self.normals,Transform, self.w.get(), self.color_tag) 
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -274,9 +275,10 @@ class Application(tk.Frame):
         start_time = time.time()
         self.TSDF = TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose) 
         
+        #save as data
         #np.save("tsdf2", self.TSDF)
         
-        i=0
+        #i=0
 
             
         elapsed_time = time.time() - start_time
@@ -286,22 +288,29 @@ class Application(tk.Frame):
         print "TSDF min"
         print np.min(self.TSDF)
         
-        # Extract the 0.0-isosurface
-        self.verts, self.faces, self.normals, self.values = measure.marching_cubes(self.TSDF, 0.0)   
-        #self.verts, self.faces = mcubes.marching_cubes( self.TSDF, 0.0)            
+        # Make a 3d mesh with the 0.0-isosurface in the tsdf
+        self.verts, self.faces, self.normals, self.values = measure.marching_cubes(self.TSDF, 0.0)         
         elapsed_time = time.time() - start_time - elapsed_time
         print "marching cubes: %f s" % (elapsed_time)
         
-        #mcubes.export_mesh(self.verts, self.faces, "BdyMesh.dae", "MySegBdy") 
-        #print("Done. Result saved in 'BdyMesh.dae'.")
-        
+#==============================================================================
+#         #export mesh
+#         vertices1 = self.verts.astype(np.ndarray)
+#         triangles1 = self.faces.astype(np.ndarray)
+#         mcubes.export_mesh(vertices1, triangles1, "BdyMesh.dae", "MySegBdy") 
+#         print("Done. Result saved in 'BdyMesh.dae'.")
+#         
+#==============================================================================
 
-        rearange = range(self.verts.shape[0]-1,-1,-1)
-        self.verts[:,0] = self.verts[rearange,0]-255
-        self.verts[:,1] = self.verts[rearange,1]-255
-        self.verts[:,2] = self.verts[rearange,2]#-256
+        #rearange = range(self.verts.shape[0]-1,-1,-1)
+        #rearange = range(self.verts.shape[0])
+        #self.verts[:,2] = self.verts[rearange,2]
+        #self.vertsbis = self.verts.copy()
+        #self.vertsbis[:,0:2] = np.fliplr(self.vertsbis[:,0:2])
+        self.verts[:,0] = self.verts[:,2]*(self.verts[:,0]- self.intrinsic[0,2])/self.intrinsic[0,0]
+        self.verts[:,1] = self.verts[:,2]*(self.verts[:,1]- self.intrinsic[1,2])/self.intrinsic[1,1]
+
         self.verts2D = self.RGBD.GetProjPts2D_optimize(self.verts,self.Pose) 
-
         self.verts2D = self.CheckVerts2D(self.verts2D)
         self.RGBD.depth_image[self.verts2D[:,1].astype(np.int),self.verts2D[:,0].astype(np.int)]= self.verts[:,2]
         self.RGBD.Vmap_optimize()  
@@ -315,20 +324,13 @@ class Application(tk.Frame):
             print "Normals are corresponding"        
         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag) 
         # new surface prediction  
-        self.verts[:,0] = self.verts[:,0]+270
-        self.verts[:,1] = self.verts[:,1]+230
-        self.normals = np.fliplr(self.normals)
-        rearange = range(self.normals.shape[0]-1,-1,-1)
-        self.normals[:,0] = self.normals[rearange,0]-0.5
-        self.normals[:,1] = self.normals[rearange,1]-0.5
-        self.normals[:,2] = self.normals[rearange,2]-0.5        
         rendering = self.RGBD2.DrawMesh(rendering,self.verts,self.normals,self.Pose, 1, self.color_tag) 
         # new pose estimation
         Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
         self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
         elapsed_time = time.time() - start_time - elapsed_time
         print "Tracking: %f" % (elapsed_time)
-        print "Image number %d done" % (i)
+        #print "Image number %d done" % (i)
 
             
         # Show figure and images
@@ -341,7 +343,7 @@ class Application(tk.Frame):
         #self.DrawCenters2D(self.Pose)
         #self.DrawSys2D(self.Pose)
         #self.DrawOBBox2D(self.Pose)
-        #self.DrawMesh2D(self.Pose,verts,faces)
+        #self.DrawMesh2D(self.Pose,self.verts,self.faces)
 
         
         #enable keyboard and mouse monitoring
