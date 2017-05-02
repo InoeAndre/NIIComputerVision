@@ -201,6 +201,7 @@ class Tracker():
                 res = np.dot(delta_transfo, res)
                 
                 print res
+        return res
                 
     def RegisterRGBD_optimize(self, Image1, Image2):
         

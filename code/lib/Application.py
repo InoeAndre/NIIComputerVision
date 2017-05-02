@@ -250,6 +250,20 @@ class Application(tk.Frame):
         #self.DrawSys2D(self.Pose)
         #self.DrawOBBox2D(self.Pose)
 
+#==============================================================================
+# <<<<<<< HEAD
+# =======
+#            
+#         # Current Depth Image (i.e: i)
+#         start_time = time.time()
+#         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
+#         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
+#         self.Index = 0
+#         self.RGBD.depth_image = self.lImages[0][self.Index].astype(np.float32) / self.fact#  np.zeros(self.Size,np.float32)#
+#         self.RGBD.Size = (self.Size[0], self.Size[1], 3)
+#                                         
+# >>>>>>> add return value in RegisterRGBD non optimize
+#==============================================================================
 
         '''
         Test Register
@@ -321,6 +335,55 @@ class Application(tk.Frame):
         End Test
         '''
         
+#==============================================================================
+# <<<<<<< HEAD
+# =======
+# #==============================================================================
+# #         #export mesh
+# #         vertices1 = self.verts.astype(np.ndarray)
+# #         triangles1 = self.faces.astype(np.ndarray)
+# #         mcubes.export_mesh(vertices1, triangles1, "BdyMesh.dae", "MySegBdy") 
+# #         print("Done. Result saved in 'BdyMesh.dae'.")
+# #         
+# #==============================================================================
+# 
+#         # transform to adapt to the camera point of view 
+#         self.verts[:,0] = self.verts[:,2]*(self.verts[:,0]- self.intrinsic[0,2])/self.intrinsic[0,0]
+#         self.verts[:,1] = self.verts[:,2]*(self.verts[:,1]- self.intrinsic[1,2])/self.intrinsic[1,1]
+# 
+#         # reconstruction depth_image need projections.
+#         self.verts2D = self.RGBD.GetProjPts2D_optimize(self.verts,self.Pose) 
+#         self.verts2D = self.CheckVerts2D(self.verts2D)
+#         self.RGBD.depth_image[self.verts2D[:,1].astype(np.int),self.verts2D[:,0].astype(np.int)]= self.verts[:,2]
+#         self.RGBD.Vmap_optimize()  
+#         self.RGBD.NMap_optimize()    
+#         #compare normals
+#         print "nmlsTmp"
+#         print np.max(nmlsTmp)
+#         print "RGBD.Nmls"
+#         print np.max(self.RGBD.Nmls)
+#         if ((nmlsTmp[:][:]-self.RGBD.Nmls[:][:]) < 0.1).all():
+#             print "Normals are corresponding"     
+# 
+#         # new pose estimation
+#         Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
+#         self.Pose *= Tracker.RegisterRGBD(self.RGBD2,self.RGBD)
+#         print 'self.Pose'
+#         print self.Pose
+#         elapsed_time = time.time() - start_time - elapsed_time
+#         print "Tracking: %f" % (elapsed_time)
+#         #print "Image number %d done" % (i)
+# 
+#         # projection in 2d space to draw it
+#         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+#         # Projection directly with the output of the marching cubes  
+#         rendering = self.RGBD2.DrawMesh(rendering,self.verts,self.normals,self.Pose, 1, self.color_tag) 
+#             
+#         # Show figure and images
+#             
+#         # 3D reconstruction of the whole image
+# >>>>>>> add return value in RegisterRGBD non optimize
+#==============================================================================
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
