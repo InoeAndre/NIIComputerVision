@@ -39,13 +39,14 @@ class TSDFManager():
         self.dim_x = self.Size[0]/5.0
         self.dim_y = self.Size[1]/5.0
         self.dim_z = self.Size[2]/5.0
+        self.res = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32)
         
         self.GPUManager = GPUManager
         self.Size_Volume = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = np.array([self.Size[0], self.Size[1], self.Size[2]], dtype = np.int32))
         self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
         self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
-                               hostbuf = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32))
+                               hostbuf = self.res)
         
         #fmt = cl.ImageFormat(cl.channel_order.RGB, cl.channel_type.FLOAT)
         #self.VMapGPU = cl.Image(self.GPUManager.context, mf.READ_ONLY, fmt, shape = (Image.Size[1], Image.Size[0]))
@@ -61,7 +62,7 @@ class TSDFManager():
 
     # Fuse on the GPU
     def FuseRGBD_GPU(self, Image, Pose):
-        Transform = LA.inv(Pose)
+        Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
         
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
@@ -69,6 +70,8 @@ class TSDFManager():
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
                                 np.int32(Image.Size[0]), np.int32(Image.Size[1]))
+        
+        #cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
         
     # Reay tracing on the GPU
     def RayTracing_GPU(self, Image, Pose):
