@@ -20,6 +20,7 @@ RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 TrackManager = imp.load_source('TrackManager', './lib/tracking.py')
 TSDFtk = imp.load_source('TSDFtk', './lib/TSDF.py')
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
+My_MC = imp.load_source('My_MarchingCube', './lib/My_MarchingCube.py')
 
 class Application(tk.Frame):
     ## Function to handle keyboard inputs
@@ -49,9 +50,9 @@ class Application(tk.Frame):
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-            self.DrawCenters2D(self.Pose)
-            self.DrawSys2D(self.Pose)
-            self.DrawOBBox2D(self.Pose)
+            #self.DrawCenters2D(self.Pose)
+           # self.DrawSys2D(self.Pose)
+            #self.DrawOBBox2D(self.Pose)
 
 
     ## Function to handle mouse press event
@@ -290,6 +291,18 @@ class Application(tk.Frame):
         self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
         elapsed_time = time.time() - start_time
         print "RayTracing_GPU: %f" % (elapsed_time)
+        
+        
+        self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
+        start_time = time.time()
+        self.MC.runGPU(TSDFManager.TSDFGPU)
+        elapsed_time = time.time() - start_time
+        print "MarchingCubes: %f" % (elapsed_time)
+        start_time = time.time()
+        self.MC.SaveToPly("result.ply")
+        elapsed_time = time.time() - start_time
+        print "SaveToPly: %f" % (elapsed_time)
+        
         #start_time = time.time()
         #TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
         #elapsed_time = time.time() - start_time

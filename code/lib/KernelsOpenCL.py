@@ -20,7 +20,7 @@ Kernel_FuseTSDF = """
 __kernel void FuseTSDF(__global float *TSDF, __global float *Depth, __constant float *Param, __constant int *Dim,
                            __constant float *Pose, __constant float *calib, const int n_row, const int m_col) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
-        const float nu = 0.1f;
+        const float nu = 0.05f;
             
         float4 pt;
         float4 pt_T;
@@ -34,7 +34,7 @@ __kernel void FuseTSDF(__global float *TSDF, __global float *Depth, __constant f
         float y_T =  Pose[4]*pt.x + Pose[5]*pt.y + Pose[7];
         float z_T =  Pose[8]*pt.x + Pose[9]*pt.y + Pose[11];
         
-        for (int z = 0; z < 512; z++) { /*depth*/
+        for (int z = 0; z < Dim[2]; z++) { /*depth*/
             // Transform voxel coordinates into 3D point coordinates
             // Param = [c_x, dim_x, c_y, dim_y, c_z, dim_z]
             pt.z = ((float)(z)-Param[4])/Param[5];
@@ -44,41 +44,38 @@ __kernel void FuseTSDF(__global float *TSDF, __global float *Depth, __constant f
             pt_T.y = y_T + Pose[6]*pt.z;
             pt_T.z = z_T + Pose[10]*pt.z;
             
-            /* from here there is the copy for Diego's device and Inoe's device. */
-            
-            /*************************** Inoe **************************************/
             // Project onto Image
             pix.x = convert_int(round((pt_T.x/fabs(pt_T.z))*calib[0] + calib[2])); 
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
-            if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1) {
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = -1.0f;
+            if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1){
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1.0f;
                 continue;
             }
             
-            TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = (pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
-            
-            
-            /*************************** Diego **************************************/
-            // Project onto Image
-            /*
-            pix.x = convert_int(round((pt_T[0]/fabs(pt_T[2]))*calib[0] + calib[2])); 
-            pix.y = convert_int(round((pt_T[1]/fabs(pt_T[2]))*calib[4] + calib[5])); 
-            
-            
-            if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1) {
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = -1.0f;
+            float dist = -(pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
+            if (Depth[pix.x + m_col*pix.y] == 0.0f) {
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1.0f;
                 continue;
             }
-            */    
-            // float4 Proj_pt = read_imagef(VMap, smp, (int2){pix.x, pix.y});
-            /*
-            TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = (pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
-            */
-            //if (dist > 0.0)
-            //   TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = min(1.0f, dist/nu);
-            //else
-            //    TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = max(-1.0f, dist/nu);
+            
+            /*if (dist > -nu)
+                dist = min(1.0f, dist/nu);
+            else
+                dist = max(1.0f, dist/nu);*/
+            
+        
+            // Global update
+            int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
+            
+            TSDF[idx] = dist;
+            
+            /*TSDF[idx] = (TSDF[idx]*Weight[idx] + dist)/(1.0f+Weight[idx]);
+            
+            if (Weight[idx]+1.0f > Wmax) 
+                Weight[idx] = Wmax;
+            else 
+                Weight[idx] = Weight[idx]+1.0f;*/
         }
 }
 """
