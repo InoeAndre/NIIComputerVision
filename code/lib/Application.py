@@ -46,12 +46,13 @@ class Application(tk.Frame):
 
         if (event.keysym != 'Escape'):
             self.Pose = np.dot(self.Pose, Transfo)
-            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            #rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, self.w.get())
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
             #self.DrawCenters2D(self.Pose)
-           # self.DrawSys2D(self.Pose)
+            #self.DrawSys2D(self.Pose)
             #self.DrawOBBox2D(self.Pose)
 
 
@@ -94,13 +95,14 @@ class Application(tk.Frame):
                             [0., 0., 0., 1.]])
             self.Pose = np.dot(self.Pose, RotX)
             
-            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            #rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, self.w.get())
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-            self.DrawCenters2D(self.Pose)
-            self.DrawSys2D(self.Pose)
-            self.DrawOBBox2D(self.Pose)
+            #self.DrawCenters2D(self.Pose)
+            #self.DrawSys2D(self.Pose)
+            #self.DrawOBBox2D(self.Pose)
        
         self.x_init = event.x
         self.y_init = event.y
@@ -237,16 +239,16 @@ class Application(tk.Frame):
         # Show figure and images
             
         # 3D reconstruction of the whole image
-        self.canvas = tk.Canvas(self, bg="white", height=self.Size[0], width=self.Size[1])
+        self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()
         rendering = self.DrawColors2D(rendering,self.Pose)
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+        #self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
         #self.DrawSkeleton2D(self.Pose)
-        self.DrawCenters2D(self.Pose)
-        self.DrawSys2D(self.Pose)
-        self.DrawOBBox2D(self.Pose)
+        #self.DrawCenters2D(self.Pose)
+        #self.DrawSys2D(self.Pose)
+        #self.DrawOBBox2D(self.Pose)
 
 
         '''
@@ -298,10 +300,12 @@ class Application(tk.Frame):
         self.MC.runGPU(TSDFManager.TSDFGPU)
         elapsed_time = time.time() - start_time
         print "MarchingCubes: %f" % (elapsed_time)
-        start_time = time.time()
-        self.MC.SaveToPly("result.ply")
-        elapsed_time = time.time() - start_time
-        print "SaveToPly: %f" % (elapsed_time)
+        #start_time = time.time()
+        #self.MC.SaveToPly("result.ply")
+        #elapsed_time = time.time() - start_time
+        #print "SaveToPly: %f" % (elapsed_time)
+        
+        rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, 2)
         
         #start_time = time.time()
         #TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
@@ -311,7 +315,7 @@ class Application(tk.Frame):
         self.RGBD.BilateralFilter(-1, 0.02, 3)
         self.RGBD.Vmap_optimize()
         self.RGBD.NMap_optimize()
-        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+        #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
         
         '''
         End Test
