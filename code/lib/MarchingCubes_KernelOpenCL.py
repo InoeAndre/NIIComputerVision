@@ -147,7 +147,7 @@ __constant int ConfigCount[128] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3,
 3, 2, 3, 3, 4, 3, 4, 4, 3, 3, 4, 4, 3, 4, 3, 3, 2, 2, 3, 3, 4, 3, 4, 2, 3, 3, 4, 4, 3, 4, 3, 3, 2, 3, 4, 4, 3, 4, 3, 3, 2, 4, 3, 
 3, 2, 3, 2, 2, 1 };
 
-__kernel void MarchingCubes(__global int *Offset, __global int *IndexVal, __global float * Vertices, __global int *Faces,  __constant float *Param, __constant int *Dim) {
+__kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global int *IndexVal, __global float * Vertices, __global int *Faces,  __constant float *Param, __constant int *Dim) {
 
         int x = get_global_id(0); /*height*/
         int y = get_global_id(1); /*width*/
@@ -158,6 +158,8 @@ __kernel void MarchingCubes(__global int *Offset, __global int *IndexVal, __glob
         float v[12][3] = {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f},
              {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f},
              {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}};
+        
+        float vals[8] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
         
         // get the 8  current summits
         s[0][0] = ((float)(x) - Param[0])/Param[1];
@@ -176,19 +178,6 @@ __kernel void MarchingCubes(__global int *Offset, __global int *IndexVal, __glob
         s[6][1] = ((float)(y+1) - Param[2])/Param[3]; 
         s[7][0] = ((float)(x) - Param[0])/Param[1]; 
         s[7][1] = ((float)(y+1) - Param[2])/Param[3]; 
-        
-        v[0][0] = (s[0][0] + s[1][0])/2.0f; v[0][1] = (s[0][1] + s[1][1])/2.0f;
-        v[1][0] = (s[1][0] + s[2][0])/2.0f; v[1][1] = (s[1][1] + s[2][1])/2.0f;
-        v[2][0] = (s[2][0] + s[3][0])/2.0f; v[2][1] = (s[2][1] + s[3][1])/2.0f; 
-        v[3][0] = (s[0][0] + s[3][0])/2.0f; v[3][1] = (s[0][1] + s[3][1])/2.0f; 
-        v[4][0] = (s[1][0] + s[5][0])/2.0f; v[4][1] = (s[1][1] + s[5][1])/2.0f; 
-        v[5][0] = (s[2][0] + s[6][0])/2.0f; v[5][1] = (s[2][1] + s[6][1])/2.0f; 
-        v[6][0] = (s[3][0] + s[7][0])/2.0f; v[6][1] = (s[3][1] + s[7][1])/2.0f; 
-        v[7][0] = (s[0][0] + s[4][0])/2.0f; v[7][1] = (s[0][1] + s[4][1])/2.0f; 
-        v[8][0] = (s[4][0] + s[5][0])/2.0f; v[8][1] = (s[4][1] + s[5][1])/2.0f; 
-        v[9][0] = (s[5][0] + s[6][0])/2.0f; v[9][1] = (s[5][1] + s[6][1])/2.0f; 
-        v[10][0] = (s[6][0] + s[7][0])/2.0f; v[10][1] = (s[6][1] + s[7][1])/2.0f;
-        v[11][0] = (s[4][0] + s[7][0])/2.0f; v[11][1] = (s[4][1] + s[7][1])/2.0f;
             
         int index;
         int id;
@@ -208,6 +197,17 @@ __kernel void MarchingCubes(__global int *Offset, __global int *IndexVal, __glob
                 reverse = true;
                 index = -index;
             }
+            
+            // get the values of the implicit function at the summits
+            // [val_0 ... val_7]
+            vals[0] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x]));
+            vals[1] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*(x+1)]));
+            vals[2] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*(y+1) + Dim[0]*Dim[1]*(x+1)]));
+            vals[3] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*(y+1) + Dim[0]*Dim[1]*x]));
+            vals[4] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*y + Dim[0]*Dim[1]*x]));
+            vals[5] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*y + Dim[0]*Dim[1]*(x+1)]));
+            vals[6] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*(y+1) + Dim[0]*Dim[1]*(x+1)]));
+            vals[7] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*(y+1) + Dim[0]*Dim[1]*x]));
         
             // get the 8  current summits
             s[0][2] = ((float)(z) - Param[4])/Param[5];
@@ -222,18 +222,32 @@ __kernel void MarchingCubes(__global int *Offset, __global int *IndexVal, __glob
             int nb_faces = ConfigCount[index];
             int offset = Offset[id];
             
-            v[0][2] = (s[0][2] + s[1][2])/2.0f;
-            v[1][2] = (s[1][2] + s[2][2])/2.0f;
-            v[2][2] = (s[2][2] + s[3][2])/2.0f;
-            v[3][2] = (s[0][2] + s[3][2])/2.0f;
-            v[4][2] = (s[1][2] + s[5][2])/2.0f;
-            v[5][2] = (s[2][2] + s[6][2])/2.0f;
-            v[6][2] = (s[3][2] + s[7][2])/2.0f;
-            v[7][2] = (s[0][2] + s[4][2])/2.0f;
-            v[8][2] = (s[4][2] + s[5][2])/2.0f;
-            v[9][2] = (s[5][2] + s[6][2])/2.0f;
-            v[10][2] = (s[6][2] + s[7][2])/2.0f;
-            v[11][2] = (s[4][2] + s[7][2])/2.0f;
+            
+            v[0][0] = (vals[0]*s[0][0] + vals[1]*s[1][0])/(vals[0]+vals[1]); v[0][1] = (vals[0]*s[0][1] + vals[1]*s[1][1])/(vals[0]+vals[1]);
+            v[1][0] = (vals[1]*s[1][0] + vals[2]*s[2][0])/(vals[1]+vals[2]); v[1][1] = (vals[1]*s[1][1] + vals[2]*s[2][1])/(vals[1]+vals[2]);
+            v[2][0] = (vals[2]*s[2][0] + vals[3]*s[3][0])/(vals[2]+vals[3]); v[2][1] = (vals[2]*s[2][1] + vals[3]*s[3][1])/(vals[2]+vals[3]); 
+            v[3][0] = (vals[0]*s[0][0] + vals[3]*s[3][0])/(vals[0]+vals[3]); v[3][1] = (vals[0]*s[0][1] + vals[3]*s[3][1])/(vals[0]+vals[3]); 
+            v[4][0] = (vals[1]*s[1][0] + vals[5]*s[5][0])/(vals[1]+vals[5]); v[4][1] = (vals[1]*s[1][1] + vals[5]*s[5][1])/(vals[1]+vals[5]); 
+            v[5][0] = (vals[2]*s[2][0] + vals[6]*s[6][0])/(vals[2]+vals[6]); v[5][1] = (vals[2]*s[2][1] + vals[6]*s[6][1])/(vals[2]+vals[6]); 
+            v[6][0] = (vals[3]*s[3][0] + vals[7]*s[7][0])/(vals[3]+vals[7]); v[6][1] = (vals[3]*s[3][1] + vals[7]*s[7][1])/(vals[3]+vals[7]); 
+            v[7][0] = (vals[0]*s[0][0] + vals[4]*s[4][0])/(vals[0]+vals[4]); v[7][1] = (vals[0]*s[0][1] + vals[4]*s[4][1])/(vals[0]+vals[4]); 
+            v[8][0] = (vals[4]*s[4][0] + vals[5]*s[5][0])/(vals[4]+vals[5]); v[8][1] = (vals[4]*s[4][1] + vals[5]*s[5][1])/(vals[4]+vals[5]); 
+            v[9][0] = (vals[5]*s[5][0] + vals[6]*s[6][0])/(vals[5]+vals[6]); v[9][1] = (vals[5]*s[5][1] + vals[6]*s[6][1])/(vals[5]+vals[6]); 
+            v[10][0] = (vals[6]*s[6][0] + vals[7]*s[7][0])/(vals[6]+vals[7]); v[10][1] = (vals[6]*s[6][1] + vals[7]*s[7][1])/(vals[6]+vals[7]);
+            v[11][0] = (vals[4]*s[4][0] + vals[7]*s[7][0])/(vals[4]+vals[7]); v[11][1] = (vals[4]*s[4][1] + vals[7]*s[7][1])/(vals[4]+vals[7]);
+            
+            v[0][2] = (vals[0]*s[0][2] + vals[1]*s[1][2])/(vals[0]+vals[1]);
+            v[1][2] = (vals[1]*s[1][2] + vals[2]*s[2][2])/(vals[1]+vals[2]);
+            v[2][2] = (vals[2]*s[2][2] + vals[3]*s[3][2])/(vals[2]+vals[3]);
+            v[3][2] = (vals[0]*s[0][2] + vals[3]*s[3][2])/(vals[0]+vals[3]);
+            v[4][2] = (vals[1]*s[1][2] + vals[5]*s[5][2])/(vals[1]+vals[5]);
+            v[5][2] = (vals[2]*s[2][2] + vals[6]*s[6][2])/(vals[2]+vals[6]);
+            v[6][2] = (vals[3]*s[3][2] + vals[7]*s[7][2])/(vals[3]+vals[7]);
+            v[7][2] = (vals[0]*s[0][2] + vals[4]*s[4][2])/(vals[0]+vals[4]);
+            v[8][2] = (vals[4]*s[4][2] + vals[5]*s[5][2])/(vals[4]+vals[5]);
+            v[9][2] = (vals[5]*s[5][2] + vals[6]*s[6][2])/(vals[5]+vals[6]);
+            v[10][2] = (vals[6]*s[6][2] + vals[7]*s[7][2])/(vals[6]+vals[7]);
+            v[11][2] = (vals[4]*s[4][2] + vals[7]*s[7][2])/(vals[4]+vals[7]);
             
             // add new faces in the list
             for (int f = 0; f < nb_faces; f++) {
@@ -258,6 +272,18 @@ __kernel void MarchingCubes(__global int *Offset, __global int *IndexVal, __glob
                     Vertices[9*(offset+f)+6] = v[Config[index][f][2]][0];
                     Vertices[9*(offset+f)+7] = v[Config[index][f][2]][1];
                     Vertices[9*(offset+f)+8] = v[Config[index][f][2]][2];
+                    
+                    /*Normals[9*(offset+f)] = v[Config[index][f][0]][0];
+                    Normals[9*(offset+f)+1] = v[Config[index][f][0]][1];
+                    Normals[9*(offset+f)+2] = v[Config[index][f][0]][2];
+                    
+                    Normals[9*(offset+f)+3] = v[Config[index][f][1]][0];
+                    Normals[9*(offset+f)+4] = v[Config[index][f][1]][1];
+                    Normals[9*(offset+f)+5] = v[Config[index][f][1]][2];
+                    
+                    Normals[9*(offset+f)+6] = v[Config[index][f][2]][0];
+                    Normals[9*(offset+f)+7] = v[Config[index][f][2]][1];
+                    Normals[9*(offset+f)+8] = v[Config[index][f][2]][2];*/
             }
         }
 }

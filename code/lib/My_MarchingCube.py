@@ -62,7 +62,7 @@ class My_MarchingCube():
         self.VerticesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Vertices.nbytes)
         
         self.GPUManager.programs['MarchingCubes'].MarchingCubes(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
-                                self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.ParamGPU, self.Size_Volume)
+                                VolGPU, self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.ParamGPU, self.Size_Volume)
         
         cl.enqueue_read_buffer(self.GPUManager.queue, self.VerticesGPU, self.Vertices).wait()
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FacesGPU, self.Faces).wait()
@@ -97,7 +97,62 @@ class My_MarchingCube():
         f.close()
                     
                     
+    '''
+        Function to draw the mesh using tkinter
+    '''
+    def DrawMesh(self, Pose, intrinsic, Size, canvas):
+        
+        #Draw all faces
+        pix = np.array([0., 0., 1.])
+        pt = np.array([0., 0., 0., 1.])
+        for i in range(self.nb_faces[0]):
+            inviewingvolume = False
+            poly = []
+            for k in range(3):
+                pt[0] = self.Vertices[self.Faces[i,k],0]
+                pt[1] = self.Vertices[self.Faces[i,k],1]
+                pt[2] = self.Vertices[self.Faces[i,k],2]
+                pt = np.dot(Pose, pt)
+                pix[0] = pt[0]/pt[2]
+                pix[1] = pt[1]/pt[2]
+                pix = np.dot(intrinsic, pix)
+                column_index = int(round(pix[0]))
+                line_index = int(round(pix[1]))
+                poly.append((column_index, line_index))
                     
+                if (column_index > -1 and column_index < Size[1] and line_index > -1 and line_index < Size[0]):
+                    inviewingvolume = True
+                    
+            if inviewingvolume:
+                canvas.create_polygon(*poly, fill='white')
+                    
+                
+    '''
+        Function to draw the vertices of the mesh using tkinter
+    '''
+    def DrawPoints(self, Pose, intrinsic, Size, s=1):
+        result = np.zeros((Size[0], Size[1], 3), dtype = np.uint8)
+        
+        pt = np.ones(((np.size(self.Vertices, 0)-1)/s+1, np.size(self.Vertices, 1)+1))
+        pt[:,:-1] = self.Vertices[::s, :]
+        pt = np.dot(Pose,pt.transpose()).transpose()
+        #nmle = np.zeros((self.Size[0], self.Size[1],self.Size[2]), dtype = np.float32)
+        #nmle[ ::s, ::s,:] = np.dot(Pose[0:3,0:3],self.Nmls[ ::s, ::s,:].transpose(0,2,1)).transpose(1,2,0)
+        
+        pix = np.ones(((np.size(self.Vertices, 0)-1)/s+1, np.size(self.Vertices, 1)))
+        pix[:,0] = pt[:,0]/pt[:,2]
+        pix[:,1] = pt[:,1]/pt[:,2]
+        pix = np.dot(intrinsic,pix.transpose()).transpose()
+        
+        column_index = (np.round(pix[:,0])).astype(int)
+        line_index = (np.round(pix[:,1])).astype(int)
+        # create matrix that have 0 when the conditions are not verified and 1 otherwise
+        cdt_column = (column_index > -1) * (column_index < Size[1]) * pt[:,2] > 0.0
+        cdt_line = (line_index > -1) * (line_index < Size[0]) * pt[:,2] > 0.0
+        line_index = line_index*cdt_line
+        column_index = column_index*cdt_column
+        result[line_index[:], column_index[:]]= 255*np.ones((np.size(pix, 0), 3), dtype = np.uint8)
+        return result
                     
                     
                     
