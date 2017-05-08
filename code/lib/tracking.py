@@ -289,5 +289,6 @@ class Tracker():
                 res = np.dot(delta_transfo, res)
                 
                 print res
+        return res
                 
                 

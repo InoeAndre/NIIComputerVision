@@ -130,8 +130,9 @@ class My_MarchingCube():
     '''
         Function to draw the vertices of the mesh using tkinter
     '''
-    def DrawPoints(self, Pose, intrinsic, Size, s=1):
-        result = np.zeros((Size[0], Size[1], 3), dtype = np.uint8)
+    def DrawPoints(self, Pose, intrinsic, Size,background,s=1):
+        #result = np.zeros((Size[0], Size[1], 3), dtype = np.uint8)
+        result = background.astype(np.uint8)
         
         pt = np.ones(((np.size(self.Vertices, 0)-1)/s+1, np.size(self.Vertices, 1)+1))
         pt[:,:-1] = self.Vertices[::s, :]
