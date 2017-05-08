@@ -49,7 +49,7 @@ class Application(tk.Frame):
 
         if (event.keysym != 'Escape'):
             self.Pose = np.dot(self.Pose, Transfo)
-            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            rendering = self.RGBD2.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
             rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, rendering,self.w.get())
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
@@ -98,7 +98,7 @@ class Application(tk.Frame):
                             [0., 0., 0., 1.]])
 
             self.Pose = np.dot(self.Pose, RotX)
-            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            rendering = self.RGBD2.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
             rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size,rendering, self.w.get())
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
@@ -235,14 +235,22 @@ class Application(tk.Frame):
         connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
         self.connection = connectionMat['SkeletonConnectionMap']
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
+        Id4 = np.identity(4)
 
         # Current Depth Image (i.e: i)
         start_time = time.time()
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
         self.Index = 0
-        self.RGBD.depth_image = self.lImages[0][self.Index].astype(np.float32) / self.fact#  np.zeros(self.Size,np.float32)#
-        self.RGBD.Size = (self.Size[0], self.Size[1], 3)
+        self.RGBD.ReadFromMat(self.Index) 
+        self.RGBD.BilateralFilter(-1, 0.02, 3) 
+        self.RGBD.Crop2Body() 
+        self.RGBD.BodySegmentation() 
+        self.RGBD.BodyLabelling()         
+        self.RGBD.depth_image *= (self.RGBD.labels >0) 
+        self.RGBD.Vmap_optimize()   
+        self.RGBD.NMap_optimize()  
+        self.RGBD.myPCA()
                                         
 
         elapsed_time = time.time() - start_time
@@ -253,7 +261,7 @@ class Application(tk.Frame):
 
         self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact) 
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )         
-        self.RGBD2.ReadFromMat(self.Index) 
+        self.RGBD2.ReadFromMat(self.Index+1) 
         self.RGBD2.BilateralFilter(-1, 0.02, 3) 
         self.RGBD2.Crop2Body() 
         self.RGBD2.BodySegmentation() 
@@ -265,9 +273,9 @@ class Application(tk.Frame):
 
         print "raw conversion + segmentation: %f" % (elapsed_time3)        
     
-        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager)
+        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
         start_time = time.time()
-        TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)
+        TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
         elapsed_time = time.time() - start_time
         print "FuseRGBD_GPU: %f" % (elapsed_time)
         start_time = time.time()        
@@ -282,18 +290,6 @@ class Application(tk.Frame):
         #elapsed_time = time.time() - start_time
         #print "SaveToPly: %f" % (elapsed_time)
         
-        # transform to adapt to the camera point of view 
-        self.verts = np.zeros(self.MC.Vertices.shape)
-        self.verts[:,0] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,0]- self.intrinsic[0,2])/self.intrinsic[0,0]
-        self.verts[:,1] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,1]- self.intrinsic[1,2])/self.intrinsic[1,1]
-
-        # reconstruction depth_image need projections.
-        self.verts2D = self.RGBD.GetProjPts2D_optimize(self.verts,self.Pose) 
-        self.verts2D = self.CheckVerts2D(self.verts2D)
-        self.RGBD.depth_image[self.verts2D[:,1].astype(np.int),self.verts2D[:,0].astype(np.int)]= self.verts[:,2]
-        self.RGBD.Vmap_optimize()  
-        self.RGBD.NMap_optimize()    
-        
         
         # new pose estimation
         Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
@@ -305,7 +301,8 @@ class Application(tk.Frame):
         #print "Image number %d done" % (i)
  
         # projection in 2d space to draw it
-        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+        rendering = self.RGBD2.Draw_optimize(Id4, 1, self.color_tag)
+        
         # Projection directly with the output of the marching cubes  
         rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size,rendering,2)
         
@@ -338,12 +335,14 @@ class Application(tk.Frame):
         self.w = tk.Scale(master, from_=1, to=10, orient=tk.HORIZONTAL)
         self.w.pack()
 
-            
-        from mayavi import mlab 
-        mlab.triangular_mesh([vert[0] for vert in self.MC.Vertices],\
-                             [vert[1] for vert in self.MC.Vertices],\
-                             [vert[2] for vert in self.MC.Vertices],self.MC.Faces) 
-        mlab.show()
+#==============================================================================
+#             
+#         from mayavi import mlab 
+#         mlab.triangular_mesh([vert[0] for vert in self.MC.Vertices],\
+#                              [vert[1] for vert in self.MC.Vertices],\
+#                              [vert[2] for vert in self.MC.Vertices],self.MC.Faces) 
+#         mlab.show()
+#==============================================================================
 
 
 
