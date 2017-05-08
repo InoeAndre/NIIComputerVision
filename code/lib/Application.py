@@ -319,22 +319,32 @@ class Application(tk.Frame):
         #elapsed_time = time.time() - start_time
         #print "SaveToPly: %f" % (elapsed_time)
         
-        rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, 2)
-        
-        #start_time = time.time()
-        #TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
-        #elapsed_time = time.time() - start_time
-        #print "FuseRGBD_optimized: %f" % (elapsed_time)
-        #self.RGBD.depth_image = TSDFManager.RayTracing(self.RGBD, self.Pose)
-        self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.Vmap_optimize()
-        self.RGBD.NMap_optimize()
-        #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        
-        '''
-        End Test
-        '''
-        
+#==============================================================================
+# <<<<<<< HEAD
+#         rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, 2)
+#         
+#         #start_time = time.time()
+#         #TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
+#         #elapsed_time = time.time() - start_time
+#         #print "FuseRGBD_optimized: %f" % (elapsed_time)
+#         #self.RGBD.depth_image = TSDFManager.RayTracing(self.RGBD, self.Pose)
+#         self.RGBD.BilateralFilter(-1, 0.02, 3)
+#         self.RGBD.Vmap_optimize()
+#         self.RGBD.NMap_optimize()
+#         #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+#         
+#         '''
+#         End Test
+#         '''
+#         
+# =======
+#         # Make a 3d mesh with the 0.0-isosurface in the tsdf
+#         self.verts, self.faces, self.normals, self.values = measure.marching_cubes(self.TSDF, 0.0)         
+#         elapsed_time = time.time() - start_time - elapsed_time
+#         print "marching cubes: %f s" % (elapsed_time)
+# 
+# >>>>>>> none
+#==============================================================================
 #==============================================================================
 # <<<<<<< HEAD
 # =======
@@ -383,6 +393,50 @@ class Application(tk.Frame):
 #             
 #         # 3D reconstruction of the whole image
 # >>>>>>> add return value in RegisterRGBD non optimize
+#==============================================================================
+#==============================================================================
+# <<<<<<< HEAD
+# =======
+# 
+#         # transform to adapt to the camera point of view 
+#         self.verts[:,0] = self.verts[:,2]*(self.verts[:,0]- self.intrinsic[0,2])/self.intrinsic[0,0]
+#         self.verts[:,1] = self.verts[:,2]*(self.verts[:,1]- self.intrinsic[1,2])/self.intrinsic[1,1]
+# 
+#         # reconstruction depth_image need projections.
+#         self.verts2D = self.RGBD.GetProjPts2D_optimize(self.verts,self.Pose) 
+#         self.verts2D = self.CheckVerts2D(self.verts2D)
+#         self.RGBD.depth_image[self.verts2D[:,1].astype(np.int),self.verts2D[:,0].astype(np.int)]= self.verts[:,2]
+#         self.RGBD.Vmap_optimize()  
+#         self.RGBD.NMap_optimize()    
+#         #compare normals
+#         print "nmlsTmp"
+#         print np.max(nmlsTmp)
+#         print "RGBD.Nmls"
+#         print np.max(self.RGBD.Nmls)
+#         if ((nmlsTmp[:][:]-self.RGBD.Nmls[:][:]) < 0.1).all():
+#             print "Normals are corresponding"     
+# 
+#         # new pose estimation
+#         #save as data
+#         #np.save("RGBD2", self.RGBD2)
+#         #np.save("RGBD", self.RGBD)
+#         Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
+#         self.Pose *= Tracker.RegisterRGBD(self.RGBD2,self.RGBD)
+#         print 'self.Pose'
+#         print self.Pose
+#         elapsed_time = time.time() - start_time - elapsed_time
+#         print "Tracking: %f" % (elapsed_time)
+#         #print "Image number %d done" % (i)
+# 
+#         # projection in 2d space to draw it
+#         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+#         # Projection directly with the output of the marching cubes  
+#         rendering = self.RGBD.DrawMesh(rendering,self.verts,self.normals,self.Pose, 1, self.color_tag) 
+#             
+#         # Show figure and images
+#             
+#         # 3D reconstruction of the whole image
+# >>>>>>> none
 #==============================================================================
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
