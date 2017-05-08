@@ -1,0 +1,4 @@
+*.pyc
+*.dae
+*.npy
+__pycache__

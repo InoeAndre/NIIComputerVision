@@ -137,6 +137,7 @@ class RGBD():
         x = d_pos * x_raw
         y = d_pos * y_raw
         self.Vtx = np.dstack((x, y,d))
+        return self.Vtx
 
 
                 
@@ -170,6 +171,7 @@ class RGBD():
         #norm division 
         nmle = division_by_norm(nmle,norm_mat_nmle)
         self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
+        return self.Nmls
 
                 
     def Draw(self, Pose, s, color = 0) :
@@ -238,6 +240,7 @@ class RGBD():
                                                                        ((nmle[ :, :,1]+1.0)*(255./2.))*cdt_line, \
                                                                        ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
+
 
     def DrawMesh(self, rendering,Vtx,Nmls,Pose, s, color = 0) :   
         result = rendering#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)#
@@ -341,9 +344,9 @@ class RGBD():
         #only keep vales different from 0
         bdy = bdyVals[np.nonzero(bdyVals != 0)]
         mini =  np.min(bdy)
-        print "mini: %u" % (mini)
+        #print "mini: %u" % (mini)
         maxi = np.max(bdy)
-        print "max: %u" % (maxi)
+        #print "max: %u" % (maxi)
         bwmin = (self.CroppedBox > mini-0.01*max_value) 
         bwmax = (self.CroppedBox < maxi+0.01*max_value)
         bw0 = bwmin*bwmax
@@ -427,7 +430,7 @@ class RGBD():
 ################### Bounding boxes Function #######################
 ##################################################################             
 
-    def GetCenter3D(self,mask,i):
+    def GetCenter3D(self,i):
         '''Compute the mean for one segmented part'''
         mean3D = np.mean(self.PtCloud[i],axis = 0)
         return mean3D
@@ -445,9 +448,10 @@ class RGBD():
         origine = np.array( [ctrMass[0],ctrMass[1],ctrMass[2],1])
         Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
         self.TransfoBB.append(Transfo.transpose())
-        print self.TransfoBB[i]        
+        #print "TransfoBB[%d]" %(i)
+        #print self.TransfoBB[i]        
         
-
+        
     def bdyPts3D(self, mask):
         start_time2 = time.time()
         nbPts = sum(sum(mask))
@@ -463,7 +467,7 @@ class RGBD():
         return res
 
     def bdyPts3D_optimize(self, mask):
-        start_time2 = time.time()
+        #start_time2 = time.time()
         nbPts = sum(sum(mask))
         
         x = self.Vtx[:,:,0]*mask
@@ -476,8 +480,8 @@ class RGBD():
         
         res = np.dstack((x_res,y_res,z_res)).reshape(nbPts,3)
 
-        elapsed_time3 = time.time() - start_time2
-        print "making pointcloud process time: %f" % (elapsed_time3)       
+        #elapsed_time3 = time.time() - start_time2
+        #print "making pointcloud process time: %f" % (elapsed_time3)       
         return res
     
     
@@ -494,15 +498,16 @@ class RGBD():
         self.pca = PCA(n_components=3)
         self.coords=[]
         self.coordsT=[]
+        self.mask=[]
         for i in range(self.bdyPart.shape[0]):
-            mask = (self.labels == (i+1))
+            self.mask.append( (self.labels == (i+1)) )
             
             # compute center of 3D
-            self.PtCloud.append(self.bdyPts3D_optimize(mask))
+            self.PtCloud.append(self.bdyPts3D_optimize(self.mask[i]))
             self.pca.fit(self.PtCloud[i]) 
             
             # Compute 3D centers
-            self.ctr3D.append(self.GetCenter3D(mask,i))         
+            self.ctr3D.append(self.GetCenter3D(i))         
             #print "ctr3D indexes :"
             #print self.ctr3D[i]
             
@@ -586,6 +591,8 @@ class RGBD():
         line_index = pix[:,1].astype(np.int)        
         drawVects = np.array([column_index,line_index]).T
         return drawVects            
+
+
             
     def GetNewSys(self, Pose,ctr2D,nbPix, s=1) : 
         ''' compute the coordinates of the points that will create the coordinates system '''
@@ -604,5 +611,19 @@ class RGBD():
 
             
 
-            
+    def Cvt2RGBA(self,im_im):
+        '''
+        convert an RGB image in RGBA to put all zeros as transparent
+        '''
+        img = im_im.convert("RGBA")
+        datas = img.getdata()     
+        newData = []
+        for item in datas:
+            if item[0] == 0 and item[1] == 0 and item[2] == 0:
+                newData.append((0, 0, 0, 0))
+            else:
+                newData.append(item)
+        
+        img.putdata(newData)
+        return img                
                 

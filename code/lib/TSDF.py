@@ -224,9 +224,3 @@ class TSDFManager():
                     pt = pt + nu*ray
         
         return result
-        
-        
-        
-                        
-                        
-                    

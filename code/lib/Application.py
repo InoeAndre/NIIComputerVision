@@ -1,4 +1,5 @@
 # File created by Diego Thomas the 21-11-2016
+# Second Author Inoe AMDRE
 
 # File to handle program main loop
 import sys
@@ -15,8 +16,7 @@ import imp
 import scipy.io
 import time
 import random
-from skimage import measure
-from tempfile import TemporaryFile
+
 
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
@@ -49,8 +49,8 @@ class Application(tk.Frame):
 
         if (event.keysym != 'Escape'):
             self.Pose = np.dot(self.Pose, Transfo)
-            #rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
-            rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, self.w.get())
+            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, rendering,self.w.get())
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -96,10 +96,10 @@ class Application(tk.Frame):
                             [0., cos(anglex), -sin(anglex), 0.], \
                             [0., sin(anglex), cos(anglex), 0.], \
                             [0., 0., 0., 1.]])
+
             self.Pose = np.dot(self.Pose, RotX)
-            
-            #rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
-            rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, self.w.get())
+            rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size,rendering, self.w.get())
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -183,7 +183,7 @@ class Application(tk.Frame):
             self.canvas.create_line(pt[3][0],pt[3][1],pt[7][0],pt[7][1],fill="red",width = 2)
             for j in range(8):
                 self.DrawPoint2D(pt[j],2,"black")
-  
+
     def DrawMesh2D(self,Pose,vertex,triangle):
         '''Draw in the canvas the triangles of the Mesh in 2D''' 
         python_green = "#476042"
@@ -203,7 +203,7 @@ class Application(tk.Frame):
         verts[:,1] = verts[:,1]*cdt_line
         return verts            
 
-          
+
     ## Constructor function
     def __init__(self, path, GPUManager, master=None):
         self.root = master
@@ -224,7 +224,7 @@ class Application(tk.Frame):
                                    [float(calib_data[8]), float(calib_data[9]), float(calib_data[10])]], dtype = np.float32)
     
         print self.intrinsic
-    
+
         self.fact = 1000.0
 
         mat = scipy.io.loadmat(self.path + '/String4b.mat')
@@ -235,9 +235,6 @@ class Application(tk.Frame):
         connectionMat = scipy.io.loadmat(self.path + '/SkeletonConnectionMap.mat')
         self.connection = connectionMat['SkeletonConnectionMap']
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
-        
-
-
 
         # Current Depth Image (i.e: i)
         start_time = time.time()
@@ -253,6 +250,7 @@ class Application(tk.Frame):
         
         start_time2 = time.time() 
         elapsed_time3 = time.time() - start_time2
+
         self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact) 
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )         
         self.RGBD2.ReadFromMat(self.Index) 
@@ -264,6 +262,7 @@ class Application(tk.Frame):
         self.RGBD2.Vmap_optimize()   
         self.RGBD2.NMap_optimize()  
         self.RGBD2.myPCA()
+
         print "raw conversion + segmentation: %f" % (elapsed_time3)        
     
         TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager)
@@ -319,6 +318,7 @@ class Application(tk.Frame):
         self.canvas.pack()
         
         #rendering = self.DrawColors2D(self.RGBD2,rendering,self.Pose)
+
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -327,7 +327,7 @@ class Application(tk.Frame):
         #self.DrawSys2D(self.Pose)
         #self.DrawOBBox2D(self.Pose)
         #self.DrawMesh2D(self.Pose,self.verts,self.faces)
-    
+
 
         #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)
@@ -338,64 +338,13 @@ class Application(tk.Frame):
         self.w = tk.Scale(master, from_=1, to=10, orient=tk.HORIZONTAL)
         self.w.pack()
 
-
-
-
-
-#==============================================================================
-#         #i=0
-# 
-#             
-#         elapsed_time = time.time() - start_time
-#         print "TSDF: %f s" % (elapsed_time)
-#         print "TSDF max"
-#         print np.max(self.TSDF)
-#         print "TSDF min"
-#         print np.min(self.TSDF)        
-#         # Make a 3d mesh with the 0.0-isosurface in the tsdf
-#         self.verts, self.faces, self.normals, self.values = measure.marching_cubes(self.TSDF, 0.0)         
-#         elapsed_time = time.time() - start_time - elapsed_time
-#         print "marching cubes: %f s" % (elapsed_time)
-# 
-# 
-#         # transform to adapt to the camera point of view 
-#         self.verts[:,0] = self.verts[:,2]*(self.verts[:,0]- self.intrinsic[0,2])/self.intrinsic[0,0]
-#         self.verts[:,1] = self.verts[:,2]*(self.verts[:,1]- self.intrinsic[1,2])/self.intrinsic[1,1]
-# 
-#         # reconstruction depth_image need projections.
-#         self.verts2D = self.RGBD.GetProjPts2D_optimize(self.verts,self.Pose) 
-#         self.verts2D = self.CheckVerts2D(self.verts2D)
-#         self.RGBD.depth_image[self.verts2D[:,1].astype(np.int),self.verts2D[:,0].astype(np.int)]= self.verts[:,2]
-#         self.RGBD.Vmap_optimize()  
-#         self.RGBD.NMap_optimize()    
-#         #compare normals
-#         print "nmlsTmp"
-#         print np.max(nmlsTmp)
-#         print "RGBD.Nmls"
-#         print np.max(self.RGBD.Nmls)
-#         if ((nmlsTmp[:][:]-self.RGBD.Nmls[:][:]) < 0.1).all():
-#             print "Normals are corresponding"     
-# 
-#         # new pose estimation
-#         Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
-#         self.Pose *= Tracker.RegisterRGBD(self.RGBD2,self.RGBD)
-#         print 'self.Pose'
-#         print self.Pose
-#         elapsed_time = time.time() - start_time - elapsed_time
-#         print "Tracking: %f" % (elapsed_time)
-#         #print "Image number %d done" % (i)
-# 
-#         # projection in 2d space to draw it
-#         rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-#         # Projection directly with the output of the marching cubes  
-#         rendering = self.RGBD2.DrawMesh(rendering,self.verts,self.normals,self.Pose, 1, self.color_tag) 
-#==============================================================================
             
         from mayavi import mlab 
         mlab.triangular_mesh([vert[0] for vert in self.MC.Vertices],\
                              [vert[1] for vert in self.MC.Vertices],\
                              [vert[2] for vert in self.MC.Vertices],self.MC.Faces) 
         mlab.show()
+
 
 
 
