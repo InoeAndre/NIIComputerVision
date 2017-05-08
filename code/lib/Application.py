@@ -16,6 +16,7 @@ import imp
 import scipy.io
 import time
 import random
+import pyopencl as cl
 
 
 
@@ -251,54 +252,58 @@ class Application(tk.Frame):
         self.RGBD.Vmap_optimize()   
         self.RGBD.NMap_optimize()  
         self.RGBD.myPCA()
-                                        
-
         elapsed_time = time.time() - start_time
         print "depth conversion: %f s" % (elapsed_time)
         
-        start_time2 = time.time() 
-        elapsed_time3 = time.time() - start_time2
-
         self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact) 
-        self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )         
-        self.RGBD2.ReadFromMat(self.Index+1) 
-        self.RGBD2.BilateralFilter(-1, 0.02, 3) 
-        self.RGBD2.Crop2Body() 
-        self.RGBD2.BodySegmentation() 
-        self.RGBD2.BodyLabelling()         
-        self.RGBD2.depth_image *= (self.RGBD2.labels >0) 
-        self.RGBD2.Vmap_optimize()   
-        self.RGBD2.NMap_optimize()  
-        self.RGBD2.myPCA()
-
-        print "raw conversion + segmentation: %f" % (elapsed_time3)        
+        self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx ) 
+        
+        # For global Fusion
+        #Wlim = 100.0
+        mf = cl.mem_flags
+        # For updating global TSDF 
+        PrevTSDFtmp = np.zeros(self.Size, dtype = np.float32)
+        self.PrevTSDF = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, PrevTSDFtmp.nbytes)
+        WeightTmp = np.zeros(self.Size, dtype = np.float32)
+        self.Weight = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, WeightTmp.nbytes)
+            
+            
+        for i in range(5):
+        #i=1
+            start_time2 = time.time() 
+            # depthMap conversion
+            self.RGBD2.ReadFromMat(self.Index+i) 
+            self.RGBD2.BilateralFilter(-1, 0.02, 3) 
+            self.RGBD2.Crop2Body() 
+            self.RGBD2.BodySegmentation() 
+            self.RGBD2.BodyLabelling()         
+            self.RGBD2.depth_image *= (self.RGBD2.labels >0) 
+            self.RGBD2.Vmap_optimize()   
+            self.RGBD2.NMap_optimize()  
+            self.RGBD2.myPCA()
     
-        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
-        start_time = time.time()
-        TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
-        elapsed_time = time.time() - start_time
-        print "FuseRGBD_GPU: %f" % (elapsed_time)
-        start_time = time.time()        
         
-        self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
-        start_time = time.time()
-        self.MC.runGPU(TSDFManager.TSDFGPU)
-        elapsed_time = time.time() - start_time
-        print "MarchingCubes: %f" % (elapsed_time)
-        #start_time = time.time()
-        #self.MC.SaveToPly("result.ply")
-        #elapsed_time = time.time() - start_time
-        #print "SaveToPly: %f" % (elapsed_time)
-        
-        
-        # new pose estimation
-        Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
-        self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD2,self.RGBD)
-        print 'self.Pose'
-        print self.Pose
-        elapsed_time = time.time() - start_time - elapsed_time
-        print "Tracking: %f" % (elapsed_time)
-        #print "Image number %d done" % (i)
+            # TSDF Fusion
+            TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,self.PrevTSDF,self.Weight)
+            TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)
+            
+
+            # Mesh rendering
+            self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
+            self.MC.runGPU(TSDFManager.TSDFGPU)
+            #start_time3 = time.time()
+            #self.MC.SaveToPly("result.ply")
+            #elapsed_time = time.time() - start_time3
+            #print "SaveToPly: %f" % (elapsed_time)
+            
+            
+            # New pose estimation
+            Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
+            self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD2,self.RGBD)
+            print 'self.Pose'
+            print self.Pose
+            elapsed_time = time.time() - start_time2
+            print "Image number %d done : %f s" % (i,elapsed_time)
  
         # projection in 2d space to draw it
         rendering = self.RGBD2.Draw_optimize(Id4, 1, self.color_tag)
@@ -307,6 +312,8 @@ class Application(tk.Frame):
         rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size,rendering,2)
         
         
+        elapsed_time = time.time() - start_time
+        print "Whole process: %f s" % (elapsed_time)
         
         # Show figure and images
             

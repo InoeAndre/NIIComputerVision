@@ -18,7 +18,8 @@ __kernel void Test(__global float *TSDF) {
 #__read_only image2d_t VMap
 Kernel_FuseTSDF = """
 __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant float *Param, __constant int *Dim,
-                           __constant float *Pose, __constant float *calib, const int n_row, const int m_col) {
+                           __constant float *Pose, __constant float *calib, const int n_row, const int m_col,
+                           __global float *prevTSDF, __global float *Weight) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
 
         const float nu = 0.05f;
@@ -77,7 +78,8 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
             int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
             TSDF[idx] = dist;
             
-            /*TSDF[idx] = (TSDF[idx]*Weight[idx] + dist)/(1.0f+Weight[idx]);
+            /*TSDF[idx] = (prevTSDF[idx]*Weight[idx] + dist)/(1.0f+Weight[idx]);
+            prevTSDF[idx] = TSDF[idx];
             
             if (Weight[idx]+1.0f > Wmax) 
                 Weight[idx] = Wmax;
