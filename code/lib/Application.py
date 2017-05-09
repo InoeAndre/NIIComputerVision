@@ -259,13 +259,8 @@ class Application(tk.Frame):
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx ) 
         
         # For global Fusion
-        #Wlim = 100.0
-        mf = cl.mem_flags
-        # For updating global TSDF 
-        PrevTSDFtmp = np.zeros(self.Size, dtype = np.float32)
-        self.PrevTSDF = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, PrevTSDFtmp.nbytes)
-        WeightTmp = np.zeros(self.Size, dtype = np.float32)
-        self.Weight = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, WeightTmp.nbytes)
+        self.TSDF = np.zeros((512,512,512), dtype = np.float32)
+        self.Weight = np.zeros((512,512,512), dtype = np.float32)
             
             
         for i in range(5):
@@ -282,11 +277,15 @@ class Application(tk.Frame):
             self.RGBD2.NMap_optimize()  
             self.RGBD2.myPCA()
     
-        
+
             # TSDF Fusion
-            TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,self.PrevTSDF,self.Weight)
-            TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)
+            TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,self.TSDF)#,self.Weight)
+            TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)        
+
             
+            # update Global TSDF
+            #self.Weight = TSDFManager.Weight
+            self.TSDF = TSDFManager.TSDF
 
             # Mesh rendering
             self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
@@ -296,6 +295,17 @@ class Application(tk.Frame):
             #elapsed_time = time.time() - start_time3
             #print "SaveToPly: %f" % (elapsed_time)
             
+            # transform to adapt to the camera point of view 
+            self.verts = np.zeros(self.MC.Vertices.shape)
+            self.verts[:,0] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,0]- self.intrinsic[0,2])/self.intrinsic[0,0]
+            self.verts[:,1] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,1]- self.intrinsic[1,2])/self.intrinsic[1,1]
+    
+            # reconstruction depth_image need projections.
+            self.verts2D = self.RGBD.GetProjPts2D_optimize(self.verts,self.Pose) 
+            self.verts2D = self.CheckVerts2D(self.verts2D)
+            self.RGBD.depth_image[self.verts2D[:,1].astype(np.int),self.verts2D[:,0].astype(np.int)]= self.verts[:,2]
+            self.RGBD.Vmap_optimize()  
+            self.RGBD.NMap_optimize()  
             
             # New pose estimation
             Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)

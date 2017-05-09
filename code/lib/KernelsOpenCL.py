@@ -18,8 +18,8 @@ __kernel void Test(__global float *TSDF) {
 #__read_only image2d_t VMap
 Kernel_FuseTSDF = """
 __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant float *Param, __constant int *Dim,
-                           __constant float *Pose, __constant float *calib, const int n_row, const int m_col,
-                           __global float *prevTSDF, __global float *Weight) {
+                           __constant float *Pose, __constant float *calib, const int n_row, const int m_col){//,
+                           //__global float *Weight) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
 
         const float nu = 0.05f;
@@ -37,11 +37,9 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
         float y_T =  Pose[4]*pt.x + Pose[5]*pt.y + Pose[7];
         float z_T =  Pose[8]*pt.x + Pose[9]*pt.y + Pose[11];
              
-        //Global computation
 
-        float Wmax = 100;
-        
-        for (int z = 0; z < Dim[2]; z++) { /*depth*/
+        int z ;
+        for ( z = 0; z < Dim[2]; z++) { /*depth*/
             // Transform voxel coordinates into 3D point coordinates
             // Param = [c_x, dim_x, c_y, dim_y, c_z, dim_z]
             pt.z = ((float)(z)-Param[4])/Param[5];
@@ -65,26 +63,17 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
                 TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1.0f;
                 continue;
             }
-            
-            /*if (dist > -nu)
-                dist = min(1.0f, dist/nu);
-            else
-                dist = max(1.0f, dist/nu);*/
-
-
-            
+                        
         
-            // Global update
+            // Running Average        
+            float Wmax = 100;
             int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
-            TSDF[idx] = dist;
+            TSDF[idx] =  dist;
+            //TSDF[idx] = (TSDF[idx]*Weight[idx] + dist)/(1.0f+Weight[idx]);
+ 
             
-            /*TSDF[idx] = (prevTSDF[idx]*Weight[idx] + dist)/(1.0f+Weight[idx]);
-            prevTSDF[idx] = TSDF[idx];
-            
-            if (Weight[idx]+1.0f > Wmax) 
-                Weight[idx] = Wmax;
-            else 
-                Weight[idx] = Weight[idx]+1.0f;*/
+            /*if (Weight[idx]+1.0f > Wmax) Weight[idx] = Wmax;
+            else Weight[idx] = Weight[idx]+1.0f;*/
         }
         
 }
