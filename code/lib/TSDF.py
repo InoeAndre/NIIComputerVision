@@ -10,6 +10,7 @@ import imp
 import numpy as np
 from numpy import linalg as LA
 import pyopencl as cl
+from array import array
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
@@ -32,7 +33,7 @@ class TSDFManager():
     # Constructor
     def __init__(self, Size, Image, GPUManager,TSDF):#,Weight):
         self.Size = Size
-        self.TSDF = TSDF#np.zeros(self.Size, dtype = np.float32)
+        self.TSDF = TSDF#np.zeros(self.Size, dtype = np.int16)
         #self.Weight = Weight
         self.c_x = self.Size[0]/2
         self.c_y = self.Size[1]/2
@@ -57,14 +58,6 @@ class TSDFManager():
         self.Calib_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf = Image.intrinsic)
         self.Pose_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, 64)
         
-    def UpdateImage(self, Image, PrevTSDF,Weight):
-        self.TSDF = np.zeros(self.Size, dtype = np.float32)
-        self.Weight = Weight
-
-        self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
-        self.PrevTSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, PrevTSDF.nbytes)
-        self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Weight.nbytes)     
-        
     
 #######
 ##GPU code
@@ -80,6 +73,7 @@ class TSDFManager():
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
                                 np.int32(Image.Size[0]), np.int32(Image.Size[1]))#,self.WeightGPU)
+        
         
         cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
         #cl.enqueue_read_buffer(self.GPUManager.queue, self.WeightGPU, self.Weight).wait()  

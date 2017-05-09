@@ -17,7 +17,7 @@ __kernel void Test(__global float *TSDF) {
 #__global float *prevTSDF, __global float *Weight
 #__read_only image2d_t VMap
 Kernel_FuseTSDF = """
-__kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant float *Param, __constant int *Dim,
+__kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __constant float *Param, __constant int *Dim,
                            __constant float *Pose, __constant float *calib, const int n_row, const int m_col){//,
                            //__global float *Weight) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
@@ -54,26 +54,26 @@ __kernel void FuseTSDF(__global float *TSDF,  __global float *Depth, __constant 
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
             if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1){
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1.0f;
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 100.0f;
                 continue;
             }
             
-            float dist = -(pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
+            short int dist = -100*(pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
             if (Depth[pix.x + m_col*pix.y] == 0.0f) {
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1.0f;
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 100.0f;
                 continue;
             }
                         
         
             // Running Average        
-            float Wmax = 100;
+            int Wmax = 10000;
             int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
             TSDF[idx] =  dist;
-            //TSDF[idx] = (TSDF[idx]*Weight[idx] + dist)/(1.0f+Weight[idx]);
+            //TSDF[idx] = (TSDF[idx]*Weight[idx] + dist)/(100.0f+Weight[idx]);
  
             
-            /*if (Weight[idx]+1.0f > Wmax) Weight[idx] = Wmax;
-            else Weight[idx] = Weight[idx]+1.0f;*/
+            /*if (Weight[idx]+100.0f > Wmax) Weight[idx] = Wmax;
+            else Weight[idx] = Weight[idx]+100.0f;*/
         }
         
 }

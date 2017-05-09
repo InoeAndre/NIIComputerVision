@@ -259,8 +259,8 @@ class Application(tk.Frame):
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx ) 
         
         # For global Fusion
-        self.TSDF = np.zeros((512,512,512), dtype = np.float32)
-        self.Weight = np.zeros((512,512,512), dtype = np.float32)
+        self.TSDF = np.zeros((512,512,512), dtype = np.int16)
+        self.Weight = np.zeros((512,512,512), dtype = np.float16)
             
             
         for i in range(5):
