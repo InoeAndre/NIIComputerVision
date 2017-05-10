@@ -33,7 +33,7 @@ class TSDFManager():
     # Constructor
     def __init__(self, Size, Image, GPUManager,TSDF):#,Weight):
         self.Size = Size
-        self.TSDF = TSDF#np.zeros(self.Size, dtype = np.int16)
+        self.TSDF = np.zeros(self.Size, dtype = np.int16)
         #self.Weight = Weight
         self.c_x = self.Size[0]/2
         self.c_y = self.Size[1]/2
@@ -46,6 +46,7 @@ class TSDFManager():
         self.GPUManager = GPUManager
         self.Size_Volume = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = np.array([self.Size[0], self.Size[1], self.Size[2]], dtype = np.int32))
+        #if TSDF
         self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
         #self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Weight.nbytes)
         self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \

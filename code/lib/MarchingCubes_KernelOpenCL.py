@@ -147,7 +147,7 @@ __constant int ConfigCount[128] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3,
 3, 2, 3, 3, 4, 3, 4, 4, 3, 3, 4, 4, 3, 4, 3, 3, 2, 2, 3, 3, 4, 3, 4, 2, 3, 3, 4, 4, 3, 4, 3, 3, 2, 3, 4, 4, 3, 4, 3, 3, 2, 4, 3, 
 3, 2, 3, 2, 2, 1 };
 
-__kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global int *IndexVal, __global float * Vertices, __global int *Faces,  __constant float *Param, __constant int *Dim) {
+__kernel void MarchingCubes(__global short int *TSDF, __global int *Offset, __global int *IndexVal, __global float * Vertices, __global int *Faces,  __constant float *Param, __constant int *Dim) {
 
         int x = get_global_id(0); /*height*/
         int y = get_global_id(1); /*width*/
@@ -160,6 +160,9 @@ __kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global
              {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}};
         
         float vals[8] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
+        
+
+
         
         // get the 8  current summits
         s[0][0] = ((float)(x) - Param[0])/Param[1];
@@ -183,7 +186,8 @@ __kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global
         int id;
         bool reverse = false;
         int max_z = Dim[2]-1;
-        for (int z = 0; z < max_z; z++) { /*depth*/
+        int z = 0;
+        for (z = 0; z < max_z; z++) { /*depth*/
             id = z + Dim[0]*y + Dim[0]*Dim[1]*x;
             
             // get the index value corresponding to the implicit function
@@ -198,16 +202,28 @@ __kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global
                 index = -index;
             }
             
+            //convert TSDF to float
+            float convVal = 1023.0;
+            float tsdf0 = (float)(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x])/convVal*2.0-1.0f;
+            float tsdf1 = (float)(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*(x+1)])/convVal*2.0-1.0f;
+            float tsdf2 = (float)(TSDF[z + Dim[0]*(y+1) + Dim[0]*Dim[1]*(x+1)])/convVal*2.0-1.0f;
+            float tsdf3 = (float)(TSDF[z + Dim[0]*(y+1) + Dim[0]*Dim[1]*x])/convVal*2.0-1.0f;
+            float tsdf4 = (float)(TSDF[z+1 + Dim[0]*y + Dim[0]*Dim[1]*x])/convVal*2.0-1.0f;
+            float tsdf5 = (float)(TSDF[z+1 + Dim[0]*y + Dim[0]*Dim[1]*(x+1)])/convVal*2.0-1.0f;
+            float tsdf6 = (float)(TSDF[z+1 + Dim[0]*(y+1) + Dim[0]*Dim[1]*(x+1)])/convVal*2.0-1.0f;
+            float tsdf7 = (float)(TSDF[z+1 + Dim[0]*(y+1) + Dim[0]*Dim[1]*x])/convVal*2.0-1.0f;
+            
+            
             // get the values of the implicit function at the summits
             // [val_0 ... val_7]
-            vals[0] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x]));
-            vals[1] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*(x+1)]));
-            vals[2] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*(y+1) + Dim[0]*Dim[1]*(x+1)]));
-            vals[3] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*(y+1) + Dim[0]*Dim[1]*x]));
-            vals[4] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*y + Dim[0]*Dim[1]*x]));
-            vals[5] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*y + Dim[0]*Dim[1]*(x+1)]));
-            vals[6] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*(y+1) + Dim[0]*Dim[1]*(x+1)]));
-            vals[7] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*(y+1) + Dim[0]*Dim[1]*x]));
+            vals[0] = 1.0f/(0.00001f + fabs(tsdf0));
+            vals[1] = 1.0f/(0.00001f + fabs(tsdf1));
+            vals[2] = 1.0f/(0.00001f + fabs(tsdf2));
+            vals[3] = 1.0f/(0.00001f + fabs(tsdf3));
+            vals[4] = 1.0f/(0.00001f + fabs(tsdf4));
+            vals[5] = 1.0f/(0.00001f + fabs(tsdf5));
+            vals[6] = 1.0f/(0.00001f + fabs(tsdf6));
+            vals[7] = 1.0f/(0.00001f + fabs(tsdf7));
         
             // get the 8  current summits
             s[0][2] = ((float)(z) - Param[4])/Param[5];
@@ -250,7 +266,8 @@ __kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global
             v[11][2] = (vals[4]*s[4][2] + vals[7]*s[7][2])/(vals[4]+vals[7]);
             
             // add new faces in the list
-            for (int f = 0; f < nb_faces; f++) {
+            int f = 0;
+            for ( f = 0; f < nb_faces; f++) {
                     if (reverse) {
                         Faces[3*(offset+f)] = 3*(offset+f)+2;
                         Faces[3*(offset+f) +1] = 3*(offset+f)+1;
@@ -298,7 +315,7 @@ __constant int ConfigCount[128] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3,
 3, 2, 3, 3, 4, 3, 4, 4, 3, 3, 4, 4, 3, 4, 3, 3, 2, 2, 3, 3, 4, 3, 4, 2, 3, 3, 4, 4, 3, 4, 3, 3, 2, 3, 4, 4, 3, 4, 3, 3, 2, 4, 3, 
 3, 2, 3, 2, 2, 1 };
 
-__kernel void MarchingCubesIndexing(__global float *TSDF, __global int *Offset, __global int *IndexVal, __constant int *Dim, const float iso, __global int *faces_counter) {
+__kernel void MarchingCubesIndexing(__global short int *TSDF, __global int *Offset, __global int *IndexVal, __constant int *Dim, const float iso, __global int *faces_counter) {
 
         int x = get_global_id(0); /*height*/
         int y = get_global_id(1); /*width*/
@@ -311,7 +328,8 @@ __kernel void MarchingCubesIndexing(__global float *TSDF, __global int *Offset, 
         int id;
         int max_z = Dim[2]-1;
         bool stop;
-        for (int z = 0; z <max_z; z++) { /*depth*/
+        int z = 0;
+        for (z = 0; z <max_z; z++) { /*depth*/
             id = z + Dim[0]*y + Dim[0]*Dim[1]*x;
         
             // get the 8  current summits
@@ -327,8 +345,9 @@ __kernel void MarchingCubesIndexing(__global float *TSDF, __global int *Offset, 
             // get the values of the implicit function at the summits
             // [val_0 ... val_7]
             stop = false;
-            for (int k=0; k < 8; k++) {
-                vals[k] = TSDF[s[k][2] + Dim[0]*s[k][1] + Dim[0]*Dim[1]*s[k][0]];
+            int k=0;
+            for ( k=0; k < 8; k++) {
+                vals[k] = (float)( TSDF[s[k][2] + Dim[0]*s[k][1] + Dim[0]*Dim[1]*s[k][0]] )/1023.0*2.0-1.0f;
                 if (fabs(vals[k]) >= 1.0f) {
                     IndexVal[id] = 0;
                     stop = true;
@@ -363,7 +382,7 @@ __kernel void MarchingCubesIndexing(__global float *TSDF, __global int *Offset, 
             if (index == 0)
                 continue;
                 
-            Offset[id] = atomic_add(faces_counter, ConfigCount[index]);
+            Offset[id] = atomic_add( faces_counter, ConfigCount[index]);
         }
         
         

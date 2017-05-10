@@ -52,11 +52,15 @@ class My_MarchingCube():
         self.GPUManager.programs['MarchingCubesIndexing'].MarchingCubesIndexing(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
                                 VolGPU, self.OffsetGPU, self.IndexGPU, self.Size_Volume, np.int32(self.iso), self.FaceCounterGPU)
         
+        
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FaceCounterGPU, self.nb_faces).wait()
         print "nb Faces: ", self.nb_faces[0]
         
         self.Faces = np.zeros((self.nb_faces[0], 3), dtype = np.int32)
         self.Vertices = np.zeros((3*self.nb_faces[0], 3), dtype = np.float32)
+        
+        print "self.Faces shape :"
+        print self.Faces.shape
         
         self.FacesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Faces.nbytes)
         self.VerticesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Vertices.nbytes)

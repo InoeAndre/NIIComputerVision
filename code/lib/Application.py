@@ -259,11 +259,11 @@ class Application(tk.Frame):
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx ) 
         
         # For global Fusion
-        self.TSDF = np.zeros((512,512,512), dtype = np.int16)
-        self.Weight = np.zeros((512,512,512), dtype = np.float16)
+        self.TSDF = np.zeros((512,512,512), dtype = np.float32)
+        self.Weight = np.zeros((512,512,512), dtype = np.int16)
             
             
-        for i in range(5):
+        for i in range(1):
         #i=1
             start_time2 = time.time() 
             # depthMap conversion
@@ -279,14 +279,22 @@ class Application(tk.Frame):
     
 
             # TSDF Fusion
-            TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,self.TSDF)#,self.Weight)
+            if i==0:
+                TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,0)#,self.Weight)
+            else:
+               TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,TSDFManager.TSDFGPU)#,self.Weight) 
             TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)        
 
             
             # update Global TSDF
             #self.Weight = TSDFManager.Weight
+            #self.TSDF = (TSDFManager.TSDF).astype(np.float)/100.0
             self.TSDF = TSDFManager.TSDF
-
+            print "self.TSDF max :"
+            print np.max(self.TSDF)
+            print "self.TSDF min :"
+            print np.min(self.TSDF)
+            
             # Mesh rendering
             self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
             self.MC.runGPU(TSDFManager.TSDFGPU)
@@ -352,14 +360,12 @@ class Application(tk.Frame):
         self.w = tk.Scale(master, from_=1, to=10, orient=tk.HORIZONTAL)
         self.w.pack()
 
-#==============================================================================
-#             
-#         from mayavi import mlab 
-#         mlab.triangular_mesh([vert[0] for vert in self.MC.Vertices],\
-#                              [vert[1] for vert in self.MC.Vertices],\
-#                              [vert[2] for vert in self.MC.Vertices],self.MC.Faces) 
-#         mlab.show()
-#==============================================================================
+            
+        from mayavi import mlab 
+        mlab.triangular_mesh([vert[0] for vert in self.MC.Vertices],\
+                             [vert[1] for vert in self.MC.Vertices],\
+                             [vert[2] for vert in self.MC.Vertices],self.MC.Faces) 
+        mlab.show()
 
 
 

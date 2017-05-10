@@ -54,26 +54,26 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
             if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1){
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 100.0f;
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1023;
                 continue;
             }
             
-            short int dist = -100*(pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
-            if (Depth[pix.x + m_col*pix.y] == 0.0f) {
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 100.0f;
+            float dist = -(pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
+            if (Depth[pix.x + m_col*pix.y] == 0) {
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1023;
                 continue;
             }
                         
         
             // Running Average        
-            int Wmax = 10000;
+            int Wmax = 100;
             int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
-            TSDF[idx] =  dist;
-            //TSDF[idx] = (TSDF[idx]*Weight[idx] + dist)/(100.0f+Weight[idx]);
+            TSDF[idx] =  (int)(((dist+1)/2.0)*1023.0);
+            //TSDF[idx] =  (int)( ( ( ((float)(TSDF[idx])/16383.0*2.0 -1.0) *Weight[idx] + dist)/(1.0f+Weight[idx]) )/2.0*1023.0);
  
             
-            /*if (Weight[idx]+100.0f > Wmax) Weight[idx] = Wmax;
-            else Weight[idx] = Weight[idx]+100.0f;*/
+            /*if (Weight[idx]+1.0f > Wmax) Weight[idx] = Wmax;
+            else Weight[idx] = Weight[idx]+1.0f;*/
         }
         
 }
