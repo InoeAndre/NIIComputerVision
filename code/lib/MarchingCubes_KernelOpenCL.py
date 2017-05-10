@@ -203,7 +203,7 @@ __kernel void MarchingCubes(__global short int *TSDF, __global int *Offset, __gl
             }
             
             //convert TSDF to float
-            float convVal = 1023.0;
+            float convVal = 4000.0;
             float tsdf0 = (float)(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x])/convVal*2.0-1.0f;
             float tsdf1 = (float)(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*(x+1)])/convVal*2.0-1.0f;
             float tsdf2 = (float)(TSDF[z + Dim[0]*(y+1) + Dim[0]*Dim[1]*(x+1)])/convVal*2.0-1.0f;
@@ -347,7 +347,7 @@ __kernel void MarchingCubesIndexing(__global short int *TSDF, __global int *Offs
             stop = false;
             int k=0;
             for ( k=0; k < 8; k++) {
-                vals[k] = (float)( TSDF[s[k][2] + Dim[0]*s[k][1] + Dim[0]*Dim[1]*s[k][0]] )/1023.0*2.0-1.0f;
+                vals[k] = (float)( TSDF[s[k][2] + Dim[0]*s[k][1] + Dim[0]*Dim[1]*s[k][0]] )/4000.0*2.0-1.0f;
                 if (fabs(vals[k]) >= 1.0f) {
                     IndexVal[id] = 0;
                     stop = true;

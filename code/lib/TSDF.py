@@ -31,10 +31,9 @@ mf = cl.mem_flags
 class TSDFManager():
     
     # Constructor
-    def __init__(self, Size, Image, GPUManager,TSDF):#,Weight):
+    def __init__(self, Size, Image, GPUManager,TSDFGPU,WeightGPU):
         self.Size = Size
-        self.TSDF = np.zeros(self.Size, dtype = np.int16)
-        #self.Weight = Weight
+        self.TSDF = np.zeros((512,512,512), dtype = np.int16)
         self.c_x = self.Size[0]/2
         self.c_y = self.Size[1]/2
         self.c_z = -0.1
@@ -46,9 +45,8 @@ class TSDFManager():
         self.GPUManager = GPUManager
         self.Size_Volume = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = np.array([self.Size[0], self.Size[1], self.Size[2]], dtype = np.int32))
-        #if TSDF
-        self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
-        #self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Weight.nbytes)
+        self.TSDFGPU = TSDFGPU
+        self.WeightGPU = WeightGPU
         self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = self.res)
         
@@ -73,7 +71,7 @@ class TSDFManager():
         
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-                                np.int32(Image.Size[0]), np.int32(Image.Size[1]))#,self.WeightGPU)
+                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU)
         
         
         cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()

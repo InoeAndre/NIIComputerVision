@@ -259,8 +259,11 @@ class Application(tk.Frame):
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx ) 
         
         # For global Fusion
-        self.TSDF = np.zeros((512,512,512), dtype = np.float32)
+        mf = cl.mem_flags
+        self.TSDF = np.zeros((512,512,512), dtype = np.int16)
+        self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
         self.Weight = np.zeros((512,512,512), dtype = np.int16)
+        self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
             
             
         for i in range(1):
@@ -279,21 +282,18 @@ class Application(tk.Frame):
     
 
             # TSDF Fusion
-            if i==0:
-                TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,0)#,self.Weight)
-            else:
-               TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,TSDFManager.TSDFGPU)#,self.Weight) 
+            TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,self.TSDFGPU,self.WeightGPU) 
             TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)        
 
             
             # update Global TSDF
-            #self.Weight = TSDFManager.Weight
-            #self.TSDF = (TSDFManager.TSDF).astype(np.float)/100.0
-            self.TSDF = TSDFManager.TSDF
-            print "self.TSDF max :"
+            self.WeightGPU = TSDFManager.WeightGPU
+            self.TSDFGPU = TSDFManager.TSDFGPU
+            self.TSDF = TSDFManager.TSDF     
+            print "TSDF :"
             print np.max(self.TSDF)
-            print "self.TSDF min :"
             print np.min(self.TSDF)
+
             
             # Mesh rendering
             self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)

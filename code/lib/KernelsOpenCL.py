@@ -18,8 +18,8 @@ __kernel void Test(__global float *TSDF) {
 #__read_only image2d_t VMap
 Kernel_FuseTSDF = """
 __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __constant float *Param, __constant int *Dim,
-                           __constant float *Pose, __constant float *calib, const int n_row, const int m_col){//,
-                           //__global float *Weight) {
+                           __constant float *Pose, __constant float *calib, const int n_row, const int m_col,
+                           __global short int *Weight) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
 
         const float nu = 0.05f;
@@ -27,8 +27,8 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
             
         float4 pt;
         float4 pt_T;
-        int2 pix;
-
+        int2 pix;        
+        
         int x = get_global_id(0); /*height*/
         int y = get_global_id(1); /*width*/
         pt.x = ((float)(x)-Param[0])/Param[1];
@@ -37,7 +37,8 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
         float y_T =  Pose[4]*pt.x + Pose[5]*pt.y + Pose[7];
         float z_T =  Pose[8]*pt.x + Pose[9]*pt.y + Pose[11];
              
-
+        float convVal = 4000.0;
+        
         int z ;
         for ( z = 0; z < Dim[2]; z++) { /*depth*/
             // Transform voxel coordinates into 3D point coordinates
@@ -54,13 +55,13 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
             if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1){
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1023;
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = (int)convVal;
                 continue;
             }
             
             float dist = -(pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
             if (Depth[pix.x + m_col*pix.y] == 0) {
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1023;
+                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = (int)convVal;
                 continue;
             }
                         
@@ -68,12 +69,15 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
             // Running Average        
             int Wmax = 100;
             int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
-            TSDF[idx] =  (int)(((dist+1)/2.0)*1023.0);
-            //TSDF[idx] =  (int)( ( ( ((float)(TSDF[idx])/16383.0*2.0 -1.0) *Weight[idx] + dist)/(1.0f+Weight[idx]) )/2.0*1023.0);
+            TSDF[idx] =  (short int)(((dist+1.0f)/2.0)*convVal);
+            //convert values
+            //float TSDFfloat =((float)(TSDF[idx])/convVal*2.0 -1.0) ;
+            //float WeightFloat = ((float)(Weight[idx])/convVal*2.0 -1.0) ;
+            //TSDF[idx] =  (short int)( ((( ((float)(TSDF[idx])/convVal*2.0 -1.0)*((float)(Weight[idx])/convVal*2.0 -1.0) + dist)/(1.0f+ ((float)(Weight[idx])/convVal*2.0 -1.0)) +1.0f)/2.0)*convVal);
  
             
-            /*if (Weight[idx]+1.0f > Wmax) Weight[idx] = Wmax;
-            else Weight[idx] = Weight[idx]+1.0f;*/
+            /*if (((float)(Weight[idx])/convVal*2.0 -1.0)+1.0f > Wmax) Weight[idx] = (short int)(((Wmax+1.0f)/2.0)*convVal);
+            else Weight[idx] = (short int)(((((float)(Weight[idx])/convVal*2.0 -1.0)+1.0f)/2.0)*convVal);*/
         }
         
 }
