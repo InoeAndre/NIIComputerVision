@@ -34,6 +34,7 @@ class TSDFManager():
     def __init__(self, Size, Image, GPUManager,TSDFGPU,WeightGPU):
         self.Size = Size
         self.TSDF = np.zeros((512,512,512), dtype = np.int16)
+        self.Weight = np.zeros((512,512,512), dtype = np.int16)
         self.c_x = self.Size[0]/2
         self.c_y = self.Size[1]/2
         self.c_z = -0.1
@@ -64,7 +65,10 @@ class TSDFManager():
 
     # Fuse on the GPU
     def FuseRGBD_GPU(self, Image, Pose):
-        Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
+        Transform = np.zeros(Pose.shape,Pose.dtype)
+        Transform[0:3,0:3] = LA.inv(Pose[0:3,0:3])
+        Transform[:,3] = -Pose[:,3]
+        #Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
         
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
@@ -75,7 +79,7 @@ class TSDFManager():
         
         
         cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
-        #cl.enqueue_read_buffer(self.GPUManager.queue, self.WeightGPU, self.Weight).wait()  
+        cl.enqueue_read_buffer(self.GPUManager.queue, self.WeightGPU, self.Weight).wait()  
         
     # Reay tracing on the GPU
     def RayTracing_GPU(self, Image, Pose):

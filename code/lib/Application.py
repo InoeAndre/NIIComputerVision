@@ -266,11 +266,11 @@ class Application(tk.Frame):
         self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
             
             
-        for i in range(1):
+        for i in range(5):
         #i=1
             start_time2 = time.time() 
             # depthMap conversion
-            self.RGBD2.ReadFromMat(self.Index+i) 
+            self.RGBD2.ReadFromMat(i) 
             self.RGBD2.BilateralFilter(-1, 0.02, 3) 
             self.RGBD2.Crop2Body() 
             self.RGBD2.BodySegmentation() 
@@ -288,12 +288,15 @@ class Application(tk.Frame):
             
             # update Global TSDF
             self.WeightGPU = TSDFManager.WeightGPU
+            self.Weight = TSDFManager.Weight
             self.TSDFGPU = TSDFManager.TSDFGPU
             self.TSDF = TSDFManager.TSDF     
             print "TSDF :"
             print np.max(self.TSDF)
             print np.min(self.TSDF)
-
+            print "Weight :"
+            print np.max(self.Weight)
+            print np.min(self.Weight)
             
             # Mesh rendering
             self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)

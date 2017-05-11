@@ -37,7 +37,7 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
         float y_T =  Pose[4]*pt.x + Pose[5]*pt.y + Pose[7];
         float z_T =  Pose[8]*pt.x + Pose[9]*pt.y + Pose[11];
              
-        float convVal = 4000.0;
+        float convVal = 300.0;
         
         int z ;
         for ( z = 0; z < Dim[2]; z++) { /*depth*/
@@ -65,19 +65,21 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
                 continue;
             }
                         
-        
+            if (dist > 1.0f) dist = 1.0f;
+            else dist = max(-1.0f, dist);
+                
             // Running Average        
             int Wmax = 100;
             int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
-            TSDF[idx] =  (short int)(((dist+1.0f)/2.0)*convVal);
+            //TSDF[idx] =  (short int)(dist*convVal);
             //convert values
-            //float TSDFfloat =((float)(TSDF[idx])/convVal*2.0 -1.0) ;
-            //float WeightFloat = ((float)(Weight[idx])/convVal*2.0 -1.0) ;
-            //TSDF[idx] =  (short int)( ((( ((float)(TSDF[idx])/convVal*2.0 -1.0)*((float)(Weight[idx])/convVal*2.0 -1.0) + dist)/(1.0f+ ((float)(Weight[idx])/convVal*2.0 -1.0)) +1.0f)/2.0)*convVal);
+            //float TSDFfloat =((float)(TSDF[idx])/convVal) ;
+            //float WeightFloat = ((float)(Weight[idx])/convVal) ;
+            TSDF[idx] =  (short int)( (( ((float)(TSDF[idx])/convVal)*((float)(Weight[idx])/convVal) + dist)/(1.0f+ ((float)(Weight[idx])/convVal)))*convVal);
  
             
-            /*if (((float)(Weight[idx])/convVal*2.0 -1.0)+1.0f > Wmax) Weight[idx] = (short int)(((Wmax+1.0f)/2.0)*convVal);
-            else Weight[idx] = (short int)(((((float)(Weight[idx])/convVal*2.0 -1.0)+1.0f)/2.0)*convVal);*/
+            if (((float)(Weight[idx])/convVal)+1.0f > Wmax) Weight[idx] = (short int)(Wmax*convVal);
+            else Weight[idx] = (short int)((((float)(Weight[idx])/convVal)+1.0f)*convVal);
         }
         
 }
