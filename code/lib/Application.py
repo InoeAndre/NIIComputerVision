@@ -245,13 +245,13 @@ class Application(tk.Frame):
         self.Index = 0
         self.RGBD.ReadFromMat(self.Index) 
         self.RGBD.BilateralFilter(-1, 0.02, 3) 
-        #self.RGBD.Crop2Body() 
-        #self.RGBD.BodySegmentation() 
-        #self.RGBD.BodyLabelling()         
-        #self.RGBD.depth_image *= (self.RGBD.labels >0) 
+        self.RGBD.Crop2Body() 
+        self.RGBD.BodySegmentation() 
+        self.RGBD.BodyLabelling()         
+        self.RGBD.depth_image *= (self.RGBD.labels >0) 
         self.RGBD.Vmap_optimize()   
         self.RGBD.NMap_optimize()  
-        #self.RGBD.myPCA()
+        self.RGBD.myPCA()
         elapsed_time = time.time() - start_time
         print "depth conversion: %f s" % (elapsed_time)
         
@@ -264,6 +264,7 @@ class Application(tk.Frame):
         self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
         self.Weight = np.zeros((512,512,512), dtype = np.int16)
         self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
+        
         TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU) 
         self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
         Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
@@ -273,42 +274,17 @@ class Application(tk.Frame):
         self.MC.runGPU(TSDFManager.TSDFGPU)
 
         for i in range(1,20):
-        #i=1
             start_time2 = time.time() 
-            # depthMap conversion
+            #depthMap conversion of the new image
             self.RGBD2.ReadFromMat(i) 
             self.RGBD2.BilateralFilter(-1, 0.02, 3) 
-            #self.RGBD2.Crop2Body() 
-            #self.RGBD2.BodySegmentation() 
-            #self.RGBD2.BodyLabelling()         
-            #self.RGBD2.depth_image *= (self.RGBD2.labels >0) 
+            self.RGBD2.Crop2Body() 
+            self.RGBD2.BodySegmentation() 
+            self.RGBD2.BodyLabelling()         
+            self.RGBD2.depth_image *= (self.RGBD2.labels >0) 
             self.RGBD2.Vmap_optimize()   
             self.RGBD2.NMap_optimize()  
-            #self.RGBD2.myPCA()
-    
-            # TSDF Fusion
-#            TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)   
-            
-            # update Global TSDF
-            
-            # Mesh rendering
-#            self.MC.runGPU(TSDFManager.TSDFGPU)
-            #start_time3 = time.time()
-            #self.MC.SaveToPly("result.ply")
-            #elapsed_time = time.time() - start_time3
-            #print "SaveToPly: %f" % (elapsed_time)
-            
-            # transform to adapt to the camera point of view 
-            #self.verts = np.zeros(self.MC.Vertices.shape)
-            #self.verts[:,0] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,0]- self.intrinsic[0,2])/self.intrinsic[0,0]
-            #self.verts[:,1] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,1]- self.intrinsic[1,2])/self.intrinsic[1,1]
-    
-            # reconstruction depth_image need projections.
-            #self.verts2D = self.RGBD.GetProjPts2D_optimize(self.verts,self.Pose) 
-            #self.verts2D = self.CheckVerts2D(self.verts2D)
-            #self.RGBD.depth_image[self.verts2D[:,1].astype(np.int),self.verts2D[:,0].astype(np.int)]= self.verts[:,2]
-            #self.RGBD.Vmap_optimize()  
-            #self.RGBD.NMap_optimize()  
+            self.RGBD2.myPCA()
             
             # New pose estimation
             T_Pose = Tracker.RegisterRGBD_optimize(self.RGBD2,self.RGBD)
@@ -351,10 +327,8 @@ class Application(tk.Frame):
             
         # 3D reconstruction of the whole image
         self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
-        self.canvas.pack()
-        
+        self.canvas.pack()        
         #rendering = self.DrawColors2D(self.RGBD2,rendering,self.Pose)
-
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -375,11 +349,13 @@ class Application(tk.Frame):
         self.w.pack()
 
             
-        #from mayavi import mlab 
-        #mlab.triangular_mesh([vert[0] for vert in self.MC.Vertices],\
-          #                   [vert[1] for vert in self.MC.Vertices],\
-         #                    [vert[2] for vert in self.MC.Vertices],self.MC.Faces) 
-        #mlab.show()
+#==============================================================================
+#         from mayavi import mlab 
+#         mlab.triangular_mesh([vert[0] for vert in self.MC.Vertices],\
+#                              [vert[1] for vert in self.MC.Vertices],\
+#                              [vert[2] for vert in self.MC.Vertices],self.MC.Faces) 
+#         mlab.show()
+#==============================================================================
 
 
 
