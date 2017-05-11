@@ -36,8 +36,8 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
         float x_T =  Pose[0]*pt.x + Pose[1]*pt.y + Pose[3];
         float y_T =  Pose[4]*pt.x + Pose[5]*pt.y + Pose[7];
         float z_T =  Pose[8]*pt.x + Pose[9]*pt.y + Pose[11];
-             
-        float convVal = 300.0;
+        
+        float convVal = 32767.0f;
         
         int z ;
         for ( z = 0; z < Dim[2]; z++) { /*depth*/
@@ -54,33 +54,34 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
             pix.x = convert_int(round((pt_T.x/fabs(pt_T.z))*calib[0] + calib[2])); 
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
+            int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
+            
             if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1){
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = (int)convVal;
+                if (Weight[idx] == 0)
+                    TSDF[idx] = (short int)(convVal);
                 continue;
             }
             
             float dist = -(pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
+            dist = min(1.0f, max(-1.0f, dist));
             if (Depth[pix.x + m_col*pix.y] == 0) {
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = (int)convVal;
+                if (Weight[idx] == 0)
+                    TSDF[idx] = (short int)(convVal);
                 continue;
             }
                         
             if (dist > 1.0f) dist = 1.0f;
             else dist = max(-1.0f, dist);
                 
-            // Running Average        
-            int Wmax = 100;
-            int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
-            //TSDF[idx] =  (short int)(dist*convVal);
-            //convert values
-            //float TSDFfloat =((float)(TSDF[idx])/convVal) ;
-            //float WeightFloat = ((float)(Weight[idx])/convVal) ;
-            TSDF[idx] =  (short int)( (( ((float)(TSDF[idx])/convVal)*((float)(Weight[idx])/convVal) + dist)/(1.0f+ ((float)(Weight[idx])/convVal)))*convVal);
- 
+            // Running Average
+            float prev_tsdf = (float)(TSDF[idx])/convVal;
+            float prev_weight = (float)(Weight[idx]);
             
-            if (((float)(Weight[idx])/convVal)+1.0f > Wmax) Weight[idx] = (short int)(Wmax*convVal);
-            else Weight[idx] = (short int)((((float)(Weight[idx])/convVal)+1.0f)*convVal);
-        }
+            TSDF[idx] =  (short int)(round(((prev_tsdf*prev_weight+dist)/(prev_weight+1.0f))*convVal));
+            if (dist < 1.0f && dist > -1.0f)
+                Weight[idx] = min(1000, Weight[idx]+1);
+            
+         }
         
 }
 """

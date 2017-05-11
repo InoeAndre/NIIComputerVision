@@ -245,13 +245,13 @@ class Application(tk.Frame):
         self.Index = 0
         self.RGBD.ReadFromMat(self.Index) 
         self.RGBD.BilateralFilter(-1, 0.02, 3) 
-        self.RGBD.Crop2Body() 
-        self.RGBD.BodySegmentation() 
-        self.RGBD.BodyLabelling()         
-        self.RGBD.depth_image *= (self.RGBD.labels >0) 
+        #self.RGBD.Crop2Body() 
+        #self.RGBD.BodySegmentation() 
+        #self.RGBD.BodyLabelling()         
+        #self.RGBD.depth_image *= (self.RGBD.labels >0) 
         self.RGBD.Vmap_optimize()   
         self.RGBD.NMap_optimize()  
-        self.RGBD.myPCA()
+        #self.RGBD.myPCA()
         elapsed_time = time.time() - start_time
         print "depth conversion: %f s" % (elapsed_time)
         
@@ -264,67 +264,79 @@ class Application(tk.Frame):
         self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
         self.Weight = np.zeros((512,512,512), dtype = np.int16)
         self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
-            
-            
-        for i in range(5):
+        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU) 
+        self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
+        Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
+        
+        # TSDF Fusion
+        TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)  
+        self.MC.runGPU(TSDFManager.TSDFGPU)
+
+        for i in range(1,20):
         #i=1
             start_time2 = time.time() 
             # depthMap conversion
             self.RGBD2.ReadFromMat(i) 
             self.RGBD2.BilateralFilter(-1, 0.02, 3) 
-            self.RGBD2.Crop2Body() 
-            self.RGBD2.BodySegmentation() 
-            self.RGBD2.BodyLabelling()         
-            self.RGBD2.depth_image *= (self.RGBD2.labels >0) 
+            #self.RGBD2.Crop2Body() 
+            #self.RGBD2.BodySegmentation() 
+            #self.RGBD2.BodyLabelling()         
+            #self.RGBD2.depth_image *= (self.RGBD2.labels >0) 
             self.RGBD2.Vmap_optimize()   
             self.RGBD2.NMap_optimize()  
-            self.RGBD2.myPCA()
+            #self.RGBD2.myPCA()
     
-
             # TSDF Fusion
-            TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD2, self.GPUManager,self.TSDFGPU,self.WeightGPU) 
-            TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)        
-
+#            TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)   
             
             # update Global TSDF
-            self.WeightGPU = TSDFManager.WeightGPU
-            self.Weight = TSDFManager.Weight
-            self.TSDFGPU = TSDFManager.TSDFGPU
-            self.TSDF = TSDFManager.TSDF     
-            print "TSDF :"
-            print np.max(self.TSDF)
-            print np.min(self.TSDF)
-            print "Weight :"
-            print np.max(self.Weight)
-            print np.min(self.Weight)
             
             # Mesh rendering
-            self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
-            self.MC.runGPU(TSDFManager.TSDFGPU)
+#            self.MC.runGPU(TSDFManager.TSDFGPU)
             #start_time3 = time.time()
             #self.MC.SaveToPly("result.ply")
             #elapsed_time = time.time() - start_time3
             #print "SaveToPly: %f" % (elapsed_time)
             
             # transform to adapt to the camera point of view 
-            self.verts = np.zeros(self.MC.Vertices.shape)
-            self.verts[:,0] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,0]- self.intrinsic[0,2])/self.intrinsic[0,0]
-            self.verts[:,1] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,1]- self.intrinsic[1,2])/self.intrinsic[1,1]
+            #self.verts = np.zeros(self.MC.Vertices.shape)
+            #self.verts[:,0] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,0]- self.intrinsic[0,2])/self.intrinsic[0,0]
+            #self.verts[:,1] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,1]- self.intrinsic[1,2])/self.intrinsic[1,1]
     
             # reconstruction depth_image need projections.
-            self.verts2D = self.RGBD.GetProjPts2D_optimize(self.verts,self.Pose) 
-            self.verts2D = self.CheckVerts2D(self.verts2D)
-            self.RGBD.depth_image[self.verts2D[:,1].astype(np.int),self.verts2D[:,0].astype(np.int)]= self.verts[:,2]
-            self.RGBD.Vmap_optimize()  
-            self.RGBD.NMap_optimize()  
+            #self.verts2D = self.RGBD.GetProjPts2D_optimize(self.verts,self.Pose) 
+            #self.verts2D = self.CheckVerts2D(self.verts2D)
+            #self.RGBD.depth_image[self.verts2D[:,1].astype(np.int),self.verts2D[:,0].astype(np.int)]= self.verts[:,2]
+            #self.RGBD.Vmap_optimize()  
+            #self.RGBD.NMap_optimize()  
             
             # New pose estimation
-            Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
-            self.Pose *= Tracker.RegisterRGBD_optimize(self.RGBD2,self.RGBD)
+            T_Pose = Tracker.RegisterRGBD_optimize(self.RGBD2,self.RGBD)
+            ref_pose = np.dot(T_Pose, self.Pose)
+            for k in range(4):
+                for l in range(4):
+                    self.Pose[k,l] = ref_pose[k,l]
             print 'self.Pose'
             print self.Pose
+            
+            #TSDF Fusion
+            TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)  
+            
+            # Mesh rendering
+            self.MC.runGPU(TSDFManager.TSDFGPU)
+            
+            self.RGBD.depth_image = self.RGBD2.depth_image
+            self.RGBD.Vtx = self.RGBD2.Vtx
+            self.RGBD.Nmls = self.RGBD2.Nmls
+
             elapsed_time = time.time() - start_time2
             print "Image number %d done : %f s" % (i,elapsed_time)
+            
+            
+        start_time3 = time.time()
+        self.MC.SaveToPly("result.ply")
+        elapsed_time = time.time() - start_time3
+        print "SaveToPly: %f" % (elapsed_time)
  
         # projection in 2d space to draw it
         rendering = self.RGBD2.Draw_optimize(Id4, 1, self.color_tag)
@@ -332,10 +344,9 @@ class Application(tk.Frame):
         # Projection directly with the output of the marching cubes  
         rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size,rendering,2)
         
-        
         elapsed_time = time.time() - start_time
         print "Whole process: %f s" % (elapsed_time)
-        
+
         # Show figure and images
             
         # 3D reconstruction of the whole image
@@ -364,11 +375,11 @@ class Application(tk.Frame):
         self.w.pack()
 
             
-        from mayavi import mlab 
-        mlab.triangular_mesh([vert[0] for vert in self.MC.Vertices],\
-                             [vert[1] for vert in self.MC.Vertices],\
-                             [vert[2] for vert in self.MC.Vertices],self.MC.Faces) 
-        mlab.show()
+        #from mayavi import mlab 
+        #mlab.triangular_mesh([vert[0] for vert in self.MC.Vertices],\
+          #                   [vert[1] for vert in self.MC.Vertices],\
+         #                    [vert[2] for vert in self.MC.Vertices],self.MC.Faces) 
+        #mlab.show()
 
 
 

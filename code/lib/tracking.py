@@ -205,7 +205,7 @@ class Tracker():
                 
     def RegisterRGBD_optimize(self, Image1, Image2):
         
-        res = np.identity(4)
+        res = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         
         column_index_ref = np.array([np.array(range(Image1.Size[1])) for _ in range(Image1.Size[0])])
         line_index_ref = np.array([x*np.ones(Image1.Size[1], np.int) for x in range(Image1.Size[0])])
