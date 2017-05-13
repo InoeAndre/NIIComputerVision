@@ -291,4 +291,136 @@ class Tracker():
                 print res
         return res
                 
+    def RegisterRGBDMesh(self, Image1, MeshVtx, MeshNmls):
+        
+        res = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
+        
+        column_index_ref = np.array([np.array(range(Image1.Size[1])) for _ in range(Image1.Size[0])])
+        line_index_ref = np.array([x*np.ones(Image1.Size[1], np.int) for x in range(Image1.Size[0])])
+        Indexes_ref = column_index_ref + Image1.Size[1]*line_index_ref
+        
+        for l in range(1,self.lvl+1):
+            for it in range(self.max_iter[l-1]):
+                #nbMatches = 0
+                #row = np.array([0.,0.,0.,0.,0.,0.,0.])
+                #Mat = np.zeros(27, np.float32)
+                b = np.zeros(6, np.float32)
+                A = np.zeros((6,6), np.float32)
                 
+                # For each pixel find correspondinng point by projection
+                Buffer = np.zeros((Image1.Size[0]*Image1.Size[1], 6), dtype = np.float32)
+                Buffer_B = np.zeros((Image1.Size[0]*Image1.Size[1], 1), dtype = np.float32)
+                stack_pix = np.ones((Image1.Size[0], Image1.Size[1]), dtype = np.float32)
+                stack_pt = np.ones((np.size(Image1.Vtx[ ::l, ::l,:],0), np.size(Image1.Vtx[ ::l, ::l,:],1)), dtype = np.float32)
+                pix = np.zeros((Image1.Size[0], Image1.Size[1],2), dtype = np.float32)
+                pix = np.dstack((pix,stack_pix))
+                pt = np.dstack((Image1.Vtx[ ::l, ::l, :],stack_pt))
+                pt = np.dot(res,pt.transpose(0,2,1)).transpose(1,2,0)
+                nmle = np.zeros((Image1.Size[0], Image1.Size[1],Image1.Size[2]), dtype = np.float32)
+                nmle[ ::l, ::l,:] = np.dot(res[0:3,0:3],Image1.Nmls[ ::l, ::l,:].transpose(0,2,1)).transpose(1,2,0)
+                
+                #if (pt[2] != 0.0):
+                lpt = np.dsplit(pt,4)
+                lpt[2] = in_mat_zero2one(lpt[2])
+                
+                # if in 1D pix[0] = pt[0]/pt[2]
+                pix[ ::l, ::l,0] = (lpt[0]/lpt[2]).reshape(np.size(Image1.Vtx[ ::l, ::l,:],0), np.size(Image1.Vtx[ ::l, ::l,:],1))
+                # if in 1D pix[1] = pt[1]/pt[2]
+                pix[ ::l, ::l,1] = (lpt[1]/lpt[2]).reshape(np.size(Image1.Vtx[ ::l, ::l,:],0), np.size(Image1.Vtx[ ::l, ::l,:],1))
+                pix = np.dot(Image1.intrinsic,pix[0:Image1.Size[0],0:Image1.Size[1]].transpose(0,2,1)).transpose(1,2,0)
+                column_index = (np.round(pix[:,:,0])).astype(int)
+                line_index = (np.round(pix[:,:,1])).astype(int)
+                
+                # create matrix that have 0 when the conditions are not verified and 1 otherwise
+                cdt_column = (column_index > -1) * (column_index < Image1.Size[1])
+                cdt_line = (line_index > -1) * (line_index < Image1.Size[0])
+                line_index = line_index*cdt_line
+                column_index = column_index*cdt_column
+                
+                ###############
+                # Meshes
+                ###############
+                
+#==============================================================================
+#                 #define indexes
+#                 stack_pixMesh = np.ones( (np.size(MeshVtx[ ::l,:],0)) , dtype = np.float32)
+#                 stack_ptMesh = np.ones( (np.size(MeshVtx[ ::l,:],0)) , dtype = np.float32)
+#                 pixMesh = np.zeros( (np.size(MeshVtx[ ::l,:],0),2) , dtype = np.float32)
+#                 pixMesh = np.stack((pixMesh[:,0],pixMesh[:,1],stack_pixMesh),axis = 1)
+#                 ptMesh = np.stack( (MeshVtx[ ::l,0],MeshVtx[ ::l,1],MeshVtx[ ::l,2],stack_ptMesh),axis =1 )
+#   
+# 
+#                 # projection in 2D space
+#                 lptMesh = np.split(ptMesh,4,axis=1)
+#                 lptMesh[2] = in_mat_zero2one(lptMesh[2])
+#                 pixMesh[ ::l,0] = (lptMesh[0]/lptMesh[2]).reshape(np.size(MeshVtx[ ::l,:],0))
+#                 pixMesh[ ::l,1] = (lptMesh[1]/lptMesh[2]).reshape(np.size(MeshVtx[ ::l,:],0))
+#                 pixMesh = np.dot(pixMesh,Image1.intrinsic.T)
+#         
+#                 column_indexMesh = (np.round(pixMesh[ ::l,0])).astype(int)
+#                 line_indexMesh = (np.round(pixMesh[ ::l,1])).astype(int)
+#                 # create matrix that have 0 when the conditions are not verified and 1 otherwise
+#                 cdt_columnMesh = (column_indexMesh > -1) * (column_indexMesh < Image1.Size[1])
+#                 cdt_lineMesh = (line_indexMesh > -1) * (line_indexMesh < Image1.Size[0])
+#                 line_indexMesh = line_indexMesh*cdt_lineMesh
+#                 column_indexMesh = column_indexMesh*cdt_columnMesh
+#==============================================================================
+                line_indexMesh = line_index
+                column_indexMesh = column_index
+                Indexes = column_index + Image1.Size[1]*line_index
+                Indexes *= (Indexes > -1) * (Indexes < min(MeshVtx.shape[0],MeshVtx.shape[0]))
+                
+                diff_Vtx = np.zeros((Image1.Size[0], Image1.Size[1], 3), dtype = np.float)
+                diff_Vtx[:, :] = MeshVtx[ Indexes[:],:] - pt[:, :,0:3]
+                diff_Vtx = diff_Vtx*diff_Vtx
+                norm_diff_Vtx = diff_Vtx.sum(axis=2)
+                
+                diff_Nmle = np.zeros((Image1.Size[0], Image1.Size[1], 3), dtype = np.float)
+                diff_Nmle = MeshNmls[ Indexes[:],:] - nmle
+                diff_Nmle = diff_Nmle*diff_Nmle
+                norm_diff_Nmle = diff_Nmle.sum(axis=2)
+                
+                Norme_Nmle = nmle*nmle
+                norm_Norme_Nmle = Norme_Nmle.sum(axis=2)
+                
+                
+                mask = np.zeros((Image1.Size[0], Image1.Size[1]), dtype = np.float)
+                mask = cdt_line*cdt_column * (pt[:,:,2] > 0.0) * (norm_Norme_Nmle > 0.0) * (norm_diff_Vtx < self.thresh_dist) * (norm_diff_Nmle < self.thresh_norm)
+                print sum(sum(mask))
+                
+                w = 1.0
+                # Reshape the long vector created from the operation in a 424*512 image
+                buff3 = np.zeros((Image1.Size[0], Image1.Size[1]), dtype = np.float)
+                buff4 = np.zeros((Image1.Size[0], Image1.Size[1]), dtype = np.float)
+                buff5 = np.zeros((Image1.Size[0], Image1.Size[1]), dtype = np.float)
+                buff3[:,:] = w*mask[:,:]*(-MeshVtx[ Indexes[:],2]*nmle[:, :,1] + MeshVtx[ Indexes[:],1]*nmle[:, :,2])
+                buff4[:, :] = w*mask[:, :]*(MeshVtx[ Indexes[:],2]*nmle[:, :,0] - MeshVtx[Indexes[:],0]*nmle[:, :,2])
+                buff5[:, :] = w*mask[:,:]*(-MeshVtx[ Indexes[:],1]*nmle[:, :,0] + MeshVtx[Indexes[:],0]*nmle[:, :,1])
+                
+                Buffer[Indexes_ref[:][:]] = np.dstack((w*mask[:,:]*nmle[ :, :,0], \
+                      w*mask[:,:]*nmle[ :, :,1], \
+                      w*mask[:,:]*nmle[ :, :,2], \
+                      buff3, \
+                      buff4, \
+                      buff5 ))
+                
+                buff = np.zeros((Image1.Size[0], Image1.Size[1]), dtype = np.float)
+                buff[:, :] = w*mask[:, :]*(nmle[:, :,0]*(MeshVtx[ Indexes[:],0] - pt[:, :,0]) + nmle[:, :,1]*(MeshVtx[ Indexes[:],1] - pt[:, :,1]) + nmle[:, :,2]*(MeshVtx[ Indexes[:],2] - pt[:, :,2]))
+                Buffer_B[Indexes_ref[:][:]] = np.dstack(buff ).transpose()
+                        
+                A = np.dot(Buffer.transpose(), Buffer)
+                b = np.dot(Buffer.transpose(), Buffer_B).reshape(6)
+                
+                det = LA.det(A)
+                if (det < 1.0e-10):
+                    print "determinant null"
+                    break
+           
+                delta_qsi = -LA.tensorsolve(A, b)
+                delta_transfo = LA.inv(Exponential(delta_qsi))
+                
+                res = np.dot(delta_transfo, res)
+                
+                print res
+        return res                
+    

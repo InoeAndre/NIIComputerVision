@@ -16,6 +16,43 @@ KernelsOpenCL = imp.load_source('MarchingCubes_KernelOpenCL', './lib/MarchingCub
 
 mf = cl.mem_flags
 
+def in_mat_zero2one(mat):
+    """This fonction replace in the matrix all the 0 to 1"""
+    mat_tmp = (mat != 0.0)
+    res = mat * mat_tmp + ~mat_tmp
+    return res
+
+def division_by_norm(mat,norm):
+    """This fonction divide a n by m by p=3 matrix, point by point, by the norm made through the p dimension>
+    It ignores division that makes infinite values or overflow to replace it by the former mat values or by 0"""
+    for i in range(3):
+        with np.errstate(divide='ignore', invalid='ignore'):
+            mat[:,i] = np.true_divide(mat[:,i],norm)
+            mat[:,i][mat[:,i] == np.inf] = 0
+            mat[:,i] = np.nan_to_num(mat[:,i])
+    return mat
+                
+def normalized_cross_prod_optimize(a,b):
+    #res = np.zeros(a.Size, dtype = "float")
+    norm_mat_a = np.sqrt(np.sum(a*a,axis=1))
+    norm_mat_b = np.sqrt(np.sum(b*b,axis=1))
+    #changing every 0 to 1 in the matrix so that the division does not generate nan or infinite values
+    norm_mat_a = in_mat_zero2one(norm_mat_a)
+    norm_mat_b = in_mat_zero2one(norm_mat_b)
+    # compute a/ norm_mat_a
+    a = division_by_norm(a,norm_mat_a)
+    b = division_by_norm(b,norm_mat_b)
+    #compute cross product with matrix
+    res = np.cross(a,b)
+    #compute the norm of res using the same method for a and b 
+    norm_mat_res = np.sqrt(np.sum(res*res,axis=1))
+    norm_mat_res = in_mat_zero2one(norm_mat_res)
+    #norm division
+    res = division_by_norm(res,norm_mat_res)
+    return res
+
+
+
 class My_MarchingCube():
     
     def __init__(self, Size, Res, Iso, GPUManager):
@@ -60,18 +97,18 @@ class My_MarchingCube():
         
         self.Faces = np.zeros((self.nb_faces[0], 3), dtype = np.int32)
         self.Vertices = np.zeros((3*self.nb_faces[0], 3), dtype = np.float32)
-        
-        print "self.Faces shape :"
-        print self.Faces.shape
+        self.Normals = np.zeros((3*self.nb_faces[0], 3), dtype = np.float32)
         
         self.FacesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Faces.nbytes)
         self.VerticesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Vertices.nbytes)
+        self.NormalsGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Normals.nbytes)
         
         self.GPUManager.programs['MarchingCubes'].MarchingCubes(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
-                                VolGPU, self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.ParamGPU, self.Size_Volume)
+                                VolGPU, self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.NormalsGPU, self.ParamGPU, self.Size_Volume)
         
         cl.enqueue_read_buffer(self.GPUManager.queue, self.VerticesGPU, self.Vertices).wait()
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FacesGPU, self.Faces).wait()
+        cl.enqueue_read_buffer(self.GPUManager.queue, self.NormalsGPU, self.Normals).wait()
 
 
     '''
@@ -163,5 +200,17 @@ class My_MarchingCube():
                     
                     
                     
-                    
-                    
+    '''
+        Function to compute the normals of the mesh 
+    '''
+    def ComputeMCNmls(self):
+        
+        facesNmls = np.zeros((self.nb_faces[0], 3), dtype = np.int32)
+        vectsFaces = np.zeros((2,self.nb_faces[0], 3), dtype = np.int32)
+        
+        vectsFaces[0,:,:] = self.Vertices[self.Faces[:,2]]-self.Vertices[self.Faces[:,0]]
+        vectsFaces[1,:,:] = self.Vertices[self.Faces[:,1]]-self.Vertices[self.Faces[:,0]]
+        
+        facesNmls = normalized_cross_prod_optimize(vectsFaces[0,:,:],vectsFaces[1,:,:])
+        self.Normals = facesNmls
+        
