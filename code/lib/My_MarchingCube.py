@@ -23,7 +23,7 @@ def in_mat_zero2one(mat):
     return res
 
 def division_by_norm(mat,norm):
-    """This fonction divide a n by m by p=3 matrix, point by point, by the norm made through the p dimension>
+    """This fonction divide a n by m=3 matrix, point by point, by the norm made through the p dimension>
     It ignores division that makes infinite values or overflow to replace it by the former mat values or by 0"""
     for i in range(3):
         with np.errstate(divide='ignore', invalid='ignore'):
@@ -32,10 +32,10 @@ def division_by_norm(mat,norm):
             mat[:,i] = np.nan_to_num(mat[:,i])
     return mat
                 
-def normalized_cross_prod_optimize(a,b):
+def normalized_cross_prod_optimize(a,b, axs =1):
     #res = np.zeros(a.Size, dtype = "float")
-    norm_mat_a = np.sqrt(np.sum(a*a,axis=1))
-    norm_mat_b = np.sqrt(np.sum(b*b,axis=1))
+    norm_mat_a = np.sqrt(np.sum(a*a,axis=axs))
+    norm_mat_b = np.sqrt(np.sum(b*b,axis=axs))
     #changing every 0 to 1 in the matrix so that the division does not generate nan or infinite values
     norm_mat_a = in_mat_zero2one(norm_mat_a)
     norm_mat_b = in_mat_zero2one(norm_mat_b)
@@ -45,7 +45,7 @@ def normalized_cross_prod_optimize(a,b):
     #compute cross product with matrix
     res = np.cross(a,b)
     #compute the norm of res using the same method for a and b 
-    norm_mat_res = np.sqrt(np.sum(res*res,axis=1))
+    norm_mat_res = np.sqrt(np.sum(res*res,axis=axs))
     norm_mat_res = in_mat_zero2one(norm_mat_res)
     #norm division
     res = division_by_norm(res,norm_mat_res)
@@ -205,12 +205,61 @@ class My_MarchingCube():
     '''
     def ComputeMCNmls(self):
         
-        facesNmls = np.zeros((self.nb_faces[0], 3), dtype = np.int32)
-        vectsFaces = np.zeros((2,self.nb_faces[0], 3), dtype = np.int32)
+        # instanciation
+        nb_faces = self.nb_faces[0]
+        vectsFaces = np.zeros((2,nb_faces, 3), dtype = np.int32)
+        facesNmls = np.zeros((nb_faces, 3), dtype = np.int32)
         
+        # edges of triangles
         vectsFaces[0,:,:] = self.Vertices[self.Faces[:,2]]-self.Vertices[self.Faces[:,0]]
         vectsFaces[1,:,:] = self.Vertices[self.Faces[:,1]]-self.Vertices[self.Faces[:,0]]
+
+        # compute each face's normal
+        #facesNmls = np.cross(vectsFaces[0,:,:],vectsFaces[1,:,:])
+        facesNmls[:,0] = vectsFaces[0,:,1]*vectsFaces[1,:,2]- vectsFaces[0,:,2]*vectsFaces[1,:,1]
+        facesNmls[:,1] = vectsFaces[0,:,2]*vectsFaces[1,:,0]- vectsFaces[0,:,0]*vectsFaces[1,:,2]
+        facesNmls[:,2] = vectsFaces[0,:,0]*vectsFaces[1,:,1]- vectsFaces[0,:,1]*vectsFaces[1,:,0]
+        self.Normals[self.Faces[:,0]] += facesNmls
+        self.Normals[self.Faces[:,1]] += facesNmls
+        self.Normals[self.Faces[:,2]] += facesNmls
         
-        facesNmls = normalized_cross_prod_optimize(vectsFaces[0,:,:],vectsFaces[1,:,:])
-        self.Normals = facesNmls
+        # compute the norm of nmlsSum
+        norm_nmlsSum = np.sqrt(np.sum(self.Normals*self.Normals,axis=1))
+        norm_nmlsSum = in_mat_zero2one(norm_nmlsSum)
+        # normalize the mean of the norm
+        self.Normals = division_by_norm(self.Normals,norm_nmlsSum)
+        
+        
+
+        
+#==============================================================================
+#         # instanciation
+#         nb_faces = self.nb_faces[0]
+#         vectsFaces = np.zeros((2, 3), dtype = np.int32)
+#         
+#         for f in range(nb_faces):
+#             # vectors of triangles
+#             vectsFaces[0,:] = self.Vertices[self.Faces[f,2]]-self.Vertices[self.Faces[f,0]]
+#             vectsFaces[1,:] = self.Vertices[self.Faces[f,1]]-self.Vertices[self.Faces[f,0]]
+#     
+#             # compute each face's normal
+#             facesNmls = np.cross(vectsFaces[1,:],vectsFaces[0,:])
+#             for s in range(3):
+#                 # sum of normals
+#                 self.Normals[self.Faces[f,s]] += facesNmls
+#                
+#         for v in range(self.Normals.shape[0]):
+#             # compute the norm of normals
+#             norm_nmlsSum = np.sqrt(np.sum(self.Normals[v]*self.Normals[v]))
+#             if norm_nmlsSum == 0:
+#                 continue;
+#             # normalize the normals
+#             self.Normals[v] = self.Normals[v]/norm_nmlsSum
+#==============================================================================
+        
+
+
+        
+        
+        
         

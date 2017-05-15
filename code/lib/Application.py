@@ -336,12 +336,12 @@ class Application(tk.Frame):
         print "SaveToPly: %f" % (elapsed_time)
  
         # projection in 2d space to draw it
-        rendering = self.RGBD2.Draw_optimize(Id4, 1, self.color_tag)
+        rendering = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)#self.RGBD2.Draw_optimize(Id4, 1, self.color_tag)
         
         
         # Projection directly with the output of the marching cubes  
-        rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size,rendering,2)
-        #rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,self.Pose, 1, self.color_tag)
+        #rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size,rendering,2)
+        rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,self.Pose, 1, self.color_tag)
         
         elapsed_time = time.time() - start_time
         print "Whole process: %f s" % (elapsed_time)
