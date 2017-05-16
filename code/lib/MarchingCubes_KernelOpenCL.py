@@ -147,7 +147,7 @@ __constant int ConfigCount[128] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3,
 3, 2, 3, 3, 4, 3, 4, 4, 3, 3, 4, 4, 3, 4, 3, 3, 2, 2, 3, 3, 4, 3, 4, 2, 3, 3, 4, 4, 3, 4, 3, 3, 2, 3, 4, 4, 3, 4, 3, 3, 2, 4, 3, 
 3, 2, 3, 2, 2, 1 };
 
-__kernel void MarchingCubes(__global short int *TSDF, __global int *Offset, __global int *IndexVal, __global float * Vertices, __global int *Faces, __global float *Normals,  __constant float *Param, __constant int *Dim) {
+__kernel void MarchingCubes(__global short int *TSDF, __global int *Offset, __global int *IndexVal, __global float * Vertices, __global int *Faces,  __constant float *Param, __constant int *Dim) {
 
         int x = get_global_id(0); /*height*/
         int y = get_global_id(1); /*width*/
@@ -307,58 +307,42 @@ __kernel void MarchingCubes(__global short int *TSDF, __global int *Offset, __gl
                     Normals[9*(offset+f)+8] = v[Config[index][f][2]][2];*/
             }
               
-               
-             float vect[12][2][3] = { {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}}, {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}},
-                                   {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}}, {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}},
-                                   {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}}, {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}},
-                                   {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}}, {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}},
-                                   {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}}, {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}},
-                                   {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}}, {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}} };
+            /*  
+             float vect[2][3] = {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}};
              
-             float NmlsFaces[12][3] = { {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f},
-                                   {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f},
-                                   {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f} };
+             float NmlsFaces[3] =  {0.0f,0.0f, 0.0f};
                             
-             float nbAdj = 3.0f;
              float norm = 0.0f;
              float sumAdjNorm[3] = {0.0f,0.0f, 0.0f};
              for ( f = 0; f < nb_faces; f++) {
                     // Compute vectors of faces
                     // faces f of the vertex, vectors 0
-                    vect[f][0][0] = Vertices[Faces[3*(offset+f) +6]]  - Vertices[Faces[3*(offset+f)]];
-                    vect[f][0][1] = Vertices[Faces[3*(offset+f) +7]] - Vertices[Faces[3*(offset+f) +1]];
-                    vect[f][0][2] = Vertices[Faces[3*(offset+f) +8]] - Vertices[Faces[3*(offset+f) +2]];
+                    vect[0][0] = Vertices[Faces[3*(offset+f) +6]]  - Vertices[Faces[3*(offset+f)]];
+                    vect[0][1] = Vertices[Faces[3*(offset+f) +7]] - Vertices[Faces[3*(offset+f) +1]];
+                    vect[0][2] = Vertices[Faces[3*(offset+f) +8]] - Vertices[Faces[3*(offset+f) +2]];
     
                     // faces f of the vertex, vectors 1
-                    vect[f][1][0] = Vertices[Faces[3*(offset+f) +3]]  - Vertices[Faces[3*(offset+f)]];
-                    vect[f][1][1] = Vertices[Faces[3*(offset+f) +4]] - Vertices[Faces[3*(offset+f) +1]];
-                    vect[f][1][2] = Vertices[Faces[3*(offset+f) +5]] - Vertices[Faces[3*(offset+f) +2]];                
+                    vect[1][0] = Vertices[Faces[3*(offset+f) +3]]  - Vertices[Faces[3*(offset+f)]];
+                    vect[1][1] = Vertices[Faces[3*(offset+f) +4]] - Vertices[Faces[3*(offset+f) +1]];
+                    vect[1][2] = Vertices[Faces[3*(offset+f) +5]] - Vertices[Faces[3*(offset+f) +2]];                
                         
                     // Compute normalized normal of the face f
-                    NmlsFaces[f][0] = vect[f][0][1]*vect[f][1][2] - vect[f][0][2]*vect[f][1][1];
-                    NmlsFaces[f][1] = vect[f][0][2]*vect[f][1][0] - vect[f][0][0]*vect[f][1][2];
-                    NmlsFaces[f][2] = vect[f][0][1]*vect[f][1][2] - vect[f][0][2]*vect[f][1][1];
-                    //norm = sqrt( NmlsFaces[f][0]*NmlsFaces[f][0] + NmlsFaces[f][1]*NmlsFaces[f][1] + NmlsFaces[f][2]*NmlsFaces[f][2] );
-                    //NmlsFaces[f][0] = NmlsFaces[f][0]/norm;
-                    //NmlsFaces[f][1] = NmlsFaces[f][1]/norm;
-                    //NmlsFaces[f][2] = NmlsFaces[f][2]/norm;
+                    NmlsFaces[0] = vect[0][1]*vect[1][2] - vect[0][2]*vect[1][1];
+                    NmlsFaces[1] = vect[0][2]*vect[1][0] - vect[0][0]*vect[1][2];
+                    NmlsFaces[2] = vect[0][1]*vect[1][2] - vect[0][2]*vect[1][1];                    
                     
-                    //sumAdjNorm[0] += NmlsFaces[f][0];
-                    //sumAdjNorm[1] += NmlsFaces[f][1];
-                    //sumAdjNorm[2] += NmlsFaces[f][2];
+                    // accumulate normals
+                    Normals[9*(offset+f)] += NmlsFaces[0];
+                    Normals[9*(offset+f)+1] += NmlsFaces[1];
+                    Normals[9*(offset+f)+2] += NmlsFaces[2];
                     
+                    Normals[9*(offset+f)+3] += NmlsFaces[0];
+                    Normals[9*(offset+f)+4] += NmlsFaces[1];
+                    Normals[9*(offset+f)+5] += NmlsFaces[2];
                     
-                    Normals[9*(offset+f)] += NmlsFaces[f][0];
-                    Normals[9*(offset+f)+1] += NmlsFaces[f][1];
-                    Normals[9*(offset+f)+2] += NmlsFaces[f][2];
-                    
-                    Normals[9*(offset+f)+3] += NmlsFaces[f][0];
-                    Normals[9*(offset+f)+4] += NmlsFaces[f][1];
-                    Normals[9*(offset+f)+5] += NmlsFaces[f][2];
-                    
-                    Normals[9*(offset+f)+6] += NmlsFaces[f][0];
-                    Normals[9*(offset+f)+7] += NmlsFaces[f][1];
-                    Normals[9*(offset+f)+8] += NmlsFaces[f][2];     
+                    Normals[9*(offset+f)+6] += NmlsFaces[0];
+                    Normals[9*(offset+f)+7] += NmlsFaces[1];
+                    Normals[9*(offset+f)+8] += NmlsFaces[2];     
                     
                     
                 }  
@@ -381,7 +365,7 @@ __kernel void MarchingCubes(__global short int *TSDF, __global int *Offset, __gl
                                 Normals[9*(offset+f)+7]*Normals[9*(offset+f)+7] + 
                                 Normals[9*(offset+f)+8]*Normals[9*(offset+f)+8] );                    
                     
-                    
+                   
                     
                     Normals[9*(offset+f)] = Normals[9*(offset+f)]/norm0;
                     Normals[9*(offset+f)+1] = Normals[9*(offset+f)+1]/norm0;
@@ -396,7 +380,7 @@ __kernel void MarchingCubes(__global short int *TSDF, __global int *Offset, __gl
                     Normals[9*(offset+f)+8]=  Normals[9*(offset+f)+8]/norm2;                    
                     }
                    
-                   
+                   */
                
         }
 }

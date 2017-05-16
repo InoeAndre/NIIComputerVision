@@ -101,14 +101,14 @@ class My_MarchingCube():
         
         self.FacesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Faces.nbytes)
         self.VerticesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Vertices.nbytes)
-        self.NormalsGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Normals.nbytes)
+        #self.NormalsGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Normals.nbytes)
         
         self.GPUManager.programs['MarchingCubes'].MarchingCubes(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
-                                VolGPU, self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.NormalsGPU, self.ParamGPU, self.Size_Volume)
+                                VolGPU, self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.ParamGPU, self.Size_Volume)
         
         cl.enqueue_read_buffer(self.GPUManager.queue, self.VerticesGPU, self.Vertices).wait()
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FacesGPU, self.Faces).wait()
-        cl.enqueue_read_buffer(self.GPUManager.queue, self.NormalsGPU, self.Normals).wait()
+        #cl.enqueue_read_buffer(self.GPUManager.queue, self.NormalsGPU, self.Normals).wait()
 
 
     '''
@@ -207,12 +207,12 @@ class My_MarchingCube():
         
         # instanciation
         nb_faces = self.nb_faces[0]
-        vectsFaces = np.zeros((2,nb_faces, 3), dtype = np.int32)
-        facesNmls = np.zeros((nb_faces, 3), dtype = np.int32)
+        vectsFaces = np.zeros((2,nb_faces, 3), dtype = np.float)
+        facesNmls = np.zeros((nb_faces, 3), dtype = np.float)
         
         # edges of triangles
         vectsFaces[0,:,:] = self.Vertices[self.Faces[:,2]]-self.Vertices[self.Faces[:,0]]
-        vectsFaces[1,:,:] = self.Vertices[self.Faces[:,1]]-self.Vertices[self.Faces[:,0]]
+        vectsFaces[1,:,:] = self.Vertices[self.Faces[:,1]]-self.Vertices[self.Faces[:,0]]   
 
         # compute each face's normal
         #facesNmls = np.cross(vectsFaces[0,:,:],vectsFaces[1,:,:])
@@ -222,41 +222,39 @@ class My_MarchingCube():
         self.Normals[self.Faces[:,0]] += facesNmls
         self.Normals[self.Faces[:,1]] += facesNmls
         self.Normals[self.Faces[:,2]] += facesNmls
+
         
         # compute the norm of nmlsSum
         norm_nmlsSum = np.sqrt(np.sum(self.Normals*self.Normals,axis=1))
         norm_nmlsSum = in_mat_zero2one(norm_nmlsSum)
         # normalize the mean of the norm
         self.Normals = division_by_norm(self.Normals,norm_nmlsSum)
-        
-        
 
+        '''
+        Non optimized version for understanding
+        # instanciation
+        nb_faces = self.nb_faces[0]
+        vectsFaces = np.zeros((2, 3), dtype = np.int32)
         
-#==============================================================================
-#         # instanciation
-#         nb_faces = self.nb_faces[0]
-#         vectsFaces = np.zeros((2, 3), dtype = np.int32)
-#         
-#         for f in range(nb_faces):
-#             # vectors of triangles
-#             vectsFaces[0,:] = self.Vertices[self.Faces[f,2]]-self.Vertices[self.Faces[f,0]]
-#             vectsFaces[1,:] = self.Vertices[self.Faces[f,1]]-self.Vertices[self.Faces[f,0]]
-#     
-#             # compute each face's normal
-#             facesNmls = np.cross(vectsFaces[1,:],vectsFaces[0,:])
-#             for s in range(3):
-#                 # sum of normals
-#                 self.Normals[self.Faces[f,s]] += facesNmls
-#                
-#         for v in range(self.Normals.shape[0]):
-#             # compute the norm of normals
-#             norm_nmlsSum = np.sqrt(np.sum(self.Normals[v]*self.Normals[v]))
-#             if norm_nmlsSum == 0:
-#                 continue;
-#             # normalize the normals
-#             self.Normals[v] = self.Normals[v]/norm_nmlsSum
-#==============================================================================
-        
+        for f in range(nb_faces):
+            # vectors of triangles
+            vectsFaces[0,:] = self.Vertices[self.Faces[f,2]]-self.Vertices[self.Faces[f,0]]
+            vectsFaces[1,:] = self.Vertices[self.Faces[f,1]]-self.Vertices[self.Faces[f,0]]
+    
+            # compute each face's normal
+            facesNmls = np.cross(vectsFaces[1,:],vectsFaces[0,:])
+            for s in range(3):
+                # sum of normals
+                self.Normals[self.Faces[f,s]] += facesNmls
+               
+        for v in range(self.Normals.shape[0]):
+            # compute the norm of normals
+            norm_nmlsSum = np.sqrt(np.sum(self.Normals[v]*self.Normals[v]))
+            if norm_nmlsSum == 0:
+                continue;
+            # normalize the normals
+            self.Normals[v] = self.Normals[v]/norm_nmlsSum
+        '''
 
 
         
