@@ -211,8 +211,8 @@ class My_MarchingCube():
         facesNmls = np.zeros((nb_faces, 3), dtype = np.float)
         
         # edges of triangles
-        vectsFaces[0,:,:] = self.Vertices[self.Faces[:,2]]-self.Vertices[self.Faces[:,0]]
-        vectsFaces[1,:,:] = self.Vertices[self.Faces[:,1]]-self.Vertices[self.Faces[:,0]]   
+        vectsFaces[0,:,:] = self.Vertices[self.Faces[:,1]]-self.Vertices[self.Faces[:,0]]   
+        vectsFaces[1,:,:] = self.Vertices[self.Faces[:,2]]-self.Vertices[self.Faces[:,0]]
 
         # compute each face's normal
         #facesNmls = np.cross(vectsFaces[0,:,:],vectsFaces[1,:,:])
