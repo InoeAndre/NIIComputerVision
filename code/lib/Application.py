@@ -242,7 +242,7 @@ class Application(tk.Frame):
         start_time = time.time()
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
-        self.Index = 0
+        self.Index = 9
         self.RGBD.ReadFromMat(self.Index) 
         self.RGBD.BilateralFilter(-1, 0.02, 3) 
         #self.RGBD.Crop2Body() 
@@ -273,7 +273,7 @@ class Application(tk.Frame):
         TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)  
         self.MC.runGPU(TSDFManager.TSDFGPU)
 
-        for i in range(1):
+        for i in range(10,11):
             start_time2 = time.time() 
             #depthMap conversion of the new image
             self.RGBD2.ReadFromMat(i) 
@@ -288,7 +288,7 @@ class Application(tk.Frame):
             
             # New pose estimation
             T_Pose = Tracker.RegisterRGBDMesh_optimize(self.RGBD2,self.MC.Vertices,self.MC.Normals, self.Pose)
-            #T_Pose = Tracker.RegisterRGBDMesh_optimize(self.RGBD2,self.RGBD)
+            #T_Pose = Tracker.RegisterRGBD_optimize(self.RGBD2,self.RGBD)
             ref_pose = np.dot(T_Pose, self.Pose)
             for k in range(4):
                 for l in range(4):
@@ -297,38 +297,22 @@ class Application(tk.Frame):
             print self.Pose
             
             #TSDF Fusion
-            TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)  
+            #TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)  
             
             # Mesh rendering
-            self.MC.runGPU(TSDFManager.TSDFGPU)
-            self.MC.ComputeMCNmls()
-
-            
-#==============================================================================
-#             # transform to adapt to the camera point of view 
-#             self.verts = np.zeros(self.MC.Vertices.shape)
-#             self.verts[:,0] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,0]- self.intrinsic[0,2])/self.intrinsic[0,0]
-#             self.verts[:,1] = self.MC.Vertices[:,2]*(self.MC.Vertices[:,1]- self.intrinsic[1,2])/self.intrinsic[1,1]
-#     
-#             # reconstruction depth_image need projections.
-#             self.verts2D = self.RGBD.GetProjPts2D_optimize(self.verts,self.Pose) 
-#             self.verts2D = self.CheckVerts2D(self.verts2D)
-#             self.RGBD.depth_image[self.verts2D[:,1].astype(np.int),self.verts2D[:,0].astype(np.int)]= self.verts[:,2]
-#             self.RGBD.Vmap_optimize()  
-#             self.RGBD.NMap_optimize()  
-#==============================================================================
-            
+            #self.MC.runGPU(TSDFManager.TSDFGPU) 
+                        
 #==============================================================================
 #             self.RGBD.depth_image = self.RGBD2.depth_image
 #             self.RGBD.Vtx = self.RGBD2.Vtx
 #             self.RGBD.Nmls = self.RGBD2.Nmls
 #==============================================================================
-
-    
+            
 
             elapsed_time = time.time() - start_time2
             print "Image number %d done : %f s" % (i,elapsed_time)
             
+
             
         start_time3 = time.time()
         self.MC.SaveToPly("result.ply")
@@ -343,6 +327,7 @@ class Application(tk.Frame):
         # Projection directly with the output of the marching cubes  
         #rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size,rendering,2)
         rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,self.Pose, 1, self.color_tag)
+        
         
         elapsed_time = time.time() - start_time
         print "Whole process: %f s" % (elapsed_time)

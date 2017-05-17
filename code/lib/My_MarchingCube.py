@@ -109,6 +109,7 @@ class My_MarchingCube():
         cl.enqueue_read_buffer(self.GPUManager.queue, self.VerticesGPU, self.Vertices).wait()
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FacesGPU, self.Faces).wait()
         #cl.enqueue_read_buffer(self.GPUManager.queue, self.NormalsGPU, self.Normals).wait()
+        self.ComputeMCNmls()
 
 
     '''
@@ -238,8 +239,8 @@ class My_MarchingCube():
         
         for f in range(nb_faces):
             # vectors of triangles
-            vectsFaces[0,:] = self.Vertices[self.Faces[f,2]]-self.Vertices[self.Faces[f,0]]
-            vectsFaces[1,:] = self.Vertices[self.Faces[f,1]]-self.Vertices[self.Faces[f,0]]
+            vectsFaces[0,:] = self.Vertices[self.Faces[f,1]]-self.Vertices[self.Faces[f,0]]
+            vectsFaces[1,:] = self.Vertices[self.Faces[f,2]]-self.Vertices[self.Faces[f,0]]
     
             # compute each face's normal
             facesNmls = np.cross(vectsFaces[1,:],vectsFaces[0,:])
