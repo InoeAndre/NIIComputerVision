@@ -289,10 +289,10 @@ class Application(tk.Frame):
         TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
         elapsed_time = time.time() - start_time
         print "FuseRGBD_GPU: %f" % (elapsed_time)
-        start_time = time.time()
-        self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
-        elapsed_time = time.time() - start_time
-        print "RayTracing_GPU: %f" % (elapsed_time)
+        #start_time = time.time()
+        #self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
+        #elapsed_time = time.time() - start_time
+        #print "RayTracing_GPU: %f" % (elapsed_time)
         
         
         self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
@@ -300,10 +300,15 @@ class Application(tk.Frame):
         self.MC.runGPU(TSDFManager.TSDFGPU)
         elapsed_time = time.time() - start_time
         print "MarchingCubes: %f" % (elapsed_time)
-        #start_time = time.time()
-        #self.MC.SaveToPly("result.ply")
-        #elapsed_time = time.time() - start_time
-        #print "SaveToPly: %f" % (elapsed_time)
+        start_time = time.time()
+        self.MC.MergeVtxGPU()
+        #self.MC.MergeVtx()
+        elapsed_time = time.time() - start_time
+        print "MergeVtx: %f" % (elapsed_time)
+        start_time = time.time()
+        self.MC.SaveToPly("result.ply")
+        elapsed_time = time.time() - start_time
+        print "SaveToPly: %f" % (elapsed_time)
         
         rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, 2)
         
