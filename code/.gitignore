@@ -2,4 +2,5 @@
 *.dae
 *.ply
 *.npy
+*~
 __pycache__
