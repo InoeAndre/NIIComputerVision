@@ -242,7 +242,7 @@ class Application(tk.Frame):
         start_time = time.time()
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
-        self.Index = 9
+        self.Index = 0
         self.RGBD.ReadFromMat(self.Index) 
         self.RGBD.BilateralFilter(-1, 0.02, 3) 
         #self.RGBD.Crop2Body() 
@@ -273,7 +273,7 @@ class Application(tk.Frame):
         TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)  
         self.MC.runGPU(TSDFManager.TSDFGPU)
 
-        for i in range(10,11):
+        for i in range(1,10):
             start_time2 = time.time() 
             #depthMap conversion of the new image
             self.RGBD2.ReadFromMat(i) 
@@ -297,10 +297,10 @@ class Application(tk.Frame):
             print self.Pose
             
             #TSDF Fusion
-            #TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)  
+            TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)  
             
             # Mesh rendering
-            #self.MC.runGPU(TSDFManager.TSDFGPU) 
+            self.MC.runGPU(TSDFManager.TSDFGPU) 
                         
 #==============================================================================
 #             self.RGBD.depth_image = self.RGBD2.depth_image
@@ -321,12 +321,12 @@ class Application(tk.Frame):
  
         # projection in 2d space to draw it
         
-        rendering = self.RGBD.Draw_optimize(Id4, 1, self.color_tag)#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)#
+        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)#
         
         
         # Projection directly with the output of the marching cubes  
         #rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size,rendering,2)
-        rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,self.Pose, 1, self.color_tag)
+        rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,Id4, 1, self.color_tag)
         
         
         elapsed_time = time.time() - start_time

@@ -249,10 +249,10 @@ class RGBD():
         pix = np.zeros( (np.size(Vtx[ ::s,:],0),2) , dtype = np.float32)
         pix = np.stack((pix[:,0],pix[:,1],stack_pix),axis = 1)
         pt = np.stack( (Vtx[ ::s,0],Vtx[ ::s,1],Vtx[ ::s,2],stack_pt),axis =1 )
-        pt = np.dot(pt,Pose)
+        pt = np.dot(pt,Pose.T)
 
         nmle = np.zeros((Nmls.shape[0], Nmls.shape[1]), dtype = np.float32)
-        nmle[ ::s,:] = np.dot(Nmls[ ::s,:],Pose[0:3,0:3])
+        nmle[ ::s,:] = np.dot(Nmls[ ::s,:],Pose[0:3,0:3].T)
         
 
         # projection in 2D space
