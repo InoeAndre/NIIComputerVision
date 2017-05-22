@@ -273,7 +273,7 @@ class Application(tk.Frame):
         TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)  
         self.MC.runGPU(TSDFManager.TSDFGPU)
 
-        for i in range(1,10):
+        for i in range(1,15):
             start_time2 = time.time() 
             #depthMap conversion of the new image
             self.RGBD2.ReadFromMat(i) 
@@ -287,7 +287,7 @@ class Application(tk.Frame):
             #self.RGBD2.myPCA()
             
             # New pose estimation
-            T_Pose = Tracker.RegisterRGBDMesh_optimize(self.RGBD2,self.MC.Vertices,self.MC.Normals, self.Pose)
+            T_Pose = Tracker.RegisterRGBDMesh(self.RGBD2,self.MC.Vertices,self.MC.Normals, self.Pose)
             #T_Pose = Tracker.RegisterRGBD_optimize(self.RGBD2,self.RGBD)
             ref_pose = np.dot(T_Pose, self.Pose)
             for k in range(4):
