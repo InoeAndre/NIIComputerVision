@@ -206,8 +206,8 @@ class RGBD():
         return result
 
 
-    def Draw_optimize(self, Pose, s, color = 0) :   
-        result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
+    def Draw_optimize(self, rendering,Pose, s, color = 0) :   
+        result = rendering#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         stack_pix = np.ones((self.Size[0], self.Size[1]), dtype = np.float32)
         stack_pt = np.ones((np.size(self.Vtx[ ::s, ::s,:],0), np.size(self.Vtx[ ::s, ::s,:],1)), dtype = np.float32)
         pix = np.zeros((self.Size[0], self.Size[1],2), dtype = np.float32)

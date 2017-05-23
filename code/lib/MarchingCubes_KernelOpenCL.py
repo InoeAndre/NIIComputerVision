@@ -468,3 +468,147 @@ __kernel void MarchingCubesIndexing(__global short int *TSDF, __global int *Offs
         
 }
 """
+Kernel_InitArray = """
+
+
+__kernel void InitArray(__global int *Array_x, __global int *Array_y, __global int *Array_z, __global int *Weights,
+                       __global int *Normale_x, __global int *Normale_y, __global int *Normale_z,
+                       __global float * Vertices, __constant float *Param, __constant int *Dim, __global int *vertex_counter, const int nb_faces) {
+
+        int x = get_global_id(0);
+        int y = get_global_id(1); 
+        int work_size = get_global_size(1);
+        
+        int face_indx = x*work_size + y;
+        
+        if (face_indx > nb_faces-1)
+            return;
+        
+        float4 pt;
+        int indx;
+        int coord_i, coord_j, coord_k;
+        for (int k = 0; k < 3; k++) {
+            pt.x = Vertices[9*face_indx+3*k ];
+            pt.y = Vertices[9*face_indx+3*k+1];
+            pt.z = Vertices[9*face_indx+3*k+2];
+            
+            coord_i = max(0, min(Dim[0]-1,(int)(round(pt.x*Param[1]+Param[0]))));
+            coord_j = max(0, min(Dim[1]-1,(int)(round(pt.y*Param[3]+Param[2]))));
+            coord_k = max(0, min(Dim[2]-1,(int)(round(pt.z*Param[5]+Param[4]))));
+            
+            indx = coord_i*Dim[2]*Dim[1] + coord_j*Dim[2] + coord_k;
+            atomic_xchg(&Array_x[indx], 0);
+            atomic_xchg(&Array_y[indx], 0);
+            atomic_xchg(&Array_z[indx], 0);
+            atomic_xchg(&Normale_x[indx], 0);
+            atomic_xchg(&Normale_y[indx], 0);
+            atomic_xchg(&Normale_z[indx], 0);
+            atomic_xchg(&Weights[indx], 0);
+        }
+        
+}
+"""
+
+Kernel_MergeVtx = """
+
+__kernel void MergeVtx(__global int *Array_x, __global int *Array_y, __global int *Array_z, __global int *Weights,
+                       __global int *Normale_x, __global int *Normale_y, __global int *Normale_z,
+                       __global int *VtxInd, __global float * Vertices, __global int *Faces,  __constant float *Param, 
+                       __constant int *Dim, __global int *vertex_counter, const int nb_faces) {
+
+        int x = get_global_id(0);
+        int y = get_global_id(1); 
+        int work_size = get_global_size(1);
+        
+        int face_indx = x*work_size + y;
+        
+        if (face_indx > nb_faces-1)
+            return;
+        
+        float4 pt[3];
+        int indx[3];
+        int flag;
+        int counter;
+        int coord_i, coord_j, coord_k;
+        for (int k = 0; k < 3; k++) {
+            pt[k].x = Vertices[3*Faces[3*face_indx+k]];
+            pt[k].y = Vertices[3*Faces[3*face_indx+k]+1];
+            pt[k].z = Vertices[3*Faces[3*face_indx+k]+2];
+            
+            coord_i = max(0, min(Dim[0]-1,(int)(round(pt[k].x*Param[1]+Param[0]))));
+            coord_j = max(0, min(Dim[1]-1,(int)(round(pt[k].y*Param[3]+Param[2]))));
+            coord_k = max(0, min(Dim[2]-1,(int)(round(pt[k].z*Param[5]+Param[4]))));
+            
+            indx[k] = coord_i*Dim[2]*Dim[1] + coord_j*Dim[2] + coord_k;
+                
+            atomic_add(&Array_x[indx[k]], (int)(round(pt[k].x*100000.0f)));
+            atomic_add(&Array_y[indx[k]], (int)(round(pt[k].y*100000.0f)));
+            atomic_add(&Array_z[indx[k]], (int)(round(pt[k].z*100000.0f)));
+            flag = atomic_inc(&Weights[indx[k]]);
+            Faces[3*face_indx+k] = indx[k];
+            
+            if (flag == 0) {
+                counter = atomic_inc(vertex_counter);
+                atomic_xchg(&VtxInd[indx[k]], counter);
+            }
+        }
+            
+        float4 v1 = (float4)(pt[1].x-pt[0].x, pt[1].y-pt[0].y, pt[1].z-pt[0].z, 1.0f);
+        float4 v2 = (float4)(pt[2].x-pt[0].x, pt[2].y-pt[0].y, pt[2].z-pt[0].z, 1.0f);
+        float4 nmle = (float4)(v1.y*v2.z - v1.z*v2.y,
+                             -v1.x*v2.z + v1.z*v2.x,
+                             v1.x*v2.y - v1.y*v2.x, 1.0f);
+        for (int k = 0; k < 3; k++) {
+            atomic_add(&Normale_x[indx[k]], (int)(round(nmle.x*100000.0f)));
+            atomic_add(&Normale_y[indx[k]], (int)(round(nmle.y*100000.0f)));
+            atomic_add(&Normale_z[indx[k]], (int)(round(nmle.z*100000.0f)));
+        }
+        
+        
+        
+}
+"""
+
+Kernel_SimplifyMesh = """
+
+__kernel void SimplifyMesh(__global int *Array_x, __global int *Array_y, __global int *Array_z, __global int *Weights,
+                       __global int *Normale_x, __global int *Normale_y, __global int *Normale_z,
+                       __global int *VtxInd, __global float * Vertices, __global float * Normales, __global int *Faces,
+                       __constant int *Dim, const int nb_faces) {
+
+        int x = get_global_id(0); /*height*/
+        int y = get_global_id(1); /*width*/
+        int work_size = get_global_size(1);
+        
+        int face_indx = x*work_size + y;
+        
+        if (face_indx > nb_faces-1)
+            return;
+            
+        int id;
+        int id_v;
+        float mag;
+        for (int k = 0; k < 3; k++) {
+            id = Faces[3*face_indx+k];
+            id_v = VtxInd[id];
+            
+            Vertices[3*id_v] = ((float)(Array_x[id])/100000.0f) / (float)(Weights[id]);
+            Vertices[3*id_v+1] = ((float)(Array_y[id])/100000.0f) / (float)(Weights[id]);
+            Vertices[3*id_v+2] = ((float)(Array_z[id])/100000.0f) / (float)(Weights[id]);
+            
+            mag = sqrt( (((float)(Normale_x[id]))/100000.0f)*(((float)(Normale_x[id]))/100000.0f) + 
+                        (((float)(Normale_y[id]))/100000.0f)*(((float)(Normale_y[id]))/100000.0f) +
+                        (((float)(Normale_z[id]))/100000.0f)*(((float)(Normale_z[id]))/100000.0f));
+    
+            if (mag == 0.0f) 
+                mag = 1.0f;
+            Normales[3*id_v] = (((float)(Normale_x[id]))/100000.0f) / mag;
+            Normales[3*id_v+1] = (((float)(Normale_y[id]))/100000.0f) / mag;
+            Normales[3*id_v+2] = (((float)(Normale_z[id]))/100000.0f) / mag;
+            
+    
+            Faces[3*face_indx + k] = id_v;
+        }
+        
+}
+"""

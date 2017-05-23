@@ -202,8 +202,14 @@ class Application(tk.Frame):
         cdt_column = (verts[:,0] > -1) * (verts[:,0] < self.Size[1])
         verts[:,0] = verts[:,0]*cdt_column
         verts[:,1] = verts[:,1]*cdt_line
-        return verts            
-
+        return verts     
+       
+    def InvPose(self):
+        '''Compute the inverse transform of Pose''' 
+        self.PoseBack = np.zeros(self.Pose.shape,self.Pose.dtype)
+        self.PoseBack[0:3,0:3] = LA.inv(self.Pose[0:3,0:3])
+        self.PoseBack[:,3] = -self.Pose[:,3]
+      
 
     ## Constructor function
     def __init__(self, path, GPUManager, master=None):
@@ -273,7 +279,7 @@ class Application(tk.Frame):
         TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)  
         self.MC.runGPU(TSDFManager.TSDFGPU)
 
-        for i in range(1,15):
+        for i in range(1):
             start_time2 = time.time() 
             #depthMap conversion of the new image
             self.RGBD2.ReadFromMat(i) 
@@ -287,7 +293,7 @@ class Application(tk.Frame):
             #self.RGBD2.myPCA()
             
             # New pose estimation
-            T_Pose = Tracker.RegisterRGBDMesh(self.RGBD2,self.MC.Vertices,self.MC.Normals, self.Pose)
+            T_Pose = Tracker.RegisterRGBDMesh_optimize(self.RGBD,self.MC.Vertices,self.MC.Normals, self.Pose)
             #T_Pose = Tracker.RegisterRGBD_optimize(self.RGBD2,self.RGBD)
             ref_pose = np.dot(T_Pose, self.Pose)
             for k in range(4):
@@ -297,10 +303,10 @@ class Application(tk.Frame):
             print self.Pose
             
             #TSDF Fusion
-            TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)  
+            #TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)  
             
             # Mesh rendering
-            self.MC.runGPU(TSDFManager.TSDFGPU) 
+            #self.MC.runGPU(TSDFManager.TSDFGPU) 
                         
 #==============================================================================
 #             self.RGBD.depth_image = self.RGBD2.depth_image
@@ -320,14 +326,13 @@ class Application(tk.Frame):
         print "SaveToPly: %f" % (elapsed_time)
  
         # projection in 2d space to draw it
-        
-        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)#
-        
-        
+        rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
+        rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)#
+        #rendering2 =self.RGBD2.Draw_optimize(Id4, 1, self.color_tag)#
         # Projection directly with the output of the marching cubes  
         #rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size,rendering,2)
-        rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,Id4, 1, self.color_tag)
-        
+        rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,self.Pose, 1, self.color_tag)
+        #rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
         
         elapsed_time = time.time() - start_time
         print "Whole process: %f s" % (elapsed_time)
@@ -346,6 +351,16 @@ class Application(tk.Frame):
         #self.DrawSys2D(self.Pose)
         #self.DrawOBBox2D(self.Pose)
         #self.DrawMesh2D(self.Pose,self.verts,self.faces)
+        
+        # 3D reconstruction of the whole image
+#==============================================================================
+#         self.canvas2 = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
+#         self.canvas2.pack()        
+#         #rendering = self.DrawColors2D(self.RGBD2,rendering,self.Pose)
+#         img2 = Image.fromarray(rendering2, 'RGB')
+#         self.imgTk2=ImageTk.PhotoImage(img2)
+#         self.canvas2.create_image(0, 0, anchor=tk.NW, image=self.imgTk2)
+#==============================================================================
 
 
         #enable keyboard and mouse monitoring
