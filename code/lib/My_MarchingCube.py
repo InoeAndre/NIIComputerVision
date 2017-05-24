@@ -12,6 +12,7 @@ import numpy as np
 import pyopencl as cl
 import math
 
+PI = math.pi
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
 KernelsOpenCL = imp.load_source('MarchingCubes_KernelOpenCL', './lib/MarchingCubes_KernelOpenCL.py')
 
@@ -215,7 +216,23 @@ class My_MarchingCube():
         # edges of triangles
         vectsFaces[0,:,:] = self.Vertices[self.Faces[:,1]]-self.Vertices[self.Faces[:,0]]   
         vectsFaces[1,:,:] = self.Vertices[self.Faces[:,2]]-self.Vertices[self.Faces[:,0]]
-
+        
+#==============================================================================
+#         norm0 = np.sqrt(np.sum(vectsFaces[0,:,:]*vectsFaces[0,:,:],axis=1))
+#         norm1 = np.sqrt(np.sum(vectsFaces[1,:,:]*vectsFaces[1,:,:],axis=1))
+#         chgOrientation = (np.arccos( np.sum(vectsFaces[0,:,:]*vectsFaces[1,:,:],axis = 1)/(norm0*norm1) ) < PI/2.0)
+# 
+#         falses = np.where(chgOrientation==False)
+#         # change orientation
+#         tmp = vectsFaces[1,falses[:],:]
+#         vectsFaces[1,falses[:],:] = vectsFaces[0,falses[:],:]
+#         vectsFaces[0,falses[:],:] = tmp            
+#             
+#             
+#         print "MC.vectsFaces"
+#         print vectsFaces[0,:,:]
+#         print vectsFaces[1,:,:]
+#==============================================================================
         # compute each face's normal
         #facesNmls = np.cross(vectsFaces[0,:,:],vectsFaces[1,:,:])
         facesNmls[:,0] = vectsFaces[0,:,1]*vectsFaces[1,:,2]- vectsFaces[0,:,2]*vectsFaces[1,:,1]
@@ -231,6 +248,7 @@ class My_MarchingCube():
         norm_nmlsSum = in_mat_zero2one(norm_nmlsSum)
         # normalize the mean of the norm
         self.Normals = division_by_norm(self.Normals,norm_nmlsSum)
+
 
         '''
         Non optimized version for understanding

@@ -50,7 +50,8 @@ class Application(tk.Frame):
 
         if (event.keysym != 'Escape'):
             self.Pose = np.dot(self.Pose, Transfo)
-            rendering = self.RGBD2.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
+            rendering = self.RGBD2.Draw_optimize(rendering,self.Pose, self.w.get(), self.color_tag)
             rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,self.Pose, 1, self.color_tag)
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
@@ -99,7 +100,8 @@ class Application(tk.Frame):
                             [0., 0., 0., 1.]])
 
             self.Pose = np.dot(self.Pose, RotX)
-            rendering = self.RGBD2.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
+            rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
+            rendering = self.RGBD2.Draw_optimize(rendering,self.Pose, self.w.get(), self.color_tag)
             rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,self.Pose, 1, self.color_tag)
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
@@ -279,7 +281,7 @@ class Application(tk.Frame):
         TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)  
         self.MC.runGPU(TSDFManager.TSDFGPU)
 
-        for i in range(1):
+        for i in range(1,10):
             start_time2 = time.time() 
             #depthMap conversion of the new image
             self.RGBD2.ReadFromMat(i) 
@@ -293,7 +295,7 @@ class Application(tk.Frame):
             #self.RGBD2.myPCA()
             
             # New pose estimation
-            T_Pose = Tracker.RegisterRGBDMesh_optimize(self.RGBD,self.MC.Vertices,self.MC.Normals, self.Pose)
+            T_Pose = Tracker.RegisterRGBDMesh_optimize(self.RGBD2,self.MC.Vertices,self.MC.Normals, self.Pose)
             #T_Pose = Tracker.RegisterRGBD_optimize(self.RGBD2,self.RGBD)
             ref_pose = np.dot(T_Pose, self.Pose)
             for k in range(4):
@@ -303,10 +305,10 @@ class Application(tk.Frame):
             print self.Pose
             
             #TSDF Fusion
-            #TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)  
+            TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)  
             
             # Mesh rendering
-            #self.MC.runGPU(TSDFManager.TSDFGPU) 
+            self.MC.runGPU(TSDFManager.TSDFGPU) 
                         
 #==============================================================================
 #             self.RGBD.depth_image = self.RGBD2.depth_image
@@ -327,12 +329,12 @@ class Application(tk.Frame):
  
         # projection in 2d space to draw it
         rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-        rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)#
+        rendering = self.RGBD2.Draw_optimize(rendering,Id4, 1, self.color_tag)#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)#
         #rendering2 =self.RGBD2.Draw_optimize(Id4, 1, self.color_tag)#
         # Projection directly with the output of the marching cubes  
         #rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size,rendering,2)
-        rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,self.Pose, 1, self.color_tag)
-        #rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
+        #rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,self.Pose, 1, self.color_tag)
+        rendering = self.RGBD.Draw_optimize(rendering,self.Pose, 1, self.color_tag)
         
         elapsed_time = time.time() - start_time
         print "Whole process: %f s" % (elapsed_time)

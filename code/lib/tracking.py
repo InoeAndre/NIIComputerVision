@@ -698,7 +698,6 @@ class Tracker():
 #==============================================================================
         
 
-        res = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         
         Size = MeshVtx.shape
         res = Pose
@@ -781,12 +780,14 @@ class Tracker():
                 mask = cdt_line*cdt_column * (pt[:,2] > 0.0) * (norm_Norme_Nmle > 0.0) * (norm_diff_Vtx < self.thresh_dist) * (norm_diff_Nmle < self.thresh_norm)
                 print sum(mask)
                 
-                print "NewImage.Vtx[line_index[:], column_index[:]][:,2]"
-                print NewImage.Vtx[line_index[:], column_index[:]][:,2]
-                print "nmle[:,2]"
-                print nmle[:,2]
-                print "Indexes_ref"
-                print Indexes_ref
+#==============================================================================
+#                 print "NewImage.Vtx[line_index[:], column_index[:]][:,2]"
+#                 print NewImage.Vtx[line_index[:], column_index[:]][:,2]
+#                 print "nmle[:,2]"
+#                 print nmle[:,2]
+#                 print "Indexes_ref"
+#                 print Indexes_ref
+#==============================================================================
 
                 
                 w = 1.0
@@ -801,10 +802,12 @@ class Tracker():
                                                       + nmle[:,1]*(NewImage.Vtx[line_index[:], column_index[:]][:,1] - pt[:,1])\
                                                       + nmle[:,2]*(NewImage.Vtx[line_index[:], column_index[:]][:,2] - pt[:,2])) ).transpose()).reshape(Buffer_B[Indexes_ref[:]].shape)
 
-                print "Buffer"
-                print Buffer
-                print "Buffer[Indexes_ref[:]]"
-                print Buffer[Indexes_ref[:]]                
+#==============================================================================
+#                 print "Buffer"
+#                 print Buffer
+#                 print "Buffer[Indexes_ref[:]]"
+#                 print Buffer[Indexes_ref[:]]                
+#==============================================================================
                         
                 A = np.dot(Buffer.transpose(), Buffer)
                 b = np.dot(Buffer.transpose(), Buffer_B).reshape(6)
