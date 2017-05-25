@@ -30,9 +30,9 @@ mf = cl.mem_flags
 class TSDFManager():
     
     # Constructor
-    def __init__(self, Size, Image, GPUManager):
+    def __init__(self, Size, Image, GPUManager,TSDFGPU,WeightGPU):
         self.Size = Size
-        self.TSDF = np.zeros(self.Size, dtype = np.float32)
+        self.TSDF = np.zeros(self.Size, dtype = np.int16)
         self.c_x = self.Size[0]/2
         self.c_y = self.Size[1]/2
         self.c_z = -0.1
@@ -44,7 +44,9 @@ class TSDFManager():
         self.GPUManager = GPUManager
         self.Size_Volume = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = np.array([self.Size[0], self.Size[1], self.Size[2]], dtype = np.int32))
-        self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
+        self.TSDFGPU = TSDFGPU
+        self.WeightGPU = WeightGPU
+
         self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = self.res)
         
@@ -62,16 +64,20 @@ class TSDFManager():
 
     # Fuse on the GPU
     def FuseRGBD_GPU(self, Image, Pose):
-        Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
+        Transform = np.zeros(Pose.shape,Pose.dtype)
+        Transform[0:3,0:3] = LA.inv(Pose[0:3,0:3])
+        Transform[:,3] = -Pose[:,3]
+        #Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
         
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
         
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-                                np.int32(Image.Size[0]), np.int32(Image.Size[1]))
+                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU)
         
-        #cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
+        cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
+        cl.enqueue_read_buffer(self.GPUManager.queue, self.WeightGPU, self.Weight).wait() 
         
     # Reay tracing on the GPU
     def RayTracing_GPU(self, Image, Pose):
