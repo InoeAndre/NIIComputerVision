@@ -15,6 +15,7 @@ import imp
 import scipy.io
 import time
 import random
+import pyopencl as cl
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 TrackManager = imp.load_source('TrackManager', './lib/tracking.py')
@@ -202,6 +203,7 @@ class Application(tk.Frame):
     
         print self.intrinsic
     
+        self.fact = 1000.0
 
         mat = scipy.io.loadmat(self.path + '/String4b.mat')
         self.lImages = mat['DepthImg']
@@ -216,75 +218,76 @@ class Application(tk.Frame):
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
-        self.Index = 20
+        self.Index = 0
         self.RGBD.ReadFromMat(self.Index)
         self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.Crop2Body()
-        segm = self.RGBD.BodySegmentation()
-        self.RGBD.BodyLabelling()
+        #self.RGBD.Crop2Body()
+        #self.RGBD.BodySegmentation()
+        #self.RGBD.BodyLabelling()
         start_time = time.time()
         self.RGBD.Vmap_optimize()  
-        elapsed_time = time.time() - start_time
-        print "Vmap: %f" % (elapsed_time)
         self.RGBD.NMap_optimize()
-        elapsed_time2 = time.time() - start_time - elapsed_time
-        print "Nmap_optimize: %f" % (elapsed_time2)
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
-        start_time2 = time.time()
-        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        self.RGBD.myPCA()
-        elapsed_time3 = time.time() - start_time2
-        print "bounding boxes process time: %f" % (elapsed_time3)
+        #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+        #self.RGBD.myPCA()
+        elapsed_time3 = time.time() - start_time
+        print "depth map conversion process time: %f" % (elapsed_time3)
         
-        # Show figure and images
+        self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact) 
+        self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx ) 
+        self.RGBD2.ReadFromMat(1) 
+        self.RGBD2.BilateralFilter(-1, 0.02, 3) 
+        #self.RGBD2.Crop2Body() 
+        #self.RGBD2.BodySegmentation() 
+        #self.RGBD2.BodyLabelling()         
+        #self.RGBD2.depth_image *= (self.RGBD2.labels >0) 
+        self.RGBD2.Vmap_optimize()   
+        self.RGBD2.NMap_optimize()  
+        #self.RGBD2.myPCA()
             
-        # 3D reconstruction of the whole image
-        self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
-        self.canvas.pack()
-        rendering = self.DrawColors2D(rendering,self.Pose)
-        img = Image.fromarray(rendering, 'RGB')
-        self.imgTk=ImageTk.PhotoImage(img)
-        #self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-        #self.DrawSkeleton2D(self.Pose)
-        #self.DrawCenters2D(self.Pose)
-        #self.DrawSys2D(self.Pose)
-        #self.DrawOBBox2D(self.Pose)
-
-
-        '''
-        Test Register
-        '''
-        '''
-        ImageTest = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
-        ImageTest.LoadMat(self.lImages,self.pos2d,self.connection)
-        ImageTest.ReadFromMat()
-        ImageTest.BilateralFilter(-1, 0.02, 3)
-        ImageTest.Vmap_optimize()
-        ImageTest.NMap_optimize()
-        test_v = np.array([0.01, 0.02,0.015, 0.01, 0.02, 0.03]) #[random.random()/10 for _ in range(6)])
-        A = TrackManager.Exponential(test_v)
-        R = LA.inv(A[0:3,0:3])
-        tra = -np.dot(R,A[0:3,3])
-        print A
-        print R
-        print tra
-        ImageTest.Transform(A)
+        mf = cl.mem_flags
+        self.TSDF = np.zeros(self.Size, dtype = np.int16)
+        self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
+        self.Weight = np.zeros((512,512,512), dtype = np.int16)
+        self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
         
+        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU)
         Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
-        Tracker.RegisterRGBD_optimize(ImageTest, self.RGBD)
         
-        #Tracker = TrackManager.Tracker(0.1, 0.2, 1, [10], 0.001)
-        #Tracker.RegisterRGBD(ImageTest, self.RGBD)
-        '''
-        '''
-        End test
-        '''
         
-        '''
-        Test TSDF
-        '''
+        self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
+        start_time = time.time()
+        self.MC.runGPU(TSDFManager.TSDFGPU)
+        elapsed_time = time.time() - start_time
+        print "MarchingCubes: %f" % (elapsed_time)
+        start_time = time.time()
+        #self.MC.MergeVtxGPU()
+        self.MC.MergeVtx()
+        elapsed_time = time.time() - start_time
+        print "MergeVtx: %f" % (elapsed_time)
+        start_time = time.time()
+        print "self.MC.Vertices"
+        print self.MC.Vertices
+        print "self.MC.Normales"
+        print self.MC.Normales
         
-        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
+
+        # New pose estimation
+        #T_Pose = Tracker.RegisterRGBDMesh_optimize(self.RGBD,self.MC.Vertices,self.MC.Normals, self.Pose)
+        T_Pose = Tracker.RegisterRGBD_optimize(self.RGBD2,self.RGBD)
+        ref_pose = np.dot(T_Pose, self.Pose)
+        for k in range(4):
+            for l in range(4):
+                self.Pose[k,l] = ref_pose[k,l]
+        print 'self.Pose'
+        print self.Pose        
+        
+        
+        
+        self.MC.SaveToPly("result.ply")
+        elapsed_time = time.time() - start_time
+        print "SaveToPly: %f" % (elapsed_time)
+        
         start_time = time.time()
         TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
         elapsed_time = time.time() - start_time
@@ -294,42 +297,25 @@ class Application(tk.Frame):
         #elapsed_time = time.time() - start_time
         #print "RayTracing_GPU: %f" % (elapsed_time)
         
-        
-        self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
-        start_time = time.time()
-        self.MC.runGPU(TSDFManager.TSDFGPU)
-        elapsed_time = time.time() - start_time
-        print "MarchingCubes: %f" % (elapsed_time)
-        start_time = time.time()
-        self.MC.MergeVtxGPU()
-        #self.MC.MergeVtx()
-        elapsed_time = time.time() - start_time
-        print "MergeVtx: %f" % (elapsed_time)
-        start_time = time.time()
-        self.MC.SaveToPly("result.ply")
-        elapsed_time = time.time() - start_time
-        print "SaveToPly: %f" % (elapsed_time)
-        
+
+
+        # Show figure and images
+            
         rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, 2)
-        
-        #start_time = time.time()
-        #TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
-        #elapsed_time = time.time() - start_time
-        #print "FuseRGBD_optimized: %f" % (elapsed_time)
-        #self.RGBD.depth_image = TSDFManager.RayTracing(self.RGBD, self.Pose)
-        self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.Vmap_optimize()
-        self.RGBD.NMap_optimize()
-        #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        
-        '''
-        End Test
-        '''
+        # 3D reconstruction of the whole image
+        self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
+        self.canvas.pack()
+
+
+
         
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-
+        #self.DrawSkeleton2D(self.Pose)
+        #self.DrawCenters2D(self.Pose)
+        #self.DrawSys2D(self.Pose)
+        #self.DrawOBBox2D(self.Pose)
         
         #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)
