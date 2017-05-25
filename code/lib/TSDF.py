@@ -67,7 +67,7 @@ class TSDFManager():
     def FuseRGBD_GPU(self, Image, Pose):
         Transform = np.zeros(Pose.shape,Pose.dtype)
         Transform[0:3,0:3] = LA.inv(Pose[0:3,0:3])
-        Transform[:,3] = -Pose[:,3]
+        Transform[0:3,3] = -np.dot(Transform[0:3,0:3],Pose[0:3,3])
         #Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
         
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
