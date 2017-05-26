@@ -201,7 +201,15 @@ class My_MarchingCube():
         result[line_index[:], column_index[:]]= 255*np.ones((np.size(pix, 0), 3), dtype = np.uint8)
         return result
                     
-                    
+
+    '''
+        Function to compute the normals of the mesh 
+    '''
+    def TransformList(self, Pose):
+        stack_pt = np.ones(np.size(self.Vertices,0), dtype = np.float32)
+        pt = np.stack((self.Vertices[:,0],self.Vertices[:,1],self.Vertices[:,2], stack_pt),axis =1)
+        self.Vertices = np.dot(Pose,pt.T).T[:, 0:3]
+        self.Normales = np.dot(Pose[0:3,0:3],self.Normales.T).T                      
                     
     '''
         Function to compute the normals of the mesh 
@@ -311,7 +319,7 @@ class My_MarchingCube():
         self.Normales = np.zeros((self.nbVtx, 3), dtype = np.float32)
         index_count = 0
         for i in range(self.Size[0]):
-            print i
+            #print i
             for j in range(self.Size[1]):
                 for k in range(self.Size[2]):
                     if (VtxWeights[i,j,k] > 0):
@@ -416,7 +424,7 @@ class My_MarchingCube():
         
         
         for i in range(self.Size[0]):
-            print i
+            #print i
             for j in range(self.Size[1]):
                 for k in range(self.Size[2]):
                     if (VtxWeights[i,j,k] > 0):

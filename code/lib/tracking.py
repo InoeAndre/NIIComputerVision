@@ -323,7 +323,10 @@ class Tracker():
                 
                 res = np.dot(delta_transfo, res)
                 
+                print "res"
                 print res
+                print "delta_transfo"
+                print delta_transfo
         return res
     
             
@@ -534,7 +537,9 @@ class Tracker():
                 delta_transfo = LA.inv(Exponential(delta_qsi))
                 
                 res = np.dot(delta_transfo, res)
-                
+                print "res"
                 print res
+                print "delta_transfo"
+                print delta_transfo
         return res        
 
