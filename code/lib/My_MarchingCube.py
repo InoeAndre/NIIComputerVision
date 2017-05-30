@@ -472,16 +472,16 @@ class My_MarchingCube():
         
         
     def MC2RGBD(self,RGBD,Vtx,Nmls,Pose, s, color = 0) :   
-        result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)#
+        result = np.zeros((RGBD.Size[0], RGBD.Size[1], 3), dtype = np.uint8)#
         stack_pix = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
         stack_pt = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
         pix = np.zeros( (np.size(Vtx[ ::s,:],0),2) , dtype = np.float32)
         pix = np.stack((pix[:,0],pix[:,1],stack_pix),axis = 1)
         pt = np.stack( (Vtx[ ::s,0],Vtx[ ::s,1],Vtx[ ::s,2],stack_pt),axis =1 )
-        pt = np.dot(pt,Pose.T)
+        pt = np.dot(Pose,pt.T).T
 
         nmle = np.zeros((Nmls.shape[0], Nmls.shape[1]), dtype = np.float32)
-        nmle[ ::s,:] = np.dot(Nmls[ ::s,:],Pose[0:3,0:3].T)
+        nmle[ ::s,:] = np.dot(Pose[0:3,0:3],Nmls[ ::s,:].T).T
         
 
         # projection in 2D space
@@ -494,10 +494,12 @@ class My_MarchingCube():
         column_index = (np.round(pix[:,0])).astype(int)
         line_index = (np.round(pix[:,1])).astype(int)
         # create matrix that have 0 when the conditions are not verified and 1 otherwise
-        cdt_column = (column_index > -1) * (column_index < self.Size[1])
-        cdt_line = (line_index > -1) * (line_index < self.Size[0])
+        cdt_column = (column_index > -1) * (column_index < RGBD.Size[1])
+        cdt_line = (line_index > -1) * (line_index < RGBD.Size[0])
         line_index = line_index*cdt_line
         column_index = column_index*cdt_column
+        print "max line_index : %d" %(np.max(line_index))
+        print "max column_index : %d" %(np.max(column_index))
         if (color == 0):
             result[line_index[:], column_index[:]]= np.dstack((RGBD.color_image[ ::s, ::s,2], \
                                                                     RGBD.color_image[ ::s, ::s,1]*cdt_line, \

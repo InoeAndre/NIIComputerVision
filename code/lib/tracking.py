@@ -278,10 +278,16 @@ class Tracker():
                 diff_Vtx = Image2.Vtx[line_index[:][:], column_index[:][:]] - pt[:,:,0:3]
                 diff_Vtx = diff_Vtx*diff_Vtx
                 norm_diff_Vtx = diff_Vtx.sum(axis=2)
+                mask_vtx =  (norm_diff_Vtx < self.thresh_dist)
+                print "mask_vtx"
+                print sum(sum(mask_vtx))     
                 
                 diff_Nmle = Image2.Nmls[line_index[:][:], column_index[:][:]] - nmle
                 diff_Nmle = diff_Nmle*diff_Nmle
                 norm_diff_Nmle = diff_Nmle.sum(axis=2)
+                mask_nmls =  (norm_diff_Nmle < self.thresh_norm)
+                print "mask_nmls"
+                print sum(sum(mask_nmls))   
                 
                 Norme_Nmle = nmle*nmle
                 norm_Norme_Nmle = Norme_Nmle.sum(axis=2)
@@ -463,8 +469,8 @@ class Tracker():
                 A = np.zeros((6,6), np.float32)
                 
                 # For each pixel find correspondinng point by projection
-                Buffer = np.zeros((Size[0]*Size[1], 6), dtype = np.float32)
-                Buffer_B = np.zeros((Size[0]*Size[1], 1), dtype = np.float32)
+                Buffer = np.zeros((Size[0], 6), dtype = np.float32)
+                Buffer_B = np.zeros((Size[0], 1), dtype = np.float32)
                 stack_pix = np.ones(Size[0], dtype = np.float32)
                 stack_pt = np.ones(np.size(MeshVtx[ ::l,:],0), dtype = np.float32)
                 pix = np.zeros((Size[0], 2), dtype = np.float32)
@@ -501,10 +507,12 @@ class Tracker():
                 diff_Vtx =  NewImage.Vtx[line_index[:], column_index[:]] - pt[:,0:3] 
                 diff_Vtx = diff_Vtx*diff_Vtx
                 norm_diff_Vtx = diff_Vtx.sum(axis=1)
+            
                 
                 diff_Nmle = NewImage.Nmls[line_index[:], column_index[:]] - nmle 
                 diff_Nmle = diff_Nmle*diff_Nmle
                 norm_diff_Nmle = diff_Nmle.sum(axis=1)
+   
                 
                 Norme_Nmle = nmle*nmle
                 norm_Norme_Nmle = Norme_Nmle.sum(axis=1)
@@ -517,9 +525,9 @@ class Tracker():
                 Buffer[Indexes_ref[:]] = np.stack((w*mask[:]*nmle[ :,0], \
                       w*mask[:]*nmle[ :, 1], \
                       w*mask[:]*nmle[ :, 2], \
-                      w*mask[:]*(-NewImage.Vtx[line_index[:], column_index[:]][:,2]*nmle[:,1] + NewImage.Vtx[line_index[:], column_index[:]][:,1]*nmle[:,2]), \
+                      w*mask[:]*(NewImage.Vtx[line_index[:], column_index[:]][:,1]*nmle[:,2] - NewImage.Vtx[line_index[:], column_index[:]][:,2]*nmle[:,1]), \
                       w*mask[:]*(NewImage.Vtx[line_index[:], column_index[:]][:,2]*nmle[:,0] - NewImage.Vtx[line_index[:], column_index[:]][:,0]*nmle[:,2]), \
-                      w*mask[:]*(-NewImage.Vtx[line_index[:], column_index[:]][:,1]*nmle[:,0] + NewImage.Vtx[line_index[:], column_index[:]][:,0]*nmle[:,1]) ) , axis = 1)
+                      w*mask[:]*(NewImage.Vtx[line_index[:], column_index[:]][:,0]*nmle[:,1] - NewImage.Vtx[line_index[:], column_index[:]][:,1]*nmle[:,0]) ) , axis = 1)
                 
                 Buffer_B[Indexes_ref[:]] = ((w*mask[:]*(nmle[:,0]*(NewImage.Vtx[line_index[:], column_index[:]][:,0] - pt[:,0])\
                                                       + nmle[:,1]*(NewImage.Vtx[line_index[:], column_index[:]][:,1] - pt[:,1])\
@@ -534,6 +542,9 @@ class Tracker():
                     break
            
                 delta_qsi = -LA.tensorsolve(A, b)
+                #delta_transfo = Exponential(delta_qsi)
+                #delta_transfo[0:3,0:3] = LA.inv(delta_transfo[0:3,0:3])
+                #delta_transfo[0:3,3] = -np.dot(delta_transfo[0:3,0:3],delta_transfo[0:3,3])
                 delta_transfo = LA.inv(Exponential(delta_qsi))
                 
                 res = np.dot(delta_transfo, res)
