@@ -12,9 +12,13 @@ import scipy.ndimage.measurements as spm
 import pdb
 from skimage import img_as_ubyte
 from sklearn.decomposition import PCA
+import pyopencl as cl
+import pyopencl.array
+from pyopencl.elementwise import ElementwiseKernel
 
 
 segm = imp.load_source('segmentation', './lib/segmentation.py')
+KernelsOpenCL = imp.load_source('RGBDKernels', './lib/RGBDKernels.py')
 
 def normalized_cross_prod(a,b):
     res = np.zeros(3, dtype = "float")
@@ -65,15 +69,54 @@ def normalized_cross_prod_optimize(a,b):
     res = division_by_norm(res,norm_mat_res)
     return res
 
+
 #Nurbs class to handle NURBS curves (Non-uniform rational B-spline)
 class RGBD():
 
     # Constructor
-    def __init__(self, depthname, colorname, intrinsic, fact):
+    def __init__(self, GPUManager, depthname, colorname, intrinsic, fact):
         self.depthname = depthname
         self.colorname = colorname
         self.intrinsic = intrinsic
         self.fact = fact
+        self.GPUManager = GPUManager
+        self.Size = (424, 512, 3)
+        
+        self.bilateral_filter = ElementwiseKernel(self.GPUManager.context, 
+                                               "float *depth, float *depth_out, int d, float sigma_r, float sigma_d, int nbLines, int nbColumns",
+                                               KernelsOpenCL.Kernel_BilateralFilter,
+                                               "bilateral_filter")
+               
+        self.depth_to_vmap = ElementwiseKernel(self.GPUManager.context, 
+                                               "float *depth, float *vmap, float *intrinsic, int nbColumns",
+                                               KernelsOpenCL.Kernel_VMap,
+                                               "depth_to_vmap")
+        
+        self.vmap_to_nmap = ElementwiseKernel(self.GPUManager.context, 
+                                               "float *vmap, float *nmap, int nbLines, int nbColumns",
+                                               KernelsOpenCL.Kernel_NMap,
+                                               "vmap_to_nmap")
+        
+        self.draw_vmap = ElementwiseKernel(self.GPUManager.context, 
+                                               "unsigned int *res, float *vmap, float *nmap, unsigned char *color, float *Pose, float *Intrinsic, int color_flag, int nbLines, int nbColumns",
+                                               KernelsOpenCL.Kernel_Draw,
+                                               "draw_vmap")
+        
+        
+        # Allocate on CPU 
+        self.draw_result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint32)
+        
+        
+        intrinsic_curr = np.array([self.intrinsic[0,0], self.intrinsic[1,1], self.intrinsic[0,2], self.intrinsic[1,2]])
+        self.intrinsic_d = cl.array.to_device(self.GPUManager.queue, intrinsic_curr)
+        self.Pose_d = cl.array.zeros(self.GPUManager.queue, (4,4), np.float32)
+        
+        self.depth_raw_d = cl.array.zeros(self.GPUManager.queue, (self.Size[0], self.Size[1]), np.float32)
+        self.depth_d = cl.array.zeros(self.GPUManager.queue, (self.Size[0], self.Size[1]), np.float32)
+        self.vmap_d = cl.array.zeros(self.GPUManager.queue, self.Size, np.float32)
+        self.nmap_d = cl.array.zeros(self.GPUManager.queue, self.Size, np.float32)
+        self.color_d = cl.array.zeros(self.GPUManager.queue, self.Size, dtype = np.uint8)
+        self.draw_d = cl.array.zeros(self.GPUManager.queue, self.Size, dtype = np.uint32)
         
     def LoadMat(self, Images,Pos_2D,BodyConnection,binImage):
         self.lImages = Images
@@ -82,7 +125,10 @@ class RGBD():
         self.pos2d = Pos_2D
         self.connection = BodyConnection
         self.bw = binImage
-        
+  
+##################################################################
+###################Read#######################
+##################################################################      
     def ReadFromDisk(self): #Read an RGB-D image from the disk
         print(self.depthname)
         self.depth_in = cv2.imread(self.depthname, -1)
@@ -104,8 +150,8 @@ class RGBD():
         print "Input depth image is of size: ", depth_in.shape
         size_depth = depth_in.shape
         self.Size = (size_depth[0], size_depth[1], 3)
-        self.depth_image = np.zeros((self.Size[0], self.Size[1]), np.float32)
-        self.depth_image = depth_in.astype(np.float32) / self.fact
+        self.depth_image = np.ascontiguousarray(depth_in.astype(np.float32) / self.fact)
+        self.depth_raw_d.set(self.depth_image, queue = self.GPUManager.queue)
         self.skel = self.depth_image.copy()
 
 
@@ -113,18 +159,10 @@ class RGBD():
         return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
     
     
-    def Vmap(self): # Create the vertex image from the depth image and intrinsic matrice
-        self.Vtx = np.zeros(self.Size, np.float32)
-        for i in range(self.Size[0]): # line index (i.e. vertical y axis)
-            for j in range(self.Size[1]): # column index (i.e. horizontal x axis)
-                d = self.depth_image[i,j]
-                if d > 0.0:
-                    x = d*(j - self.intrinsic[0,2])/self.intrinsic[0,0]
-                    y = d*(i - self.intrinsic[1,2])/self.intrinsic[1,1]
-                    self.Vtx[i,j] = (x, y, d)
-        
-    
-    def Vmap_optimize(self): # Create the vertex image from the depth image and intrinsic matrice
+##################################################################
+###################Vertices#######################
+##################################################################
+    def Vmap_CPU(self): # Create the vertex image from the depth image and intrinsic matrice
         #self.Vtx = np.zeros(self.Size, np.float32)
         d = self.depth_image[0:self.Size[0]][0:self.Size[1]]
         d_pos = d * (d > 0.0)
@@ -137,24 +175,15 @@ class RGBD():
         x = d_pos * x_raw
         y = d_pos * y_raw
         self.Vtx = np.dstack((x, y,d))
-
-
+        
+        
+    def Vmap_GPU(self):
+        self.depth_to_vmap(self.depth_d, self.vmap_d, self.intrinsic_d, self.Size[1])
                 
-    ##### Compute normals
-    def NMap(self):
-        self.Nmls = np.zeros(self.Size, np.float32)
-        for i in range(1,self.Size[0]-1):
-            for j in range(1, self.Size[1]-1):
-                nmle1 = normalized_cross_prod(self.Vtx[i+1, j]-self.Vtx[i, j], self.Vtx[i, j+1]-self.Vtx[i, j])
-                nmle2 = normalized_cross_prod(self.Vtx[i, j+1]-self.Vtx[i, j], self.Vtx[i-1, j]-self.Vtx[i, j])
-                nmle3 = normalized_cross_prod(self.Vtx[i-1, j]-self.Vtx[i, j], self.Vtx[i, j-1]-self.Vtx[i, j])
-                nmle4 = normalized_cross_prod(self.Vtx[i, j-1]-self.Vtx[i, j], self.Vtx[i+1, j]-self.Vtx[i, j])
-                nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
-                if (LA.norm(nmle) > 0.0):
-                    nmle = nmle/LA.norm(nmle)
-                self.Nmls[i, j] = (nmle[0], nmle[1], nmle[2])
-                
-    def NMap_optimize(self):
+##################################################################
+###################normals#######################
+##################################################################
+    def NMap_CPU(self):
         self.Nmls = np.zeros(self.Size, np.float32)        
         nmle1 = normalized_cross_prod_optimize(self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[1:self.Size[0]-1][:,2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])        
@@ -171,40 +200,17 @@ class RGBD():
         nmle = division_by_norm(nmle,norm_mat_nmle)
         self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
 
-                
-    def Draw(self, Pose, s, color = 0) :
-        result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-        line_index = 0
-        column_index = 0
-        pix = np.array([0., 0., 1.])
-        pt = np.array([0., 0., 0., 1.])
-        nmle = np.array([0., 0., 0.])
-        for i in range(self.Size[0]/s):
-            for j in range(self.Size[1]/s):
-                pt[0] = self.Vtx[i*s,j*s][0]
-                pt[1] = self.Vtx[i*s,j*s][1]
-                pt[2] = self.Vtx[i*s,j*s][2]
-                pt = np.dot(Pose, pt)
-                nmle[0] = self.Nmls[i*s,j*s][0]
-                nmle[1] = self.Nmls[i*s,j*s][1]
-                nmle[2] = self.Nmls[i*s,j*s][2]
-                nmle = np.dot(Pose[0:3,0:3], nmle)
-                if (pt[2] != 0.0):
-                    pix[0] = pt[0]/pt[2]
-                    pix[1] = pt[1]/pt[2]
-                    pix = np.dot(self.intrinsic, pix)
-                    column_index = int(round(pix[0]))
-                    line_index = int(round(pix[1]))
-                    if (column_index > -1 and column_index < self.Size[1] and line_index > -1 and line_index < self.Size[0]):
-                        if (color == 0):
-                            result[line_index, column_index] = (self.color_image[i*s,j*s][2], self.color_image[i*s,j*s][1], self.color_image[i*s,j*s][0])
-                        else:
-                            result[line_index, column_index] = (int((nmle[0] + 1.0)*(255./2.)), int((nmle[1] + 1.0)*(255./2.)), int((nmle[2] + 1.0)*(255./2.)))
 
-        return result
-
-
-    def Draw_optimize(self, Pose, s, color = 0) :   
+    def NMap_GPU(self):
+        self.vmap_to_nmap(self.vmap_d, self.nmap_d, self.Size[0], self.Size[1])
+        #self.Vtx = self.vmap_d.get()
+        #self.Nmls = self.nmap_d.get()
+        
+ 
+##################################################################
+###################Draw#######################
+##################################################################              
+    def Draw_CPU(self, Pose, s, color = 0) :   
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         stack_pix = np.ones((self.Size[0], self.Size[1]), dtype = np.float32)
         stack_pt = np.ones((np.size(self.Vtx[ ::s, ::s,:],0), np.size(self.Vtx[ ::s, ::s,:],1)), dtype = np.float32)
@@ -239,6 +245,12 @@ class RGBD():
                                                                        ((nmle[ :, :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result
     
+    def Draw_GPU(self, Pose, s, color = 0):  
+        self.Pose_d.set(Pose.astype(np.float32))
+        self.draw_d.set(self.draw_result)
+        self.draw_vmap(self.draw_d, self.vmap_d, self.nmap_d, self.color_d, self.Pose_d, self.intrinsic_d, color, self.Size[0], self.Size[1])
+        return self.draw_d.get()
+    
 
 ##################################################################
 ###################Bilateral Smooth Funtion#######################
@@ -246,6 +258,9 @@ class RGBD():
     def BilateralFilter(self, d, sigma_color, sigma_space):
         self.depth_image = (self.depth_image[:,:] > 0.0) * cv2.bilateralFilter(self.depth_image, d, sigma_color, sigma_space)
 
+    def BilateralFilter_GPU(self, d, sigma_color, sigma_space):
+        self.bilateral_filter(self.depth_raw_d, self.depth_d, d, sigma_color, sigma_space, self.Size[0], self.Size[1])
+        
 
 ##################################################################
 ###################Transformation Funtion#######################

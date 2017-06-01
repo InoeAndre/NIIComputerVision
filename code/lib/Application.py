@@ -25,7 +25,7 @@ My_MC = imp.load_source('My_MarchingCube', './lib/My_MarchingCube.py')
 class Application(tk.Frame):
     ## Function to handle keyboard inputs
     def key(self, event):
-        Transfo = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])
+        Transfo = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         
         if (event.keysym == 'Escape'):
             self.root.destroy()
@@ -46,8 +46,8 @@ class Application(tk.Frame):
 
         if (event.keysym != 'Escape'):
             self.Pose = np.dot(self.Pose, Transfo)
-            #rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
-            rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, self.w.get())
+            rendering = self.RGBD.Draw_GPU(self.Pose, self.w.get(), self.color_tag).astype(np.uint8)
+            #rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, self.w.get())
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -95,8 +95,8 @@ class Application(tk.Frame):
                             [0., 0., 0., 1.]])
             self.Pose = np.dot(self.Pose, RotX)
             
-            #rendering = self.RGBD.Draw_optimize(self.Pose, self.w.get(), self.color_tag)
-            rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, self.w.get())
+            rendering = self.RGBD.Draw_GPU(self.Pose, self.w.get(), self.color_tag).astype(np.int8)
+            #rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, self.w.get())
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -213,26 +213,27 @@ class Application(tk.Frame):
 
         
 
-        self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
+        self.RGBD = RGBD.RGBD(self.GPUManager, self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
         #self.RGBD.ReadFromDisk()
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
         self.Index = 20
         self.RGBD.ReadFromMat(self.Index)
-        self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.Crop2Body()
-        segm = self.RGBD.BodySegmentation()
-        self.RGBD.BodyLabelling()
+        self.RGBD.BilateralFilter_GPU(2, 0.02, 3)
+        #self.RGBD.Crop2Body()
+        #segm = self.RGBD.BodySegmentation()
+        #self.RGBD.BodyLabelling()
         start_time = time.time()
-        self.RGBD.Vmap_optimize()  
+        self.RGBD.Vmap_GPU()  
         elapsed_time = time.time() - start_time
-        print "Vmap: %f" % (elapsed_time)
-        self.RGBD.NMap_optimize()
-        elapsed_time2 = time.time() - start_time - elapsed_time
-        print "Nmap_optimize: %f" % (elapsed_time2)
-        self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
+        print "Vmap_GPU: %f" % (elapsed_time)
+        start_time = time.time()
+        self.RGBD.NMap_GPU()  
+        elapsed_time2 = time.time() - start_time
+        print "NMap_GPU: %f" % (elapsed_time2)
+        self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., -0.1], [0., 0., 0., 1.]], dtype = np.float32)
         start_time2 = time.time()
-        rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        self.RGBD.myPCA()
+        rendering = self.RGBD.Draw_GPU(self.Pose, 1, self.color_tag).astype(np.uint8)
+        #self.RGBD.myPCA()
         elapsed_time3 = time.time() - start_time2
         print "bounding boxes process time: %f" % (elapsed_time3)
         
@@ -241,7 +242,7 @@ class Application(tk.Frame):
         # 3D reconstruction of the whole image
         self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()
-        rendering = self.DrawColors2D(rendering,self.Pose)
+        #rendering = self.DrawColors2D(rendering,self.Pose)
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         #self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -284,6 +285,7 @@ class Application(tk.Frame):
         Test TSDF
         '''
         
+        '''
         TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
         start_time = time.time()
         TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
@@ -321,6 +323,7 @@ class Application(tk.Frame):
         self.RGBD.Vmap_optimize()
         self.RGBD.NMap_optimize()
         #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
+        '''
         
         '''
         End Test
