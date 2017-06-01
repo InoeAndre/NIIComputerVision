@@ -112,6 +112,8 @@ class My_MarchingCube():
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FacesGPU, self.Faces).wait()
         #cl.enqueue_read_buffer(self.GPUManager.queue, self.NormalsGPU, self.Normals).wait()
         self.MergeVtx()
+        #self.Normales = -self.Normales
+        #self.Vertices = -self.Vertices
 
 
     '''
@@ -353,124 +355,13 @@ class My_MarchingCube():
                 self.Normales[i, :] = self.Normales[i, :]/mag
         
         
-    def MergeVtx_optimize(self):
-        VtxArray_x = np.zeros(self.Size)
-        VtxArray_y = np.zeros(self.Size)
-        VtxArray_z = np.zeros(self.Size)
-        VtxWeights = np.zeros(self.Size)
-        VtxIdx = np.zeros(self.Size)
-        FacesIdx = np.zeros((self.nb_faces[0], 3, 3), dtype = np.uint16)
 
-#==============================================================================
-#         # Go through all faces
-#         pt = np.zeros( (self.nb_faces[0],3), dtype = np.float32)
-#         stack_pt = np.ones( self.nb_faces[0], dtype = np.float32)
-#         pt = np.stack((pt[ :, 0],pt[ :, 1],pt[ :, 2],stack_pt),axis = 1)
-#         
-#         #pt[:,0] = self.Vertices[self.Faces[:,k],0]
-#         self.nbVtx = 0
-#         for k in range(3):
-#             pt[ :,0] = self.Vertices[self.Faces[:,k],0]
-#             pt[ :,1] = self.Vertices[self.Faces[:,k],1]
-#             pt[ :,2] = self.Vertices[self.Faces[:,k],2]
-#             indx = ( (pt[:,0]*self.res[1]+self.res[0]).astype(np.int), 
-#                     (pt[:,1]*self.res[3]+self.res[2]).astype(np.int), 
-#                     (pt[:,2]*self.res[5]+self.res[4]).astype(np.int) )
-#             nb_zero = (VtxWeights[indx] == 0)
-#             self.nbVtx = np.sum(nb_zero)
-#             VtxArray_x[indx] = (VtxWeights[indx]*VtxArray_x[indx] + pt[:,0])/(VtxWeights[indx]+1)
-#             VtxArray_y[indx] = (VtxWeights[indx]*VtxArray_y[indx] + pt[:,1])/(VtxWeights[indx]+1)
-#             VtxArray_z[indx] = (VtxWeights[indx]*VtxArray_z[indx] + pt[:,2])/(VtxWeights[indx]+1)
-#             VtxWeights[indx] = VtxWeights[indx]+1
-#             FacesIdx[:,k,0] = indx[0]
-#             FacesIdx[:,k,1] = indx[1]
-#             FacesIdx[:,k,2] = indx[2]
-#==============================================================================
-        pt = np.array([0., 0., 0., 1.])
-        self.nbVtx = 0
-        for i in range(self.nb_faces[0]):
-            for k in range(3):
-                pt[0] = self.Vertices[self.Faces[i,k],0]
-                pt[1] = self.Vertices[self.Faces[i,k],1]
-                pt[2] = self.Vertices[self.Faces[i,k],2]
-                indx = (int(round(pt[0]*self.res[1]+self.res[0])), 
-                        int(round(pt[1]*self.res[3]+self.res[2])), 
-                        int(round(pt[2]*self.res[5]+self.res[4])))
-                if (VtxWeights[indx] == 0):
-                    self.nbVtx += 1
-                VtxArray_x[indx] = (VtxWeights[indx]*VtxArray_x[indx] + pt[0])/(VtxWeights[indx]+1)
-                VtxArray_y[indx] = (VtxWeights[indx]*VtxArray_y[indx] + pt[1])/(VtxWeights[indx]+1)
-                VtxArray_z[indx] = (VtxWeights[indx]*VtxArray_z[indx] + pt[2])/(VtxWeights[indx]+1)
-                VtxWeights[indx] = VtxWeights[indx]+1
-                FacesIdx[i,k,0] = indx[0]
-                FacesIdx[i,k,1] = indx[1]
-                FacesIdx[i,k,2] = indx[2]
-                               
-        print "nb vertices: ", self.nbVtx
-        self.nb_vertices = np.array([self.nbVtx], dtype = np.int32)
-        self.Vertices = np.zeros((self.nbVtx, 3), dtype = np.float32)
-        self.Normales = np.zeros((self.nbVtx, 3), dtype = np.float32)
-        index_count = 0
         
-#==============================================================================
-#         cdtWeight = (VtxWeights[i,j,k] > 0)
-#         index_count = np.arange(self.Size).reshape(self.Size[0],self.Size[1],self.Size[2])
-#         VtxIdx = cdtWeight*index_count + (~cdtWeight)*VtxIdx
-#         
-#         self.Vertices[index_count, 0] = VtxArray_x[:,:,:]
-#         self.Vertices[index_count, 1] = VtxArray_y[:,:,:]
-#         self.Vertices[index_count, 2] = VtxArray_z[:,:,:]
-#==============================================================================
-        
-        
-        for i in range(self.Size[0]):
-            #print i
-            for j in range(self.Size[1]):
-                for k in range(self.Size[2]):
-                    if (VtxWeights[i,j,k] > 0):
-                        VtxIdx[i,j,k] = index_count
-                        self.Vertices[index_count, 0] = VtxArray_x[i,j,k]
-                        self.Vertices[index_count, 1] = VtxArray_y[i,j,k]
-                        self.Vertices[index_count, 2] = VtxArray_z[i,j,k]
-                        index_count += 1 
-        
-        v = np.zeros((self.nb_faces[0],3, 3), dtype = np.float32)
-        self.Faces[:,:] = VtxIdx[(FacesIdx[:,:,0],FacesIdx[:,:,1],FacesIdx[:,:,2])]
-        v[:,0,:] = self.Vertices[self.Faces[:,0],:]
-        v[:,1,:] = self.Vertices[self.Faces[:,1],:]
-        v[:,2,:] = self.Vertices[self.Faces[:,2],:]
-        v1 = v[:,1,:] - v[:,0,:]
-        v2 = v[:,2,:] - v[:,0,:]        
-        nmle = [v1[1]*v2[2] - v1[2]*v2[1],
-                -v1[0]*v2[2] + v1[2]*v2[0],
-                v1[0]*v2[1] - v1[1]*v2[0]]
-        self.Normales[self.Faces[:,0], :] = self.Normales[self.Faces[:,0],:] + nmle
-        self.Normales[self.Faces[:,1], :] = self.Normales[self.Faces[:,1],:] + nmle
-        self.Normales[self.Faces[:,2], :] = self.Normales[self.Faces[:,2],:] + nmle
-#==============================================================================
-#         for i in range(self.nb_faces[0]):
-#             v = np.zeros((3, 3), dtype = np.float32)
-#             for k in range(3):
-#                 self.Faces[i,k] = VtxIdx[(FacesIdx[i,k,0],FacesIdx[i,k,1],FacesIdx[i,k,2])]
-#                 v[k,:] = self.Vertices[self.Faces[i,k],:]
-#             
-#             v1 = v[1,:] - v[0,:]
-#             v2 = v[2,:] - v[0,:]
-#             nmle = [v1[1]*v2[2] - v1[2]*v2[1],
-#                     -v1[0]*v2[2] + v1[2]*v2[0],
-#                     v1[0]*v2[1] - v1[1]*v2[0]]
-#             
-#             for k in range(3):
-#                 self.Normales[self.Faces[i,k], :] = self.Normales[self.Faces[i,k],:] + nmle
-#==============================================================================
-        
-        
-
-        mag = math.sqrt(self.Normales[:, 0]**2 + self.Normales[:, 1]**2 + self.Normales[:, 2]**2)
-        mag = in_mat_zero2one(mag)
-        self.Normales[:, :] = self.Normales[:, :]/mag        
-        
-        
+    '''
+        Function to convert the list of normales and vertexes of the marching cubes' algorithm into
+        424*512*3 matrix.
+        This function is made just to test with the RegisterRGBD function if the data from the mesh are corrects.
+    '''        
     def MC2RGBD(self,RGBD,Vtx,Nmls,Pose, s, color = 0) :   
         result = np.zeros((RGBD.Size[0], RGBD.Size[1], 3), dtype = np.uint8)#
         stack_pix = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
@@ -498,8 +389,14 @@ class My_MarchingCube():
         cdt_line = (line_index > -1) * (line_index < RGBD.Size[0])
         line_index = line_index*cdt_line
         column_index = column_index*cdt_column
-        print "max line_index : %d" %(np.max(line_index))
-        print "max column_index : %d" %(np.max(column_index))
+#==============================================================================
+#         print "max line_index : %d" %(np.max(line_index))
+#         print "max column_index : %d" %(np.max(column_index))
+#         print "argmax line_index : %d" %(np.argmax(line_index))
+#         print "argmax column_index : %d" %(np.argmax(column_index))
+#         print "line_index24 : %d" %(line_index[24])
+#         print "column_index24 : %d" %(column_index[24])
+#==============================================================================
         if (color == 0):
             result[line_index[:], column_index[:]]= np.dstack((RGBD.color_image[ ::s, ::s,2], \
                                                                     RGBD.color_image[ ::s, ::s,1]*cdt_line, \
@@ -507,3 +404,8 @@ class My_MarchingCube():
         else:
             RGBD.Nmls[line_index[:], column_index[:]]= np.dstack( ( nmle[ :,0], nmle[ :,1], nmle[ :,2]) )
             RGBD.Vtx[line_index[:], column_index[:]] = np.dstack( ( pt[ :,0], pt[ :,1], pt[ :,2]) )
+            print "RGBD.Nmls[line_index[100:103], column_index[100:103]]" 
+            print RGBD.Nmls[line_index[100:103], column_index[100:103]]
+            print " nmle[ 100:103,:]" 
+            print nmle[ 100:103,:]  
+
