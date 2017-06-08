@@ -12,8 +12,10 @@ from numpy import linalg as LA
 from math import sin, cos, acos
 import scipy as sp
 import pandas 
+import warnings
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
+MeshTracking = imp.load_source('MeshTracking', './lib/MeshTracking.py')
 
 def in_mat_zero2one(mat):
     """This fonction replace in the matrix all the 0 to 1"""
@@ -38,7 +40,7 @@ def Exponential(qsi):
         res[1,2] = 0.0 - sin(theta)/theta*qsi[3] + (1.0 - cos(theta))/(theta*theta) * (qsi[4]*qsi[5])
         res[2,2] = 1.0 + sin(theta)/theta*0.0 + (1.0 - cos(theta))/(theta*theta) * (-qsi[4]*qsi[4] - qsi[3]*qsi[3])
         
-        skew = np.zeros((3,3), np.float32)
+        skew = np.zeros((3,3), np.float64)
         skew[0,1] = -qsi[5]
         skew[0,2] = qsi[4]
         skew[1,0] = qsi[5]
@@ -225,6 +227,7 @@ class Tracker():
         
         res = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         
+        
         column_index_ref = np.array([np.array(range(Image1.Size[1])) for _ in range(Image1.Size[0])])
         line_index_ref = np.array([x*np.ones(Image1.Size[1], np.int) for x in range(Image1.Size[0])])
         Indexes_ref = column_index_ref + Image1.Size[1]*line_index_ref
@@ -245,37 +248,40 @@ class Tracker():
                 pix = np.zeros((Image1.Size[0], Image1.Size[1],2), dtype = np.float32)
                 pix = np.dstack((pix,stack_pix))
                 pt = np.dstack((Image1.Vtx[ ::l, ::l, :],stack_pt))
+                print "pt[100,100]"
+                print pt[100,100]  
                 pt = np.dot(res,pt.transpose(0,2,1)).transpose(1,2,0)
+                print "pt[100,100]"
+                print pt[100,100]                 
             
-#==============================================================================
-#                 print "pt"
-#                 print pt                
-#==============================================================================
+
                 nmle = np.zeros((Image1.Size[0], Image1.Size[1],Image1.Size[2]), dtype = np.float32)
                 nmle[ ::l, ::l,:] = np.dot(res[0:3,0:3],Image1.Nmls[ ::l, ::l,:].transpose(0,2,1)).transpose(1,2,0)
-#==============================================================================
-#                 print "nmle"
-#                 print nmle
-#==============================================================================
+                print "nmle[100,100]"
+                print nmle[100,100] 
                 #if (pt[2] != 0.0):
                 lpt = np.dsplit(pt,4)
+                print "lpt[2][100,100]"
+                print lpt[2][100,100]                 
                 lpt[2] = in_mat_zero2one(lpt[2])
+                print "lpt[2][100,100]"
+                print lpt[2][100,100]                 
                 
                 # if in 1D pix[0] = pt[0]/pt[2]
                 pix[ ::l, ::l,0] = (lpt[0]/lpt[2]).reshape(np.size(Image1.Vtx[ ::l, ::l,:],0), np.size(Image1.Vtx[ ::l, ::l,:],1))
                 # if in 1D pix[1] = pt[1]/pt[2]
                 pix[ ::l, ::l,1] = (lpt[1]/lpt[2]).reshape(np.size(Image1.Vtx[ ::l, ::l,:],0), np.size(Image1.Vtx[ ::l, ::l,:],1))
+                print "pix[100,100]"
+                print pix[100,100] 
                 pix = np.dot(Image1.intrinsic,pix[0:Image1.Size[0],0:Image1.Size[1]].transpose(0,2,1)).transpose(1,2,0)
+                print "pix[100,100]"
+                print pix[100,100] 
                 column_index = (np.round(pix[:,:,0])).astype(int)
                 line_index = (np.round(pix[:,:,1])).astype(int)
-#==============================================================================
-#                 print "pix"
-#                 print pix
-#                 print "line_index"
-#                 print line_index 
-#                 print "column_index"
-#                 print column_index                 
-#==============================================================================
+                print "line_index[100,100] "
+                print line_index[100,100]  
+                print "column_index[100,100] "
+                print column_index[100,100]                  
                 # create matrix that have 0 when the conditions are not verified and 1 otherwise
                 cdt_column = (column_index > -1) * (column_index < Image2.Size[1])
                 cdt_line = (line_index > -1) * (line_index < Image2.Size[0])
@@ -283,31 +289,36 @@ class Tracker():
                 column_index = column_index*cdt_column
                 #Indexes = line_index + Image2.Size[0]*column_index
                 #Indexes = column_index + Image2.Size[1]*line_index
-                
+                print "line_index[100,100] "
+                print line_index[100,100]  
+                print "column_index[100,100] "
+                print column_index[100,100]                   
                 diff_Vtx = Image2.Vtx[line_index[:][:], column_index[:][:]] - pt[:,:,0:3]
-#==============================================================================
-#                 print "diff_Vtx"
-#                 print diff_Vtx
-#==============================================================================
+                print "diff_Vtx[94,113]"
+                print diff_Vtx[94,113]
                 diff_Vtx = diff_Vtx*diff_Vtx
                 norm_diff_Vtx = diff_Vtx.sum(axis=2)
                 mask_vtx =  (norm_diff_Vtx < self.thresh_dist)
+                print "mask_vtx[94,113]"
+                print mask_vtx[94,113]                    
                 print "mask_vtx"
                 print sum(sum(mask_vtx))     
                 
                 diff_Nmle = Image2.Nmls[line_index[:][:], column_index[:][:]] - nmle
-#==============================================================================
-#                 print "diff_Nmle"
-#                 print diff_Nmle                
-#==============================================================================
+                print "diff_Nmle[94,113]"
+                print diff_Nmle[94,113]           
                 diff_Nmle = diff_Nmle*diff_Nmle
                 norm_diff_Nmle = diff_Nmle.sum(axis=2)
                 mask_nmls =  (norm_diff_Nmle < self.thresh_norm)
+                print "mask_nmls[94,113]"
+                print mask_nmls[94,113]                   
                 print "mask_nmls"
                 print sum(sum(mask_nmls))   
                 
                 Norme_Nmle = nmle*nmle
                 norm_Norme_Nmle = Norme_Nmle.sum(axis=2)
+                print "diff_Nmle[94,113]"
+                print diff_Nmle[94,113]  
                 
                 mask_pt =  (pt[:,:,2] > 0.0)
                 print "mask_pt"
@@ -331,6 +342,15 @@ class Tracker():
 #                 print "Indexes_ref"
 #                 print Indexes_ref
 #==============================================================================
+#==============================================================================
+#                 print "np.max(mask[:,:]*diff_Vtx)"
+#                 print np.max(mask[:,:]*(nmle[:,:,0]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,0] - pt[:,:,0]))) 
+#                 print np.max(mask[:,:]*(nmle[:,:,1]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,1] - pt[:,:,1]))) 
+#                 print np.max(mask[:,:]*(nmle[:,:,2]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,2] - pt[:,:,2]))) 
+#                 print np.min(mask[:,:]*(nmle[:,:,0]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,0] - pt[:,:,0]))) 
+#                 print np.min(mask[:,:]*(nmle[:,:,1]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,1] - pt[:,:,1]))) 
+#                 print np.min(mask[:,:]*(nmle[:,:,2]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,2] - pt[:,:,2])))                
+#==============================================================================
                 
                 w = 1.0
                 Buffer[Indexes_ref[:][:]] = np.dstack((w*mask[:,:]*nmle[ :, :,0], \
@@ -343,7 +363,12 @@ class Tracker():
                 Buffer_B[Indexes_ref[:][:]] = np.dstack(w*mask[:,:]*(nmle[:,:,0]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,0] - pt[:,:,0])\
                                                                     + nmle[:,:,1]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,1] - pt[:,:,1])\
                                                                     + nmle[:,:,2]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,2] - pt[:,:,2])) ).transpose()
-                        
+                   
+                
+                print "Buffer[51300]"
+                print Buffer[51300]    
+                print "Buffer_B[51300]"
+                print Buffer_B[51300] 
                 A = np.dot(Buffer.transpose(), Buffer)
 #==============================================================================
 #                 print "A"
@@ -368,9 +393,217 @@ class Tracker():
                 print delta_transfo                    
                 print "res"
                 print res
-
         return res
     
+    def RegisterRGBD_optimize2(self, Image1, Image2):
+        
+        res = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
+        resInv = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
+        
+        column_index_ref = np.array([np.array(range(Image1.Size[1])) for _ in range(Image1.Size[0])])
+        line_index_ref = np.array([x*np.ones(Image1.Size[1], np.int) for x in range(Image1.Size[0])])
+        Indexes_ref = column_index_ref + Image1.Size[1]*line_index_ref
+        
+        for l in range(1,self.lvl+1):
+            for it in range(self.max_iter[l-1]):
+                #nbMatches = 0
+                #row = np.array([0.,0.,0.,0.,0.,0.,0.])
+                #Mat = np.zeros(27, np.float32)
+                b = np.zeros(6, np.float32)
+                A = np.zeros((6,6), np.float32)
+                
+                # adapt the current image with 4 coordinates and update the position
+                stack_NewPt = np.ones((np.size(Image1.Vtx[ ::l, ::l,:],0), np.size(Image1.Vtx[ ::l, ::l,:],1)), dtype = np.float64)
+                NewPt = np.dstack((Image1.Vtx[ ::l, ::l, :],stack_NewPt))
+                NewVtx = np.dot(resInv,NewPt.transpose(0,2,1)).transpose(1,2,0)
+                NewNmls = np.dot(resInv[0:3,0:3],Image1.Nmls.transpose(0,2,1)).transpose(1,2,0)
+                
+                # For each pixel find correspondinng point by projection
+                Buffer = np.zeros((Image2.Size[0]*Image2.Size[1], 6), dtype = np.float32)
+                Buffer_B = np.zeros((Image2.Size[0]*Image2.Size[1], 1), dtype = np.float32)
+                stack_pix = np.ones((Image2.Size[0], Image2.Size[1]), dtype = np.float32)
+                stack_pt = np.ones((np.size(Image2.Vtx[ ::l, ::l,:],0), np.size(Image2.Vtx[ ::l, ::l,:],1)), dtype = np.float32)
+                pix = np.zeros((Image2.Size[0], Image2.Size[1],2), dtype = np.float32)
+                pix = np.dstack((pix,stack_pix))
+                pt = np.dstack((Image2.Vtx[ ::l, ::l, :],stack_pt))
+#==============================================================================
+#                 print "pt[100,100]"
+#                 print pt[100,100]  
+#==============================================================================
+
+
+                nmle = np.zeros((Image2.Size[0], Image2.Size[1],Image2.Size[2]), dtype = np.float32)
+                nmle[ ::l, ::l,:] = Image2.Nmls[ ::l, ::l,:]
+#==============================================================================
+#                 print "nmle[100,100]"
+#                 print nmle[100,100] 
+#==============================================================================
+                #if (pt[2] != 0.0):
+                lpt = np.dsplit(pt,4)
+#==============================================================================
+#                 print "lpt[2][100,100]"
+#                 print lpt[2][100,100]                 
+#==============================================================================
+                lpt[2] = in_mat_zero2one(lpt[2])
+#==============================================================================
+#                 print "lpt[2][100,100]"
+#                 print lpt[2][100,100]                 
+#==============================================================================
+                
+                # if in 1D pix[0] = pt[0]/pt[2]
+                pix[ ::l, ::l,0] = (lpt[0]/lpt[2]).reshape(np.size(Image2.Vtx[ ::l, ::l,:],0), np.size(Image2.Vtx[ ::l, ::l,:],1))
+                # if in 1D pix[1] = pt[1]/pt[2]
+                pix[ ::l, ::l,1] = (lpt[1]/lpt[2]).reshape(np.size(Image2.Vtx[ ::l, ::l,:],0), np.size(Image2.Vtx[ ::l, ::l,:],1))
+#==============================================================================
+#                 print "lpt[1][100,100] = %f" %(lpt[1][100,100])
+#                 print "lpt[2][100,100] = %f" %(lpt[2][100,100])
+#                 print "pix[100,100]"
+#                 print pix[100,100] 
+#==============================================================================
+                pix = np.dot(Image1.intrinsic,pix[0:Image2.Size[0],0:Image2.Size[1]].transpose(0,2,1)).transpose(1,2,0)
+#==============================================================================
+#                 print "pix[100,100]"
+#                 print pix[100,100] 
+#==============================================================================
+                column_index = (np.round(pix[:,:,0])).astype(int)
+                line_index = (np.round(pix[:,:,1])).astype(int)
+#==============================================================================
+#                 print "line_index[100,100] "
+#                 print line_index[100,100]  
+#                 print "column_index[100,100] "
+#                 print column_index[100,100]                  
+#==============================================================================
+                # create matrix that have 0 when the conditions are not verified and 1 otherwise
+                cdt_column = (column_index > -1) * (column_index < Image2.Size[1])
+                cdt_line = (line_index > -1) * (line_index < Image2.Size[0])
+                line_index = line_index*cdt_line
+                column_index = column_index*cdt_column
+                #Indexes = line_index + Image2.Size[0]*column_index
+                #Indexes = column_index + Image2.Size[1]*line_index
+#==============================================================================
+#                 print "line_index[100,100] "
+#                 print line_index[100,100]  
+#                 print "column_index[100,100] "
+#                 print column_index[100,100]                   
+#==============================================================================
+                diff_Vtx = pt[:,:,0:3] - NewVtx[line_index[:][:], column_index[:][:]][:,:,0:3] 
+#==============================================================================
+#                 print "diff_Vtx[100,100]"
+#                 print diff_Vtx[100,100]
+#==============================================================================
+                diff_Vtx = diff_Vtx*diff_Vtx
+                norm_diff_Vtx = diff_Vtx.sum(axis=2)
+                mask_vtx =  (norm_diff_Vtx < self.thresh_dist)
+#==============================================================================
+#                 print "mask_vtx[100,100]"
+#                 print mask_vtx[100,100]                    
+#==============================================================================
+                print "mask_vtx"
+                print sum(sum(mask_vtx))     
+                
+                diff_Nmle = nmle - NewNmls[line_index[:][:], column_index[:][:]]
+#==============================================================================
+#                 print "diff_Nmle[100,100]"
+#                 print diff_Nmle[100,100]           
+#==============================================================================
+                diff_Nmle = diff_Nmle*diff_Nmle
+                norm_diff_Nmle = diff_Nmle.sum(axis=2)
+                mask_nmls =  (norm_diff_Nmle < self.thresh_norm)
+#==============================================================================
+#                 print "mask_nmls[100,100]"
+#                 print mask_nmls[100,100]                   
+#==============================================================================
+                print "mask_nmls"
+                print sum(sum(mask_nmls))   
+                
+                Norme_Nmle = nmle*nmle
+                norm_Norme_Nmle = Norme_Nmle.sum(axis=2)
+#==============================================================================
+#                 print "diff_Nmle[100,100]"
+#                 print diff_Nmle[100,100]  
+#==============================================================================
+                
+                mask_pt =  (pt[:,:,2] > 0.0)
+                print "mask_pt"
+                print sum(sum(mask_pt)  )
+                
+                print "cdt_column"
+                print sum(sum( (cdt_column==0))  )
+                
+                print "cdt_line"
+                print sum(sum( (cdt_line==0)) )
+                
+                mask = cdt_line*cdt_column * (pt[:,:,2] > 0.0) * (norm_Norme_Nmle > 0.0) * (norm_diff_Vtx < self.thresh_dist) * (norm_diff_Nmle < self.thresh_norm)
+                print "final correspondence"
+                print sum(sum(mask))
+                
+#==============================================================================
+#                 print "Image1.Vtx[line_index[:,:], column_index[:,:]][:,:,2]"
+#                 print Image1.Vtx[line_index[:,:], column_index[:,:]][:,:,2]
+#                 print "nmle[line_index[:,:], column_index[:,:]][:,:,2]"
+#                 print nmle[line_index[:,:], column_index[:,:]][:,:,2]
+#                 print "Indexes_ref"
+#                 print Indexes_ref
+#==============================================================================
+#==============================================================================
+#                 print "np.max(mask[:,:]*diff_Vtx)"
+#                 print mask[100,100]*(nmle[100,100,0]*(NewVtx[line_index[:][:], column_index[:][:]][100,100,0] - pt[100,100,0]))
+#                 print mask[100,100]*(nmle[100,100,1]*(NewVtx[line_index[:][:], column_index[:][:]][100,100,1] - pt[100,100,1]))
+#                 print mask[100,100]*(nmle[100,100,2]*(NewVtx[line_index[:][:], column_index[:][:]][100,100,2] - pt[100,100,2]))
+#                 print mask[100,100]*(-NewVtx[line_index[:][:], column_index[:][:]][100,100,2]*nmle[100,100,1] + NewVtx[line_index[:][:], column_index[:][:]][100,100,1]*nmle[100,100,2])
+#                 print mask[100,100]*(-NewVtx[line_index[:][:], column_index[:][:]][100,100,2]*nmle[100,100,0] + NewVtx[line_index[:][:], column_index[:][:]][100,100,0]*nmle[100,100,2])
+#                 print mask[100,100]*(-NewVtx[line_index[:][:], column_index[:][:]][100,100,1]*nmle[100,100,0] + NewVtx[line_index[:][:], column_index[:][:]][100,100,0]*nmle[100,100,1])
+#==============================================================================
+                
+                w = 1.0
+                Buffer[Indexes_ref[:][:]] = np.dstack((w*mask[:,:]*nmle[ :, :,0], \
+                      w*mask[:,:]*nmle[ :, :,1], \
+                      w*mask[:,:]*nmle[ :, :,2], \
+                      w*mask[:,:]*(-NewVtx[line_index[:][:], column_index[:][:]][:,:,2]*nmle[:,:,1] + NewVtx[line_index[:][:], column_index[:][:]][:,:,1]*nmle[:,:,2]), \
+                      w*mask[:,:]*(NewVtx[line_index[:][:], column_index[:][:]][:,:,2]*nmle[:,:,0] - NewVtx[line_index[:][:], column_index[:][:]][:,:,0]*nmle[:,:,2]), \
+                      w*mask[:,:]*(-NewVtx[line_index[:][:], column_index[:][:]][:,:,1]*nmle[:,:,0] + NewVtx[line_index[:][:], column_index[:][:]][:,:,0]*nmle[:,:,1]) ))
+                
+                Buffer_B[Indexes_ref[:][:]] = np.dstack(w*mask[:,:]*(nmle[:,:,0]*(NewVtx[line_index[:][:], column_index[:][:]][:,:,0] - pt[:,:,0])\
+                                                                    + nmle[:,:,1]*(NewVtx[line_index[:][:], column_index[:][:]][:,:,1] - pt[:,:,1])\
+                                                                    + nmle[:,:,2]*(NewVtx[line_index[:][:], column_index[:][:]][:,:,2] - pt[:,:,2])) ).transpose()
+                   
+#==============================================================================
+#                 
+#                 print "Buffer[51300]"
+#                 print Buffer[51300]    
+#                 print "Buffer_B[51300]"
+#                 print Buffer_B[51300] 
+#==============================================================================
+                A = np.dot(Buffer.transpose(), Buffer)
+#==============================================================================
+#                 print "A"
+#                 print A                
+#==============================================================================
+                b = np.dot(Buffer.transpose(), Buffer_B).reshape(6)
+#==============================================================================
+#                 print "b"
+#                 print b                
+#==============================================================================
+                
+                det = LA.det(A)
+                if (det < 1.0e-10):
+                    print "determinant null"
+                    break
+           
+                delta_qsi = -LA.tensorsolve(A, b)
+                delta_transfo = Exponential(delta_qsi)
+                delta_transfo = self.InvPose(delta_transfo)             
+                res = np.dot(delta_transfo, res)
+                resInv = self.InvPose(res) 
+                print "delta_transfo"
+                print delta_transfo                    
+                print "res"
+                print res
+                #break
+        return resInv
+
+
+
             
     def RegisterRGBDMesh(self, NewImage, MeshVtx, MeshNmls,Pose):            
 
@@ -516,20 +749,28 @@ class Tracker():
                 pix = np.zeros((Size[0], 2), dtype = np.float32)
                 pix = np.stack((pix[:,0],pix[:,1],stack_pix), axis = 1)
                 pt = np.stack((MeshVtx[ ::l, 0],MeshVtx[ ::l, 1],MeshVtx[ ::l, 2],stack_pt),axis = 1)
-                print "pt[ 100,:]"
-                print pt[ 100,:]
+#==============================================================================
+#                 print "pt[ 100,:]"
+#                 print pt[ 100,:]
+#==============================================================================
                 pt = np.dot(res,pt.T).T
-                print "pt[ 100,:]"
-                print pt[ 100,:]
+#==============================================================================
+#                 print "pt[ 100,:]"
+#                 print pt[ 100,:]
+#==============================================================================
                 nmle = np.zeros((Size[0], Size[1]), dtype = np.float32)
                 #print "res before nmle"
                 #print res
-                print "MeshNmls[ 100,:]"
-                print MeshNmls[ 100,:]
+#==============================================================================
+#                 print "MeshNmls[ 100,:]"
+#                 print MeshNmls[ 100,:]
+#==============================================================================
                 nmle[ ::l,:] = np.dot(res[0:3,0:3],MeshNmls[ ::l,:].T).T
                 #print nmle
-                print "nmle[ 100,:]"
-                print nmle[ 100,:]
+#==============================================================================
+#                 print "nmle[ 100,:]"
+#                 print nmle[ 100,:]
+#==============================================================================
 
                 lpt = np.split(pt,4,axis=1)
                 lpt[2] = in_mat_zero2one(lpt[2])
@@ -559,36 +800,47 @@ class Tracker():
                 diff_Vtx = diff_Vtx*diff_Vtx
                 norm_diff_Vtx = diff_Vtx.sum(axis=1)
                 mask_vtx =  (norm_diff_Vtx < self.thresh_dist)
-                print "mask_vtx"
+                print "norm_diff_Vtx : max, min , median"
+                #print norm_diff_Vtx[51300]
+                print "max : %f; min : %f; median : %f; var :  " % (np.max(norm_diff_Vtx),np.min(norm_diff_Vtx) ,np.median(norm_diff_Vtx),np.var(norm_diff_Vtx) )
+                #print "mask_vtx"
                 #print norm_diff_Vtx*mask_vtx
-                print sum(mask_vtx)  
+                #print sum(mask_vtx)  
                 
                 diff_Nmle = NewImage.Nmls[line_index[:], column_index[:]] - nmle 
-                print "diff_Nmle"
-                print diff_Nmle
+#==============================================================================
+#                 print "diff_Nmle"
+#                 print diff_Nmle
+#==============================================================================
                 diff_Nmle = diff_Nmle*diff_Nmle
                 norm_diff_Nmle = diff_Nmle.sum(axis=1)
                 mask_nmls =  (norm_diff_Nmle < self.thresh_norm)
-                print "mask_nmls"
-                print sum(mask_nmls)     
+#==============================================================================
+#                 print "mask_nmls"
+#                 print sum(mask_nmls)     
+#==============================================================================
                 
                 Norme_Nmle = nmle*nmle
                 norm_Norme_Nmle = Norme_Nmle.sum(axis=1)
                 
                 
                 mask_pt =  (pt[:,2] > 0.0)
-                print "mask_pt"
-                print sum(mask_pt)  
-                
-                print "cdt_column"
-                print sum( (cdt_column==0))  
-                
-                print "cdt_line"
-                print sum( (cdt_line==0))  
+#==============================================================================
+#                 print "mask_pt"
+#                 print sum(mask_pt)  
+#                 
+#                 print "cdt_column"
+#                 print sum( (cdt_column==0))  
+#                 
+#                 print "cdt_line"
+#                 print sum( (cdt_line==0))  
+#==============================================================================
                 
                 mask = cdt_line*cdt_column * (pt[:,2] > 0.0) * (norm_Norme_Nmle > 0.0) * (norm_diff_Vtx < self.thresh_dist) * (norm_diff_Nmle < self.thresh_norm)
-                print "final correspondence"
-                print sum(mask)
+#==============================================================================
+#                 print "final correspondence"
+#                 print sum(mask)
+#==============================================================================
 
                 
                 w = 1.0
@@ -602,17 +854,10 @@ class Tracker():
                 Buffer_B[:] = ((w*mask[:]*(nmle[:,0]*(NewImage.Vtx[line_index[:], column_index[:]][:,0] - pt[:,0])\
                                                       + nmle[:,1]*(NewImage.Vtx[line_index[:], column_index[:]][:,1] - pt[:,1])\
                                                       + nmle[:,2]*(NewImage.Vtx[line_index[:], column_index[:]][:,2] - pt[:,2])) ).transpose()).reshape(Buffer_B[:].shape)
-                        
+  
                 A = np.dot(Buffer.transpose(), Buffer)
-#==============================================================================
-#                 print "A"
-#                 print A
-#==============================================================================
                 b = np.dot(Buffer.transpose(), Buffer_B).reshape(6)
-#==============================================================================
-#                 print "b"
-#                 print b                
-#==============================================================================
+
                 
                 det = LA.det(A)
                 if (det < 1.0e-10):
@@ -620,8 +865,10 @@ class Tracker():
                     break
            
                 delta_qsi = -LA.tensorsolve(A, b)
-                print "delta_qsi"
-                print delta_qsi
+#==============================================================================
+#                 print "delta_qsi"
+#                 print delta_qsi
+#==============================================================================
                 #delta_transfo = Exponential(delta_qsi)
                 #delta_transfo[0:3,0:3] = LA.inv(delta_transfo[0:3,0:3])
                 #delta_transfo[0:3,3] = -np.dot(delta_transfo[0:3,0:3],delta_transfo[0:3,3])
@@ -629,105 +876,208 @@ class Tracker():
                 
                 res = np.dot(delta_transfo, res)
                 
-                print "res"
-                print res
-                print "delta_transfo"
-                print delta_transfo
-
-        res = self.InvPose(res)       
+#==============================================================================
+#                 print "res"
+#                 print res
+#                 print "delta_transfo"
+#                 print delta_transfo
+#==============================================================================
+                
+        res = self.InvPose(res)   
+        
         return res        
 
-
+    
     def RegisterRGBDMesh_optimize2(self, NewImage, MeshVtx, MeshNmls,Pose):
         print "MeshVtx.shape"
         print MeshVtx.shape
-        print "MeshNmls.shape"
-        print MeshNmls.shape
+#==============================================================================
+#         print "MeshNmls.shape"
+#         print MeshNmls.shape
+#==============================================================================
         
         Size = MeshVtx.shape
         res = Pose#
-        
-
-        #Indexes_ref = np.arange(Size[0])
+        resInv = self.InvPose(res)
         
         for l in range(1,self.lvl+1):
             for it in range(self.max_iter[l-1]):
                 #nbMatches = 0
-                #row = np.array([0.,0.,0.,0.,0.,0.,0.])
-                #Mat = np.zeros(27, np.float32)
-                b = np.zeros(6, np.float32)
-                A = np.zeros((6,6), np.float32)
+                b = np.zeros(6, np.float64)
+                A = np.zeros((6,6), np.float64)
                 
                 # adapt the current image with 4 coordinates and update the position
-                stack_NewPt = np.ones((np.size(NewImage.Vtx[ ::l, ::l,:],0), np.size(NewImage.Vtx[ ::l, ::l,:],1)), dtype = np.float32)
+                stack_NewPt = np.ones((np.size(NewImage.Vtx[ ::l, ::l,:],0), np.size(NewImage.Vtx[ ::l, ::l,:],1)), dtype = np.float64)
                 NewPt = np.dstack((NewImage.Vtx[ ::l, ::l, :],stack_NewPt))
-                resInv = self.InvPose(res)
+                
                 NewVtx = np.dot(resInv,NewPt.transpose(0,2,1)).transpose(1,2,0)
                 NewNmls = np.dot(resInv[0:3,0:3],NewImage.Nmls.transpose(0,2,1)).transpose(1,2,0)
+    #==============================================================================
+    #                 print "NewVtx[100,100]"
+    #                 print NewVtx[100,100] 
+    #                 print "NewImage.Nmls[100,100]"
+    #                 print NewImage.Nmls[100,100]                 
+    #                 print "NewNmls[100,100]"
+    #                 print NewNmls[100,100]     
+    #==============================================================================
                 
                 # For each pixel find correspondinng point by projection
-                Buffer = np.zeros((Size[0], 6), dtype = np.float32)
-                Buffer_B = np.zeros((Size[0], 1), dtype = np.float32)
-                stack_pix = np.ones(Size[0], dtype = np.float32)
-                stack_pt = np.ones(np.size(MeshVtx[ ::l,:],0), dtype = np.float32)
-                pix = np.zeros((Size[0], 2), dtype = np.float32)
+                Buffer = np.zeros((Size[0], 6), dtype = np.float64)
+                Buffer_B = np.zeros((Size[0], 1), dtype = np.float64)
+                stack_pix = np.ones(Size[0], dtype = np.float64)
+                stack_pt = np.ones(np.size(MeshVtx[ ::l,:],0), dtype = np.float64)
+                pix = np.zeros((Size[0], 2), dtype = np.float64)
                 pix = np.stack((pix[:,0],pix[:,1],stack_pix), axis = 1)
                 pt = np.stack((MeshVtx[ ::l, 0],MeshVtx[ ::l, 1],MeshVtx[ ::l, 2],stack_pt),axis = 1)
-                #pt = np.dot(res,pt.T).T
+    #==============================================================================
+    #                 print "pt[51300]"
+    #                 print pt[51300]  
+    #==============================================================================
+    #                res = self.InvPose(resInv)
+    #                ptInv = np.dot(res,pt.T).T
+                #print "ptInv[51300]"
+                #print ptInv[51300]  
                 
-                nmle = np.zeros((Size[0], Size[1]), dtype = np.float32)
+                nmle = np.zeros((Size[0], Size[1]), dtype = np.float64)
                 nmle = MeshNmls[ ::l,:]
-                #nmle[ ::l,:] = np.dot(res[0:3,0:3],MeshNmls[ ::l,:].T).T
-
+    #==============================================================================
+    #                 print "MeshNmls[51300]"
+    #                 print MeshNmls[51300] 
+    #==============================================================================
+    
                 lpt = np.split(pt,4,axis=1)
+    #==============================================================================
+    #                 print "lpt[2][51300]"
+    #                 print lpt[2][51300] 
+    #==============================================================================
                 lpt[2] = in_mat_zero2one(lpt[2])
+    #==============================================================================
+    #                 print "lpt[2][51300]"
+    #                 print lpt[2][51300]                 
+    #==============================================================================
                 
                 # if in 1D pix[0] = pt[0]/pt[2]
                 pix[ ::l,0] = (lpt[0]/lpt[2]).reshape(np.size(MeshVtx[ ::l,:],0))
                 # if in 1D pix[1] = pt[1]/pt[2]
                 pix[ ::l,1] = (lpt[1]/lpt[2]).reshape(np.size(MeshVtx[ ::l,:],0))
+#==============================================================================
+#                 print "lpt[1][51300] = %f" %(lpt[1][51300])
+#                 print "lpt[2][51300] = %f" %(lpt[2][51300])
+#                 print "pix[51300]"
+#                 print pix[51300]
+#==============================================================================
                 pix = np.dot(NewImage.intrinsic,pix[0:Size[0],0:Size[1]].T).T
-                #print "pix"
-                #print pix
+#==============================================================================
+#                 print "pix[51300]"
+#                 print pix[51300]                
+#==============================================================================
                 column_index = (np.round(pix[:,0])).astype(int)
                 line_index = (np.round(pix[:,1])).astype(int)
-                
+#==============================================================================
+#                 print "column_index[51300]"
+#                 print column_index[51300]
+#                 print "line_index[51300]"
+#                 print line_index[51300]
+#==============================================================================
                 
                 # create matrix that have 0 when the conditions are not verified and 1 otherwise
                 cdt_column = (column_index > -1) * (column_index < NewImage.Size[1])
                 cdt_line = (line_index > -1) * (line_index < NewImage.Size[0])
                 line_index = line_index*cdt_line
                 column_index = column_index*cdt_column
-                
+#==============================================================================
+#                 print "column_index[51300]"
+#                 print column_index[51300]
+#                 print "line_index[51300]"
+#                 print line_index[51300]                
+#==============================================================================
                 
                 diff_Vtx =  NewVtx[line_index[:], column_index[:]][:,0:3]  - pt[:,0:3] 
+#==============================================================================
+#                 print "diff_Vtx[51300]"
+#                 print diff_Vtx[51300]               
+#==============================================================================
                 diff_Vtx = diff_Vtx*diff_Vtx
                 norm_diff_Vtx = diff_Vtx.sum(axis=1)
-                mask_vtx =  (norm_diff_Vtx < self.thresh_dist)
+                mask_vtx =  (norm_diff_Vtx < self.thresh_dist )
+                
+                print "norm_diff_Vtx : max, min , median"
+                #print norm_diff_Vtx[51300]
+                print "max : %f; min : %f; median : %f; var :  %f" % (np.max(norm_diff_Vtx),np.min(norm_diff_Vtx) ,np.median(norm_diff_Vtx),np.var(norm_diff_Vtx) )
+#==============================================================================
+#                 print "mask_vtx[51300]"
+#                 print mask_vtx[51300]   
+#==============================================================================
                 
                 diff_Nmle = NewNmls[line_index[:], column_index[:]] - nmle 
+#==============================================================================
+#                 print "diff_Nmle[51300]"
+#                 print diff_Nmle[51300]                 
+#==============================================================================
                 diff_Nmle = diff_Nmle*diff_Nmle
                 norm_diff_Nmle = diff_Nmle.sum(axis=1)
+#==============================================================================
+#                 print "norm_diff_Nmle[51300]"
+#                 print norm_diff_Nmle[51300]                  
+#==============================================================================
                 mask_nmls =  (norm_diff_Nmle < self.thresh_norm)
- 
+#==============================================================================
+#                 print "mask_nmls[51300]"
+#                 print mask_nmls[51300]    
+#==============================================================================
                 
                 Norme_Nmle = nmle*nmle
                 norm_Norme_Nmle = Norme_Nmle.sum(axis=1)
-                
+#==============================================================================
+#                 print "norm_Norme_Nmle[51300]"
+#                 print norm_Norme_Nmle[51300]                  
+#==============================================================================
                 
                 mask_pt =  (pt[:,2] > 0.0)
+#==============================================================================
+#                 print "mask_pt[51300]"
+#                 print mask_pt[51300]    
+#==============================================================================
+                                
+#==============================================================================
+#                 print "mask_pt"
+#                 print sum( mask_pt) 
+#==============================================================================
                 
-                print "cdt_column"
-                print sum( (cdt_column==0))  
+#==============================================================================
+#                 print "mask_vtx"
+#                 print sum( mask_vtx) 
+#==============================================================================
                 
-                print "cdt_line"
-                print sum( (cdt_line==0)) 
-
+#==============================================================================
+#                 print "mask_nmls"
+#                 print sum( mask_nmls) 
+#                 
+#                 
+#                 print "norm_Norme_Nmle > 0.0"
+#                 print sum( (norm_Norme_Nmle > 0.0)) 
+#                 
+#                 print "cdt_column"
+#                 print sum( (cdt_column!=0))  
+#                 
+#                 print "cdt_line"
+#                 print sum( (cdt_line!=0)) 
+#==============================================================================
+    
                 mask = cdt_line*cdt_column * mask_pt * (norm_Norme_Nmle > 0.0) * mask_vtx * mask_nmls
-                print "nb of correspondence"
-                print sum(mask)
-
+#==============================================================================
+#                 print "nb of correspondence"
+#                 print sum(mask)
+#     
+#==============================================================================
                 
+#==============================================================================
+#                 print "np.max(mask[51300]*diff_Vtx)"
+#                 print mask[51300]*(NewVtx[line_index[:], column_index[:]][51300,1]*nmle[51300,2] - NewVtx[line_index[:], column_index[:]][51300,2]*nmle[51300,1]) 
+#                 print mask[51300]*(NewVtx[line_index[:], column_index[:]][51300,2]*nmle[51300,0] - NewVtx[line_index[:], column_index[:]][51300,0]*nmle[51300,2])
+#                 print mask[51300]*(NewVtx[line_index[:], column_index[:]][51300,0]*nmle[51300,1] - NewVtx[line_index[:], column_index[:]][51300,1]*nmle[51300,0])
+#==============================================================================
+    
                 w = 1.0
                 Buffer[:] = np.stack((w*mask[:]*nmle[ :,0], \
                       w*mask[:]*nmle[ :, 1], \
@@ -740,22 +1090,56 @@ class Tracker():
                                         + nmle[:,1]*(NewVtx[line_index[:], column_index[:]][:,1] - pt[:,1])\
                                         + nmle[:,2]*(NewVtx[line_index[:], column_index[:]][:,2] - pt[:,2])) ).transpose()).reshape(Buffer_B[:].shape)
                         
-                A = np.dot(Buffer.transpose(), Buffer)
-                b = np.dot(Buffer.transpose(), Buffer_B).reshape(6)
-
+#==============================================================================
+#                 print "Buffer[51300]"
+#                 print Buffer[51300]    
+#                 print "Buffer_B[51300]"
+#                 print Buffer_B[51300]    
+#==============================================================================
                 
-                det = LA.det(A)
-                if (det < 1.0e-10):
+                A = np.dot(Buffer.transpose(), Buffer)
+#==============================================================================
+#                 print "A"
+#                 print A
+#==============================================================================
+                b = np.dot(Buffer.transpose(), Buffer_B).reshape(6)
+#==============================================================================
+#                 print "b"
+#                 print b
+#==============================================================================
+    
+                
+                sign,logdet = LA.slogdet(A)
+                det = sign * np.exp(logdet)
+                if (det == 0.0):
                     print "determinant null"
+                    print det
+                    warnings.warn("this is a warning message")
                     break
            
+            
                 delta_qsi = -LA.tensorsolve(A, b)
-                delta_transfo = LA.inv(Exponential(delta_qsi))
-                print "delta_transfo"
-                print delta_transfo                
+                delta_transfo = Exponential(delta_qsi)
+                delta_transfo = self.InvPose(delta_transfo)             
                 res = np.dot(delta_transfo, res)
+                resInv = self.InvPose(res) 
+            
+    #==============================================================================
+    #                 delta_qsi = -LA.tensorsolve(A, b)
+    #                 delta_transfo = Exponential(delta_qsi)#LA.inv(Exponential(delta_qsi))
+    #                 print "delta_transfo"
+    #                 print delta_transfo                
+    #                 resInv = np.dot(delta_transfo, resInv)
+    #                 #resInv = self.InvPose(res)
+    #==============================================================================
                 
-                print "res"
-                print res
-        res = self.InvPose(res)
-        return res        
+#==============================================================================
+#                 print "resInv"
+#                 print resInv
+#==============================================================================
+                #break
+        return resInv
+
+
+#        Tracker = self
+#        MeshTracking.RegisterRGBDMesh_optimize2(Tracker, NewImage, MeshVtx, MeshNmls,Pose)

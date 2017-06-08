@@ -296,12 +296,12 @@ class Application(tk.Frame):
         
         TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU) 
         self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
-        Tracker = TrackManager.Tracker(0.1, 0.4, 1, [10], 0.001)
+        Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
 
         # TSDF Fusion
         TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)  
         self.MC.runGPU(TSDFManager.TSDFGPU)    
-        end =17
+        end =18
         for i in range(self.Index+1,end):
             start_time2 = time.time() 
             #depthMap conversion of the new image
@@ -319,9 +319,9 @@ class Application(tk.Frame):
             #Vertices = self.RGBD.Vtx.reshape(self.Size[0]*self.Size[1],3)
             #Normales = self.RGBD.Nmls.reshape(self.Size[0]*self.Size[1],3)
             NewPose = Tracker.RegisterRGBDMesh_optimize2(self.RGBD2,self.MC.Vertices,self.MC.Normales, self.Pose)#self.MC.
-            #NewPose2 = Tracker.RegisterRGBD_optimize(self.RGBD2,self.RGBD)
+            #NewPose2 = Tracker.RegisterRGBD_optimize2(self.RGBD2,self.RGBD)
             # Update Global Pose
-            #ref_Pose = np.dot(NewPose, self.Pose)
+            #ref_Pose = np.dot(NewPose2, self.Pose)
             for k in range(4):
                 for l in range(4):
                     self.Pose[k,l] = NewPose[k,l]
@@ -334,11 +334,8 @@ class Application(tk.Frame):
                 #TSDF Fusion
                 TSDFManager.FuseRGBD_GPU(self.RGBD2, self.Pose)   
                 # Mesh rendering
-                self.MC.runGPU(TSDFManager.TSDFGPU)        
-                #self.MC.MC2RGBD(self.RGBD,self.MC.Vertices,self.MC.Normales,Id4, 1, self.color_tag)
+                self.MC.runGPU(TSDFManager.TSDFGPU)           
 #==============================================================================
-#             # update lastest image            
-#             if i !=end-1:
 #                 self.MC.MC2RGBD(self.RGBD,self.MC.Vertices,self.MC.Normales,Id4, 1, self.color_tag)
 #                 testP = Tracker.RegisterRGBD_optimize(self.RGBD,self.RGBD2)
 #                 ref_pose = np.dot(testP, self.Pose)        
@@ -403,7 +400,7 @@ class Application(tk.Frame):
         '''
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
-        self.Index = 15
+        self.Index = 13
         self.RGBD.ReadFromMat(self.Index) 
         self.RGBD.BilateralFilter(-1, 0.02, 3) 
         self.RGBD.Vmap_optimize()   
@@ -411,27 +408,31 @@ class Application(tk.Frame):
 
         ImageTest = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic,  self.fact)
         ImageTest.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx)
-        ImageTest.ReadFromMat(self.Index+1)
+        ImageTest.ReadFromMat(self.Index)
         ImageTest.BilateralFilter(-1, 0.02, 3)
         ImageTest.Vmap_optimize()
         ImageTest.NMap_optimize()
         
         # For global Fusion
-        mf = cl.mem_flags
-        self.TSDF = np.zeros((512,512,512), dtype = np.int16)
-        self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
-        self.Weight = np.zeros((512,512,512), dtype = np.int16)
-        self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
-        
-        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU) 
-        self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
+#==============================================================================
+#         mf = cl.mem_flags
+#         self.TSDF = np.zeros((512,512,512), dtype = np.int16)
+#         self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
+#         self.Weight = np.zeros((512,512,512), dtype = np.int16)
+#         self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
+#         
+#         TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU) 
+#         self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
+#==============================================================================
         
         # TSDF Fusion
-        TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)  
-        self.MC.runGPU(TSDFManager.TSDFGPU)
+#==============================================================================
+#         TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)  
+#         self.MC.runGPU(TSDFManager.TSDFGPU)
+#==============================================================================
         #self.MC.MC2RGBD(self.RGBD,self.MC.Vertices,self.MC.Normales,self.Pose, 1, self.color_tag)
         
-        Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
+        Tracker = TrackManager.Tracker(0.03, 0.04, 1, [10], 0.001)
         #testP = Tracker.RegisterRGBD_optimize(self.RGBD,ImageTest)
         #print 'testP'
         #print testP
@@ -441,33 +442,31 @@ class Application(tk.Frame):
         #        self.Pose[k,l] = ref_pose[k,l]
         
         #transformation for test
-#==============================================================================
-#         test_v = np.array([0.01, 0.02,0.015, 0.01, 0.02, 0.03]) #[random.random()/10 for _ in range(6)])
-#         A = TrackManager.Exponential(test_v)
-#         R = LA.inv(A[0:3,0:3])
-#         tra = -np.dot(R,A[0:3,3])
-#         print A
-#         print R
-#         print tra
-#         ImageTest.Transform(A)
-#         B = np.zeros(A.shape, A.dtype)
-#         B[0:3,0:3]=R
-#         B[0:3,3]=tra
-#         B[3,3]=1.0
-#==============================================================================
+        test_v = np.array([0.01, 0.02,0.12, 0.01, 0.02, 0.03]) #[random.random()/10 for _ in range(6)])
+        A = TrackManager.Exponential(test_v)
+        R = LA.inv(A[0:3,0:3])
+        tra = -np.dot(R,A[0:3,3])
+        print A
+        print R
+        print tra
+        ImageTest.Transform(A)
+        B = np.zeros(A.shape, A.dtype)
+        B[0:3,0:3]=R
+        B[0:3,3]=tra
+        B[3,3]=1.0
         
-        #Vertices= ImageTest.Vtx.reshape(self.RGBD.Size[0]*self.RGBD.Size[1],3)
-        #Normales = ImageTest.Nmls.reshape(self.RGBD.Size[0]*self.RGBD.Size[1],3)
-        T_Pose = Tracker.RegisterRGBDMesh_optimize2(ImageTest, self.MC.Vertices,self.MC.Normales, self.Pose)
+        Vertices= self.RGBD.Vtx.reshape(self.RGBD.Size[0]*self.RGBD.Size[1],3)
+        Normales = self.RGBD.Nmls.reshape(self.RGBD.Size[0]*self.RGBD.Size[1],3)
+        T_Pose = Tracker.RegisterRGBDMesh_optimize2(ImageTest, Vertices,Normales, self.Pose)#self.MC.
         #T_Pose = Tracker.RegisterRGBDMesh_optimize2(ImageTest, self.RGBD.Vtx,self.RGBD.Nmls, self.Pose)
-        #T_Pose2 = Tracker.RegisterRGBD_optimize(ImageTest,self.RGBD)
+        T_Pose2 = Tracker.RegisterRGBD_optimize2(ImageTest,self.RGBD)
         for k in range(4):
             for l in range(4):
                 self.Pose[k,l] = T_Pose[k,l]             
         print 'self.Pose'
         print self.Pose
-        #print 'T_Pose2'
-        #print T_Pose2       
+        print 'T_Pose2'
+        print T_Pose2       
         
 
         # projection in 2d space to draw it
@@ -475,9 +474,9 @@ class Application(tk.Frame):
         rendering = ImageTest.Draw_optimize(rendering,Id4, 1, self.color_tag)
         # Projection directly with the output of the marching cubes  
         transfoInv = self.InvPose(self.Pose)
-        rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normales,transfoInv, 1, self.color_tag)
+        #rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normales,transfoInv, 1, self.color_tag)
         #rendering = ImageTest.Draw_optimize(rendering,self.Pose, 1, self.color_tag)
-        #rendering = self.RGBD.Draw_optimize(rendering,self.Pose, 1, self.color_tag)
+        rendering = self.RGBD.Draw_optimize(rendering,transfoInv, 1, self.color_tag)
         
 
         # Show figure and images
@@ -492,6 +491,98 @@ class Application(tk.Frame):
 
         '''
         End test
+        '''
+        
+        
+        '''
+        Test Raytracing
+        '''
+        
+        '''
+        self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
+        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
+        self.Index = 15
+        self.RGBD.ReadFromMat(self.Index) 
+        self.RGBD.BilateralFilter(-1, 0.02, 3) 
+        self.RGBD.Vmap_optimize()   
+        self.RGBD.NMap_optimize()  
+
+        ImageTest = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic,  self.fact)
+        ImageTest.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx)
+        ImageTest.ReadFromMat(self.Index)
+        ImageTest.BilateralFilter(-1, 0.02, 3)
+        ImageTest.Vmap_optimize()
+        ImageTest.NMap_optimize()
+
+        #transformation for test
+        test_v = np.array([0.01, 0.02,0.015, 0.01, 0.02, 0.03]) #[random.random()/10 for _ in range(6)])
+        A = TrackManager.Exponential(test_v)
+        R = LA.inv(A[0:3,0:3])
+        tra = -np.dot(R,A[0:3,3])
+        print A
+        print R
+        print tra
+        ImageTest.Transform(A)
+        B = np.zeros(A.shape, A.dtype)
+        B[0:3,0:3]=R
+        B[0:3,3]=tra
+        B[3,3]=1.0
+        
+        # For global Fusion
+        mf = cl.mem_flags
+        self.TSDF = np.zeros((512,512,512), dtype = np.int16)
+        self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
+        self.Weight = np.zeros((512,512,512), dtype = np.int16)
+        self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
+        
+        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU) 
+
+        start_time = time.time()
+        TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
+        elapsed_time = time.time() - start_time
+        print "FuseRGBD_GPU: %f" % (elapsed_time)
+        start_time = time.time()
+        self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
+        elapsed_time = time.time() - start_time
+        print "RayTracing_GPU: %f" % (elapsed_time)
+        print self.RGBD.depth_image
+#==============================================================================
+#         self.RGBD.BilateralFilter(-1, 0.02, 3)
+#         self.RGBD.Vmap_optimize()
+#         self.RGBD.NMap_optimize()    
+#         Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
+#         T_Pose2 = Tracker.RegisterRGBD_optimize(ImageTest,self.RGBD)
+#         for k in range(4):
+#             for l in range(4):
+#                 self.Pose[k,l] = T_Pose2[k,l]             
+#         print 'self.Pose'
+#         print self.Pose        
+#==============================================================================
+        
+        
+        # projection in 2d space to draw it
+        rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
+        rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
+        #rendering = ImageTest.Draw_optimize(rendering,Id4, 1, self.color_tag)
+        # Projection directly with the output of the marching cubes  
+        #transfoInv = self.InvPose(self.Pose)
+        #rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normales,transfoInv, 1, self.color_tag)
+        #rendering = ImageTest.Draw_optimize(rendering,self.Pose, 1, self.color_tag)
+        #rendering = self.RGBD.Draw_optimize(rendering,transfoInv, 1, self.color_tag)
+        
+
+        # Show figure and images
+            
+        # 3D reconstruction of the whole image
+        self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
+        self.canvas.pack()        
+        img = Image.fromarray(rendering, 'RGB')
+        self.imgTk=ImageTk.PhotoImage(img)
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+           
+        '''
+        '''
+        End Test
         '''
 
 
