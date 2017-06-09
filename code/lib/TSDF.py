@@ -197,7 +197,12 @@ class TSDFManager():
     
     def RayTracing(self, Image, Pose):
         result = np.zeros((Image.Size[0], Image.Size[1]), np.float32)
-        
+        print self.TSDF
+        print np.max(self.TSDF)
+        print np.min(self.TSDF)
+        print self.TSDF[431,430,500:512]
+        print self.dim_z
+        print self.c_z
         for i in range(Image.Size[0]):
             for j in range(Image.Size[1]):
                 # Shoot a ray for the current pixel
@@ -210,20 +215,28 @@ class TSDFManager():
                 
                 nu = 0.1
                 pt = 0.5*ray
+                #print pt
+
                 voxel = np.round(np.array([pt[0]*self.dim_x + self.c_x, pt[1]*self.dim_y + self.c_y, pt[2]*self.dim_z + self.c_z])).astype(int)
+                #print "voxel"
+                #print voxel
                 if (voxel[0] < 0 or voxel[0] > self.Size[0]-1 or voxel[1] < 0 or voxel[1] > self.Size[1]-1 or voxel[2] < 0 or voxel[2] > self.Size[2]-1):
                     break
-                prev_TSDF = self.TSDF[voxel[0],voxel[1],voxel[2]]
+                convVal = 32767.0
+                prev_TSDF = (self.TSDF[voxel[0],voxel[1],voxel[2]].astype(np.float32))/convVal
                 pt = pt + nu*ray
-                
+                #print "LA.norm(pt) : %f " %(LA.norm(pt))
+                #print "prev_TSDF: %f " %(prev_TSDF)
                 while (LA.norm(pt) < 5.0 and prev_TSDF < 0.0):
+                    print "prev_TSDF: %f " %(prev_TSDF)
                     voxel = np.round(np.array([pt[0]*self.dim_x + self.c_x, pt[1]*self.dim_y + self.c_y, pt[2]*self.dim_z + self.c_z])).astype(int)
                     if (voxel[0] < 0 or voxel[0] > self.Size[0]-1 or voxel[1] < 0 or voxel[1] > self.Size[1]-1 or voxel[2] < 0 or voxel[2] > self.Size[2]-1):
                         break
-                    new_TSDF = self.TSDF[voxel[0],voxel[1],voxel[2]]
+                    new_TSDF = (self.TSDF[voxel[0],voxel[1],voxel[2]].astype(np.float32))/convVal
                         
                     if (sign(prev_TSDF*new_TSDF) == -1.0 and prev_TSDF > -1.0):
                         result[i,j] = ((1.0-np.abs(prev_TSDF))*LA.norm(pt - nu*ray) + (1.0-new_TSDF)*LA.norm(pt)) / (2.0 - (np.abs(prev_TSDF) + new_TSDF))
+                        print "result[i,j] : %f " %(result[i,j])
                         break
                     
                     if (new_TSDF > -1.0 and new_TSDF < 0.0):
@@ -231,5 +244,6 @@ class TSDFManager():
                         
                     prev_TSDF = new_TSDF
                     pt = pt + nu*ray
+                    print "prev TSDF : %f " %(prev_TSDF)
         
         return result

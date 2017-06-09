@@ -87,7 +87,7 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
 """
 
 Kernel_RayTracing = """
-__kernel void RayTracing(__global float *TSDF, __global float *Depth, __constant float *Param, __constant int *Dim,
+__kernel void RayTracing(__global short int *TSDF, __global float *Depth, __constant float *Param, __constant int *Dim,
                            __constant float *Pose, __constant float *calib, const int n_row, const int m_col) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
         float nu = 0.08f;
@@ -116,7 +116,8 @@ __kernel void RayTracing(__global float *TSDF, __global float *Depth, __constant
         if (voxel.x < 0 || voxel.x > Dim[0]-1 || voxel.y < 0 || voxel.y > Dim[1]-1 || voxel.z< 0 || voxel.z > Dim[2]-1)
             return;
         
-        float prev_TSDF = TSDF[voxel.z + Dim[0]*voxel.y + Dim[0]*Dim[1]*voxel.x];
+        float convVal = 32767.0f;
+        float prev_TSDF = ((float)TSDF[voxel.z + Dim[0]*voxel.y + Dim[0]*Dim[1]*voxel.x])/convVal;
         pt.x = pt.x + nu*ray.x;
         pt.y = pt.y + nu*ray.y;
         pt.z = pt.z + nu*ray.z;
@@ -132,7 +133,7 @@ __kernel void RayTracing(__global float *TSDF, __global float *Depth, __constant
             if (voxel.x < 0 || voxel.x > Dim[0]-1 || voxel.y < 0 || voxel.y > Dim[1]-1 || voxel.z < 0 || voxel.z > Dim[2]-1)
                 return;
                 
-            new_TSDF = TSDF[voxel.z + Dim[0]*voxel.y + Dim[0]*Dim[1]*voxel.x];
+            new_TSDF = ((float)TSDF[voxel.z + Dim[0]*voxel.y + Dim[0]*Dim[1]*voxel.x])/convVal;
                 
             if (prev_TSDF*new_TSDF < 0.0f && prev_TSDF > -1.0f){
                 Depth[j + m_col*i] = ((1.0f-fabs(prev_TSDF))*prev_norm + (1.0f-new_TSDF)*norm) / 
@@ -151,6 +152,6 @@ __kernel void RayTracing(__global float *TSDF, __global float *Depth, __constant
             norm = sqrt(pt.x*pt.x + pt.y*pt.y + pt.z*pt.z);
         }
             
-        Depth[j + m_col*i] = 0.0f;
+        Depth[j + m_col*i] = 1.0f;
 }
 """

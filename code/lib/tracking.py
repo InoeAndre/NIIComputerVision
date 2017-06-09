@@ -380,9 +380,12 @@ class Tracker():
 #                 print b                
 #==============================================================================
                 
-                det = LA.det(A)
-                if (det < 1.0e-10):
+                sign,logdet = LA.slogdet(A)
+                det = sign * np.exp(logdet)
+                if (det == 0.0):
                     print "determinant null"
+                    print det
+                    warnings.warn("this is a warning message")
                     break
            
                 delta_qsi = -LA.tensorsolve(A, b)
@@ -585,9 +588,12 @@ class Tracker():
 #                 print b                
 #==============================================================================
                 
-                det = LA.det(A)
-                if (det < 1.0e-10):
+                sign,logdet = LA.slogdet(A)
+                det = sign * np.exp(logdet)
+                if (det == 0.0):
                     print "determinant null"
+                    print det
+                    warnings.warn("this is a warning message")
                     break
            
                 delta_qsi = -LA.tensorsolve(A, b)
@@ -802,7 +808,7 @@ class Tracker():
                 mask_vtx =  (norm_diff_Vtx < self.thresh_dist)
                 print "norm_diff_Vtx : max, min , median"
                 #print norm_diff_Vtx[51300]
-                print "max : %f; min : %f; median : %f; var :  " % (np.max(norm_diff_Vtx),np.min(norm_diff_Vtx) ,np.median(norm_diff_Vtx),np.var(norm_diff_Vtx) )
+                print "max : %f; min : %f; median : %f; var :  %f " % (np.max(norm_diff_Vtx),np.min(norm_diff_Vtx) ,np.median(norm_diff_Vtx),np.var(norm_diff_Vtx) )
                 #print "mask_vtx"
                 #print norm_diff_Vtx*mask_vtx
                 #print sum(mask_vtx)  
@@ -859,9 +865,12 @@ class Tracker():
                 b = np.dot(Buffer.transpose(), Buffer_B).reshape(6)
 
                 
-                det = LA.det(A)
-                if (det < 1.0e-10):
+                sign,logdet = LA.slogdet(A)
+                det = sign * np.exp(logdet)
+                if (det == 0.0):
                     print "determinant null"
+                    print det
+                    warnings.warn("this is a warning message")
                     break
            
                 delta_qsi = -LA.tensorsolve(A, b)
