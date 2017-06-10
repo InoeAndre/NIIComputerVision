@@ -75,15 +75,15 @@ class RGBD():
 
     # Constructor
     def __init__(self, depth_image, intrinsic, fact, Size):
-        self.depth_image = (depth_image/fact).astype(np.float32)
+        self.depth_image = (depth_image.astype(np.float32))/fact
         self.intrinsic = intrinsic
         self.fact = fact
-        self.Size = Size
+        self.Size = (Size[0],Size[1],3)
 
     # Create the vertex image from the depth image and intrinsic matrice
     def Vmap_optimize(self):
         #self.Vtx = np.zeros(self.Size, np.float32)
-        d = self.depth_image[0:self.Size[0]][0:self.Size[1]]
+        d =  self.depth_image.astype(np.float32)
         d_pos = d * (d > 0.0)
         x_raw = np.zeros([self.Size[0],self.Size[1]], np.float32)
         y_raw = np.zeros([self.Size[0],self.Size[1]], np.float32)

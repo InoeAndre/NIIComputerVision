@@ -33,8 +33,8 @@ class TSDFManager():
     # Constructor
     def __init__(self, Size, Image, GPUManager,TSDFGPU,WeightGPU):
         self.Size = Size
-        self.TSDF = np.zeros((512,512,512), dtype = np.int16)
-        self.Weight = np.zeros((512,512,512), dtype = np.int16)
+        self.TSDF = np.zeros(Size, dtype = np.int16)
+        self.Weight = np.zeros(Size, dtype = np.int16)
         self.c_x = self.Size[0]/2
         self.c_y = self.Size[1]/2
         self.c_z = -0.1

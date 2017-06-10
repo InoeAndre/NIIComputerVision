@@ -398,10 +398,10 @@ class Tracker():
                 print res
         return res
     
-    def RegisterRGBD_optimize2(self, Image1, Image2):
+    def RegisterRGBD_optimize2(self, Image1, Image2,Pose):
         
-        res = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
-        resInv = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
+        res = Pose#np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
+        resInv = self.InvPose(Pose)#np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         
         column_index_ref = np.array([np.array(range(Image1.Size[1])) for _ in range(Image1.Size[0])])
         line_index_ref = np.array([x*np.ones(Image1.Size[1], np.int) for x in range(Image1.Size[0])])
@@ -1053,32 +1053,28 @@ class Tracker():
 #                 print sum( mask_pt) 
 #==============================================================================
                 
-#==============================================================================
-#                 print "mask_vtx"
-#                 print sum( mask_vtx) 
-#==============================================================================
+                print "mask_vtx"
+                print sum( mask_vtx) 
+                
+                print "mask_nmls"
+                print sum( mask_nmls) 
+                
                 
 #==============================================================================
-#                 print "mask_nmls"
-#                 print sum( mask_nmls) 
-#                 
-#                 
 #                 print "norm_Norme_Nmle > 0.0"
 #                 print sum( (norm_Norme_Nmle > 0.0)) 
-#                 
-#                 print "cdt_column"
-#                 print sum( (cdt_column!=0))  
-#                 
-#                 print "cdt_line"
-#                 print sum( (cdt_line!=0)) 
 #==============================================================================
+                
+                print "cdt_column"
+                print sum( (cdt_column!=0))  
+                
+                print "cdt_line"
+                print sum( (cdt_line!=0)) 
     
                 mask = cdt_line*cdt_column * mask_pt * (norm_Norme_Nmle > 0.0) * mask_vtx * mask_nmls
-#==============================================================================
-#                 print "nb of correspondence"
-#                 print sum(mask)
-#     
-#==============================================================================
+                print "nb of correspondence"
+                print sum(mask)
+    
                 
 #==============================================================================
 #                 print "np.max(mask[51300]*diff_Vtx)"
