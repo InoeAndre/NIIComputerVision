@@ -144,6 +144,9 @@ class My_MarchingCube():
                      
         f.close()
                     
+
+
+        
                     
     '''
         Function to draw the mesh using tkinter

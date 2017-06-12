@@ -75,15 +75,39 @@ class RGBD():
 
     # Constructor
     def __init__(self, depth_image, intrinsic, fact, Size):
-        self.depth_image = (depth_image.astype(np.float32))/fact
+
+        # rescale teh values of depth so that the depth conversion can always have the same scale of values
+        y1 = float(np.max(depth_image))
+        y2 = float(np.min(depth_image))
+        x1 = 4.0
+        x2 = 0.5
+        scale = (x1-x2)/(y1 - y2)
+
+        self.depth_image = (depth_image.astype(np.float32))*scale
+        print "np.max(self.depth_image)"
+        print np.max(self.depth_image)
+        print "np.min(self.depth_image)"
+        print np.min(self.depth_image)
         self.intrinsic = intrinsic
         self.fact = fact
         self.Size = (Size[0],Size[1],3)
 
     # Create the vertex image from the depth image and intrinsic matrice
+    def Vmap(self):
+        self.Vtx = np.zeros(self.Size, np.float32) 
+        for v in range(self.Size[1]):
+            for u in range(self.Size[0]):
+                Z = self.depth_image[u,v]/self.fact
+                if Z==0: continue
+                X = (u - self.intrinsic[0,2]) * Z / self.intrinsic[0,0]
+                Y = (v - self.intrinsic[1,2]) * Z / self.intrinsic[1,1]
+                self.Vtx[u,v] = (Y,X,Z)
+                
+            
+    # Create the vertex image from the depth image and intrinsic matrice
     def Vmap_optimize(self):
         #self.Vtx = np.zeros(self.Size, np.float32)
-        d =  self.depth_image.astype(np.float32)
+        d =  self.depth_image.astype(np.float32)/self.fact
         d_pos = d * (d > 0.0)
         x_raw = np.zeros([self.Size[0],self.Size[1]], np.float32)
         y_raw = np.zeros([self.Size[0],self.Size[1]], np.float32)
@@ -196,4 +220,31 @@ class RGBD():
                         
     
     
-    
+    '''
+        Function to record the created Vertices  into a .ply file
+    '''
+    def VtxToPly(self, name,Vertices,Normales):
+        points = []    
+        for i in range(Vertices.shape[0]):
+            Z = Vertices[i,2]
+            if Z==0: continue
+            X = Vertices[i,0]
+            Y = Vertices[i,1]
+            color = Normales[i]
+            points.append("%f %f %f %d %d %d 0\n"%(X,Y,Z,color[0],color[1],color[2]))
+        file = open(name,"w")
+        file.write('''ply
+    format ascii 1.0
+    element vertex %d
+    property float x
+    property float y
+    property float z
+    property uchar red
+    property uchar green
+    property uchar blue
+    property uchar alpha
+    end_header
+    %s
+    '''%(len(points),"".join(points)))
+        file.close()
+                        
