@@ -233,18 +233,21 @@ class Application(tk.Frame):
 
         tk.Frame.__init__(self, master)
         self.pack()
+        
+        
+        #general parameters
+        self.color_tag = 1
+        self.Size = [480,640]
+        self.intrinsic = np.array([[579.800598, 0.00000000, 319.500000], \
+                                   [0.00000000, 576.378845, 254.086800], \
+                                   [0.00000000, 0.00000000, 1.00000000]], dtype = np.float32)
+        print self.intrinsic
 
-#==============================================================================
-#             i = 0
-#             for line in data:
-#                 words = line.split()
-#                 print words[1]
-#                 print i
-#                 i = i +  1
-#                 if i ==10:
-#                     raw_input("Press Enter to continue...")
-#                     break
-#==============================================================================
+
+        self.fact = 2000.0
+        
+        self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
+        Id4 = np.identity(4)   
         
         path = "/Users/nii-user/inoe/data/TechnischeUniversitatMunchen"
         dataset = "/rgbd_dataset_freiburg2_xyz/"
@@ -256,70 +259,24 @@ class Application(tk.Frame):
             # previous image
             first = 3
             img = cv2.imread(path + dataset + data[first].split()[1],cv2.CV_LOAD_IMAGE_UNCHANGED)
-            #crop_img = img[28:452, 64:576] # Size = [480, 640] to [424,512]
-            #cv2.imshow('image',img)
             PrevDepth = np.asarray( img[:,:], np.float32)
             print "np.max(PrevDepth)"
             print np.max(PrevDepth)
             print "np.min(PrevDepth)"
             print np.min(PrevDepth)
             print PrevDepth.shape 
-            #cv2.waitKey(0)
-            #cv2.destroyAllWindows()
             
             
-            mat = scipy.io.loadmat(self.path + '/String4b.mat')
-            self.lImages = mat['DepthImg']
-            
-            
-            
-            self.color_tag = 1
-            calib_file = open(self.path + '/Calib.txt', 'r')
-            calib_data = calib_file.readlines()
-            self.Size = [480,640]
-            self.intrinsic = np.array([[579.800598, 0.00000000, 319.500000], \
-                                       [0.00000000, 576.378845, 254.086800], \
-                                       [0.00000000, 0.00000000, 1.00000000]], dtype = np.float32)
-            print self.intrinsic
-
-#==============================================================================
-#             #self.Size = [int(calib_data[0]), int(calib_data[1])]
-#             self.intrinsic = np.array([[float(calib_data[2]), float(calib_data[3]), float(calib_data[4])], \
-#                                        [float(calib_data[5]), float(calib_data[6]), float(calib_data[7])], \
-#                                        [float(calib_data[8]), float(calib_data[9]), float(calib_data[10])]], dtype = np.float32)
-#             print self.intrinsic
-#==============================================================================
-    
-            self.fact = 2000.0
-            
-            self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
-            Id4 = np.identity(4)            
-            
-            
+            # depth conversion
             self.RGBD = RGBDimg.RGBD(PrevDepth, self.intrinsic, self.fact,self.Size)
             self.RGBD.BilateralFilter(-1, 0.02, 3) 
-            #self.RGBD.depth_image = self.RGBD.depth_image[0:int(calib_data[0]), 0:int(calib_data[1])] # Size = [480, 640] to [424,512]
-            #print self.RGBD.depth_image.shape
-            #self.RGBD.Size = [int(calib_data[0]), int(calib_data[1]),3]
             self.RGBD.Vmap_optimize()   
             self.RGBD.NMap_optimize() 
             
             self.FirstRGBD = RGBDimg.RGBD(PrevDepth, self.intrinsic, self.fact,self.Size)
             self.FirstRGBD.BilateralFilter(-1, 0.02, 3) 
-            #self.FirstRGBD.depth_image = self.FirstRGBD.depth_image[0:int(calib_data[0]), 0:int(calib_data[1])] # Size = [480, 640] to [424,512]
-            #print "self.RGBD.depth_image.shape"
-            #print self.RGBD.depth_image.shape
-            #self.FirstRGBD.Size = self.RGBD.Size
             self.FirstRGBD.Vmap_optimize()   
             self.FirstRGBD.NMap_optimize() 
-            
-#==============================================================================
-#             ImageTest = RGBDimg.RGBD(NewDepth, self.intrinsic, self.fact,self.Size)
-#             ImageTest.BilateralFilter(-1, 0.02, 3)
-#             ImageTest.Vmap_optimize()
-#             ImageTest.NMap_optimize()
-#==============================================================================
-                
             
             # For global Fusion, init TSDF, Marching and tracking
             mf = cl.mem_flags
@@ -347,44 +304,27 @@ class Application(tk.Frame):
                 print NewDepth.shape 
                 self.NewRGBD = RGBDimg.RGBD(NewDepth, self.intrinsic, self.fact,self.Size)
                 self.NewRGBD.BilateralFilter(-1, 0.02, 3)
-                #self.NewRGBD.depth_image = self.NewRGBD.depth_image[0:int(calib_data[0]), 0:int(calib_data[1])] # Size = [480, 640] to [424,512]
-                #self.NewRGBD.Size = self.FirstRGBD.Size
                 self.NewRGBD.Vmap_optimize()
                 self.NewRGBD.NMap_optimize()
                 
-                #Vertices= self.RGBD.Vtx.reshape(self.RGBD.Size[0]*self.RGBD.Size[1],3)
-                #Normales = self.RGBD.Nmls.reshape(self.RGBD.Size[0]*self.RGBD.Size[1],3)
-                T_Pose = Tracker.RegisterRGBDMesh_optimize(self.NewRGBD, self.MC.Vertices,self.MC.Normales, self.Pose)#self.MC.
-                #T_Pose = Tracker.RegisterRGBDMesh_optimize2(self.RGBD2, self.RGBD.Vtx,self.RGBD.Nmls, self.Pose)
-                #T_Pose2 = Tracker.RegisterRGBD_optimize2(self.NewRGBD,self.RGBD, self.Pose)
-                #T_Pose2 = Tracker.RegisterRGBD_optimize(self.NewRGBD,self.RGBD)
-                #ref_pose = np.dot(T_Pose2,self.Pose)
+                T_Pose = Tracker.RegisterRGBDMesh_optimize2(self.NewRGBD, self.MC.Vertices,self.MC.Normales, self.Pose)#self.MC.
+
                 for k in range(4):
                     for l in range(4):
                         self.Pose[k,l] = T_Pose[k,l]             
-                #print 'T_Pose'
-                #print T_Pose
                 print 'self.Pose'
                 print self.Pose
-                print 'T_Pose'
-                print T_Pose    
-                
-                #self.RGBD.Vtx = self.NewRGBD.Vtx
-                #self.RGBD.Nmls = self.NewRGBD.Nmls
                 
                 if index !=end-1:
                     #TSDF Fusion
                     TSDFManager.FuseRGBD_GPU(self.NewRGBD, self.Pose)   
                     # Mesh rendering
                     self.MC.runGPU(TSDFManager.TSDFGPU)           
-                    #self.MC.MC2RGBD(self.RGBD,self.MC.Vertices,self.MC.Normales,Id4, 1, self.color_tag)
                 
                 elapsed_time = time.time() - start_time2
                 print "Image number %d done : %f s" % (index,elapsed_time)
             
-
-            #Vertices= self.RGBD.Vtx.reshape(self.RGBD.Size[0]*self.RGBD.Size[1],3)
-            #Normales = self.RGBD.Nmls.reshape(self.RGBD.Size[0]*self.RGBD.Size[1],3)            
+           
             start_time3 = time.time()
             #self.RGBD.VtxToPly("result.ply",Vertices,Normales)
             self.MC.SaveToPly("result.ply")
@@ -395,14 +335,12 @@ class Application(tk.Frame):
             # projection in 2d space to draw it
             rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
             transfoInv = self.InvPose(self.Pose)
-            rendering = self.FirstRGBD.Draw_optimize(rendering,transfoInv, 1, self.color_tag)
+            # projection of the first image
+            #rendering = self.FirstRGBD.Draw_optimize(rendering,transfoInv, 1, self.color_tag)
+            # projection of the current image/ Overlay
             rendering = self.NewRGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
             # Projection directly with the output of the marching cubes  
-            #transfoInv = self.InvPose(self.Pose)
-            #rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normales,transfoInv, 1, self.color_tag)
-            #rendering = ImageTest.Draw_optimize(rendering,self.Pose, 1, self.color_tag)
-            #rendering = self.FirstRGBD.Draw_optimize(rendering,transfoInv, 1, self.color_tag)
-            
+            rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normales,transfoInv, 1, self.color_tag)
     
             # Show figure and images
                 
@@ -682,99 +620,6 @@ class Application(tk.Frame):
 
         '''
         End test
-        '''
-        
-        
-        '''
-        Test Raytracing
-        '''
-        
-        '''
-        self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
-        self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
-        self.Index = 15
-        self.RGBD.ReadFromMat(self.Index) 
-        self.RGBD.BilateralFilter(-1, 0.02, 3) 
-        self.RGBD.Vmap_optimize()   
-        self.RGBD.NMap_optimize()  
-
-        ImageTest = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic,  self.fact)
-        ImageTest.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx)
-        ImageTest.ReadFromMat(self.Index)
-        ImageTest.BilateralFilter(-1, 0.02, 3)
-        ImageTest.Vmap_optimize()
-        ImageTest.NMap_optimize()
-
-        #transformation for test
-        test_v = np.array([0.01, 0.02,0.015, 0.01, 0.02, 0.03]) #[random.random()/10 for _ in range(6)])
-        A = TrackManager.Exponential(test_v)
-        R = LA.inv(A[0:3,0:3])
-        tra = -np.dot(R,A[0:3,3])
-        print A
-        print R
-        print tra
-        ImageTest.Transform(A)
-        B = np.zeros(A.shape, A.dtype)
-        B[0:3,0:3]=R
-        B[0:3,3]=tra
-        B[3,3]=1.0
-        
-        # For global Fusion
-        mf = cl.mem_flags
-        self.TSDF = np.zeros((512,512,512), dtype = np.int16)
-        self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
-        self.Weight = np.zeros((512,512,512), dtype = np.int16)
-        self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
-        
-        TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU) 
-
-        start_time = time.time()
-        TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
-        elapsed_time = time.time() - start_time
-        print "FuseRGBD_GPU: %f" % (elapsed_time)
-        start_time = time.time()
-        self.RGBD.depth_image = TSDFManager.RayTracing(self.RGBD, self.Pose)
-        elapsed_time = time.time() - start_time
-        print "RayTracing_GPU: %f" % (elapsed_time)
-        print self.RGBD.depth_image
-        print np.max(self.RGBD.depth_image)
-        print np.min(self.RGBD.depth_image)
-#==============================================================================
-#         self.RGBD.BilateralFilter(-1, 0.02, 3)
-#         self.RGBD.Vmap_optimize()
-#         self.RGBD.NMap_optimize()    
-#         Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
-#         T_Pose2 = Tracker.RegisterRGBD_optimize(ImageTest,self.RGBD)
-#         for k in range(4):
-#             for l in range(4):
-#                 self.Pose[k,l] = T_Pose2[k,l]             
-#         print 'self.Pose'
-#         print self.Pose        
-#==============================================================================
-        
-        
-        # projection in 2d space to draw it
-        rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-        rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
-        #rendering = ImageTest.Draw_optimize(rendering,Id4, 1, self.color_tag)
-        # Projection directly with the output of the marching cubes  
-        #transfoInv = self.InvPose(self.Pose)
-        #rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normales,transfoInv, 1, self.color_tag)
-        #rendering = ImageTest.Draw_optimize(rendering,self.Pose, 1, self.color_tag)
-        #rendering = self.RGBD.Draw_optimize(rendering,transfoInv, 1, self.color_tag)
-        
-
-        # Show figure and images
-            
-        # 3D reconstruction of the whole image
-        self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
-        self.canvas.pack()        
-        img = Image.fromarray(rendering, 'RGB')
-        self.imgTk=ImageTk.PhotoImage(img)
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-        '''
-        '''
-        End Test
         '''
 
 

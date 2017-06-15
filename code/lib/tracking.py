@@ -572,12 +572,9 @@ class Tracker():
         print "MeshVtx.shape"
         print MeshVtx.shape
         
+        # Initializing the res with the current Pose so that 
         Size = MeshVtx.shape
         res = Pose
-
-        
-
-        #Indexes_ref = np.arange(Size[0])
         
         for l in range(1,self.lvl+1):
             for it in range(self.max_iter[l-1]):
@@ -693,140 +690,6 @@ class Tracker():
         
         return res        
 
-    
-    def RegisterRGBDMesh_optimize2(self, NewImage, MeshVtx, MeshNmls,Pose):
-        print "MeshVtx.shape"
-        print MeshVtx.shape
 
-        
-        Size = MeshVtx.shape
-        res = Pose#
-        resInv = self.InvPose(res)
-        
-        for l in range(1,self.lvl+1):
-            for it in range(self.max_iter[l-1]):
-                #nbMatches = 0
-                b = np.zeros(6, np.float64)
-                A = np.zeros((6,6), np.float64)
-                
-                # adapt the current image with 4 coordinates and update the position
-                stack_NewPt = np.ones((np.size(NewImage.Vtx[ ::l, ::l,:],0), np.size(NewImage.Vtx[ ::l, ::l,:],1)), dtype = np.float64)
-                NewPt = np.dstack((NewImage.Vtx[ ::l, ::l, :],stack_NewPt))
-                
-                NewVtx = np.dot(resInv,NewPt.transpose(0,2,1)).transpose(1,2,0)
-                NewNmls = np.dot(resInv[0:3,0:3],NewImage.Nmls.transpose(0,2,1)).transpose(1,2,0)
-                
-                # For each pixel find correspondinng point by projection
-                Buffer = np.zeros((Size[0], 6), dtype = np.float64)
-                Buffer_B = np.zeros((Size[0], 1), dtype = np.float64)
-                stack_pix = np.ones(Size[0], dtype = np.float64)
-                stack_pt = np.ones(np.size(MeshVtx[ ::l,:],0), dtype = np.float64)
-                pix = np.zeros((Size[0], 2), dtype = np.float64)
-                pix = np.stack((pix[:,0],pix[:,1],stack_pix), axis = 1)
-                pt = np.stack((MeshVtx[ ::l, 0],MeshVtx[ ::l, 1],MeshVtx[ ::l, 2],stack_pt),axis = 1)
-
-                
-                nmle = np.zeros((Size[0], Size[1]), dtype = np.float64)
-                nmle = MeshNmls[ ::l,:]
-
-                lpt = np.split(pt,4,axis=1)
-                lpt[2] = in_mat_zero2one(lpt[2])
-                
-                # if in 1D pix[0] = pt[0]/pt[2]
-                pix[ ::l,0] = (lpt[0]/lpt[2]).reshape(np.size(MeshVtx[ ::l,:],0))
-                # if in 1D pix[1] = pt[1]/pt[2]
-                pix[ ::l,1] = (lpt[1]/lpt[2]).reshape(np.size(MeshVtx[ ::l,:],0))
-                pix = np.dot(NewImage.intrinsic,pix[0:Size[0],0:Size[1]].T).T
-                column_index = (np.round(pix[:,0])).astype(int)
-                line_index = (np.round(pix[:,1])).astype(int)
-                
-                # create matrix that have 0 when the conditions are not verified and 1 otherwise
-                cdt_column = (column_index > -1) * (column_index < NewImage.Size[1])
-                cdt_line = (line_index > -1) * (line_index < NewImage.Size[0])
-                line_index = line_index*cdt_line
-                column_index = column_index*cdt_column
-                
-                diff_Vtx =  NewVtx[line_index[:], column_index[:]][:,0:3]  - pt[:,0:3] 
-
-                diff_Vtx = diff_Vtx*diff_Vtx
-                norm_diff_Vtx = diff_Vtx.sum(axis=1)
-                mask_vtx =  (norm_diff_Vtx < self.thresh_dist )
-                
-                print "norm_diff_Vtx "
-                #print norm_diff_Vtx[51300]
-                print "max : %f; min : %f; median : %f; var :  %f" % (np.max(norm_diff_Vtx),np.min(norm_diff_Vtx) ,np.median(norm_diff_Vtx),np.var(norm_diff_Vtx) )
-
-                
-                diff_Nmle = NewNmls[line_index[:], column_index[:]] - nmle 
-                diff_Nmle = diff_Nmle*diff_Nmle
-                norm_diff_Nmle = diff_Nmle.sum(axis=1)
-                mask_nmls =  (norm_diff_Nmle < self.thresh_norm)
-                
-                Norme_Nmle = nmle*nmle
-                norm_Norme_Nmle = Norme_Nmle.sum(axis=1)
-                
-                mask_pt =  (pt[:,2] > 0.0)
-                                
-                print "mask_pt"
-                print sum( mask_pt) 
-                
-                print "mask_vtx"
-                print sum( mask_vtx) 
-                
-                print "mask_nmls"
-                print sum( mask_nmls) 
-                
-                
-                print "norm_Norme_Nmle > 0.0"
-                print sum( (norm_Norme_Nmle > 0.0)) 
-                
-                print "cdt_column"
-                print sum( (cdt_column!=0))  
-                
-                print "cdt_line"
-                print sum( (cdt_line!=0)) 
-    
-                mask = cdt_line*cdt_column * mask_pt * (norm_Norme_Nmle > 0.0) * mask_vtx * mask_nmls
-                print "nb of correspondence"
-                print sum(mask)
-    
-                
-                w = 1.0
-                Buffer[:] = np.stack((w*mask[:]*nmle[ :,0], \
-                      w*mask[:]*nmle[ :, 1], \
-                      w*mask[:]*nmle[ :, 2], \
-                      w*mask[:]*(NewVtx[line_index[:], column_index[:]][:,1]*nmle[:,2] - NewVtx[line_index[:], column_index[:]][:,2]*nmle[:,1]), \
-                      w*mask[:]*(NewVtx[line_index[:], column_index[:]][:,2]*nmle[:,0] - NewVtx[line_index[:], column_index[:]][:,0]*nmle[:,2]), \
-                      w*mask[:]*(NewVtx[line_index[:], column_index[:]][:,0]*nmle[:,1] - NewVtx[line_index[:], column_index[:]][:,1]*nmle[:,0]) ) , axis = 1)
-                
-                Buffer_B[:] = ((w*mask[:]*(nmle[:,0]*(NewVtx[line_index[:], column_index[:]][:,0] - pt[:,0])\
-                                        + nmle[:,1]*(NewVtx[line_index[:], column_index[:]][:,1] - pt[:,1])\
-                                        + nmle[:,2]*(NewVtx[line_index[:], column_index[:]][:,2] - pt[:,2])) ).transpose()).reshape(Buffer_B[:].shape)
-                        
-                
-                A = np.dot(Buffer.transpose(), Buffer)
-                b = np.dot(Buffer.transpose(), Buffer_B).reshape(6)
-    
-                
-                sign,logdet = LA.slogdet(A)
-                det = sign * np.exp(logdet)
-                if (det == 0.0):
-                    print "determinant null"
-                    print det
-                    warnings.warn("this is a warning message")
-                    break
-           
-            
-                delta_qsi = -LA.tensorsolve(A, b)
-                delta_transfo = Exponential(delta_qsi)
-                delta_transfo = self.InvPose(delta_transfo)  
-                print "delta_transfo"
-                print delta_transfo
-                res = np.dot(delta_transfo, res)
-                resInv = self.InvPose(res) 
-                
-                print "resInv"
-                print resInv
-        return resInv
 
 

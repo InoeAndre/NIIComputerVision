@@ -112,8 +112,7 @@ class My_MarchingCube():
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FacesGPU, self.Faces).wait()
         #cl.enqueue_read_buffer(self.GPUManager.queue, self.NormalsGPU, self.Normals).wait()
         self.MergeVtx()
-        #self.Normales = -self.Normales
-        #self.Vertices = -self.Vertices
+
 
 
     '''
@@ -229,25 +228,8 @@ class My_MarchingCube():
         # edges of triangles
         vectsFaces[0,:,:] = self.Vertices[self.Faces[:,1]]-self.Vertices[self.Faces[:,0]]   
         vectsFaces[1,:,:] = self.Vertices[self.Faces[:,2]]-self.Vertices[self.Faces[:,0]]
-        
-#==============================================================================
-#         norm0 = np.sqrt(np.sum(vectsFaces[0,:,:]*vectsFaces[0,:,:],axis=1))
-#         norm1 = np.sqrt(np.sum(vectsFaces[1,:,:]*vectsFaces[1,:,:],axis=1))
-#         chgOrientation = (np.arccos( np.sum(vectsFaces[0,:,:]*vectsFaces[1,:,:],axis = 1)/(norm0*norm1) ) < PI/2.0)
-# 
-#         falses = np.where(chgOrientation==False)
-#         # change orientation
-#         tmp = vectsFaces[1,falses[:],:]
-#         vectsFaces[1,falses[:],:] = vectsFaces[0,falses[:],:]
-#         vectsFaces[0,falses[:],:] = tmp            
-#             
-#             
-#         print "MC.vectsFaces"
-#         print vectsFaces[0,:,:]
-#         print vectsFaces[1,:,:]
-#==============================================================================
+
         # compute each face's normal
-        #facesNmls = np.cross(vectsFaces[0,:,:],vectsFaces[1,:,:])
         facesNmls[:,0] = vectsFaces[0,:,1]*vectsFaces[1,:,2]- vectsFaces[0,:,2]*vectsFaces[1,:,1]
         facesNmls[:,1] = vectsFaces[0,:,2]*vectsFaces[1,:,0]- vectsFaces[0,:,0]*vectsFaces[1,:,2]
         facesNmls[:,2] = vectsFaces[0,:,0]*vectsFaces[1,:,1]- vectsFaces[0,:,1]*vectsFaces[1,:,0]
@@ -289,6 +271,9 @@ class My_MarchingCube():
             self.Normals[v] = self.Normals[v]/norm_nmlsSum
         '''
 
+    '''
+    This function avoid having duplicate in the lists of vertexes or normales
+    '''
     def MergeVtx(self):
         VtxArray_x = np.zeros(self.Size)
         VtxArray_y = np.zeros(self.Size)
@@ -407,8 +392,5 @@ class My_MarchingCube():
         else:
             RGBD.Nmls[line_index[:], column_index[:]]= np.dstack( ( nmle[ :,0], nmle[ :,1], nmle[ :,2]) )
             RGBD.Vtx[line_index[:], column_index[:]] = np.dstack( ( pt[ :,0], pt[ :,1], pt[ :,2]) )
-            print "RGBD.Nmls[line_index[100:103], column_index[100:103]]" 
-            print RGBD.Nmls[line_index[100:103], column_index[100:103]]
-            print " nmle[ 100:103,:]" 
-            print nmle[ 100:103,:]  
+
 
