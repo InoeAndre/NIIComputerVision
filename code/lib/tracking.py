@@ -497,8 +497,10 @@ class Tracker():
                 diff_Vtx = diff_Vtx*diff_Vtx
                 norm_diff_Vtx = diff_Vtx.sum(axis=1)
                 mask_vtx =  (norm_diff_Vtx < self.thresh_dist)
-                #print "norm_diff_Vtx : max, min , median"
-                #print "max : %f; min : %f; median : %f; var :  %f " % (np.max(norm_diff_Vtx),np.min(norm_diff_Vtx) ,np.median(norm_diff_Vtx),np.var(norm_diff_Vtx) )
+                print "mask_vtx"
+                print sum(mask_vtx)  
+                print "norm_diff_Vtx : max, min , median"
+                print "max : %f; min : %f; median : %f; var :  %f " % (np.max(norm_diff_Vtx),np.min(norm_diff_Vtx) ,np.median(norm_diff_Vtx),np.var(norm_diff_Vtx) )
                 
                 diff_Nmle = NewImage.Nmls[line_index[:], column_index[:]] - nmle 
                 diff_Nmle = diff_Nmle*diff_Nmle

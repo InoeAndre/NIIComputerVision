@@ -38,9 +38,9 @@ class TSDFManager():
         self.c_x = self.Size[0]/2
         self.c_y = self.Size[1]/2
         self.c_z = -0.1
-        self.dim_x = self.Size[0]/3.0
-        self.dim_y = self.Size[1]/3.0
-        self.dim_z = self.Size[2]/3.0
+        self.dim_x = self.Size[0]/5.0
+        self.dim_y = self.Size[1]/5.0
+        self.dim_z = self.Size[2]/5.0
         self.res = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32)
         
         self.GPUManager = GPUManager
