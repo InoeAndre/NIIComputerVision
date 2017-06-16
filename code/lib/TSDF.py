@@ -38,9 +38,9 @@ class TSDFManager():
         self.c_x = self.Size[0]/2
         self.c_y = self.Size[1]/2
         self.c_z = -0.1
-        self.dim_x = self.Size[0]/5.0
-        self.dim_y = self.Size[1]/5.0
-        self.dim_z = self.Size[2]/5.0
+        self.dim_x = self.Size[0]/3.0
+        self.dim_y = self.Size[1]/3.0
+        self.dim_z = self.Size[2]/3.0
         self.res = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32)
         
         self.GPUManager = GPUManager
@@ -71,7 +71,7 @@ class TSDFManager():
         Transform[3,3] = 1.0
         #Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
         
-        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
+        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
         
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \

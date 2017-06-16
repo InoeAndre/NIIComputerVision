@@ -224,7 +224,7 @@ class Application(tk.Frame):
       
 
     ## Constructor function
-    def __init__(self, path, GPUManager, master=None):
+    def __init__(self, path,  GPUManager, master=None):
         self.root = master
         self.path = path
         self.GPUManager = GPUManager
@@ -234,27 +234,35 @@ class Application(tk.Frame):
         tk.Frame.__init__(self, master)
         self.pack()
         
-        
+
         #general parameters
+        path = "/Users/nii-user/inoe/data/TechnischeUniversitatMunchen"
+        calib = "/fr1_rgb_calibration/ost.txt"
+        #calib2 = "/fr2_rgb_calibration/ost.txt"
+        calib_file = open(path + calib, 'r')
+        calib_data = calib_file.readlines()       
+        # fr1_rgb_calibration intrinsic
+        self.intrinsic = np.array([[calib_data[14].split()[0], calib_data[14].split()[1], calib_data[14].split()[2]], \
+                                    [calib_data[15].split()[0], calib_data[15].split()[1], calib_data[15].split()[2]], \
+                                    [calib_data[16].split()[0], calib_data[16].split()[1], calib_data[16].split()[2]]], dtype = np.float32)
         self.color_tag = 1
         self.Size = [480,640]
-        self.intrinsic = np.array([[579.800598, 0.00000000, 319.500000], \
-                                   [0.00000000, 576.378845, 254.086800], \
-                                   [0.00000000, 0.00000000, 1.00000000]], dtype = np.float32)
+
         print self.intrinsic
 
 
-        self.fact = 2000.0
+        self.fact = 5000.0
         
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
+        self.PoseTrack = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         Id4 = np.identity(4)   
         
-        path = "/Users/nii-user/inoe/data/TechnischeUniversitatMunchen"
-        dataset = "/rgbd_dataset_freiburg2_xyz/"
+
+        dataset = "/rgbd_dataset_freiburg1_xyz/"
         name = "depth.txt"
         with open(path+dataset+name, "r") as f:
             data = f.readlines()
-            print data[3].split()[1]
+            #print data[3].split()[1]
             
             # previous image
             first = 3
@@ -287,14 +295,14 @@ class Application(tk.Frame):
             
             TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU) 
             self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
-            Tracker = TrackManager.Tracker(0.01*2.5, 0.04*2.5, 1, [10], 0.001) #the fact = 2000 but it should be 5000, so for 1 former meter we now have 2.5 meter 
+            Tracker = TrackManager.Tracker(0.001, 0.5, 1, [10], 0.001) 
     
             # TSDF Fusion
-            TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)  
+            TSDFManager.FuseRGBD_GPU(self.RGBD, self.PoseTrack)  
             # Marching cubes
             self.MC.runGPU(TSDFManager.TSDFGPU)    
-            
-            end = 40
+            #self.MC.SaveToPly("result0.ply")
+            end = 60
             for index in range(first,end):
                 # time counter
                 start_time2 = time.time() 
@@ -303,28 +311,29 @@ class Application(tk.Frame):
                 NewDepth = np.asarray( img2[:,:], np.float32 )
                 print NewDepth.shape 
                 self.NewRGBD = RGBDimg.RGBD(NewDepth, self.intrinsic, self.fact,self.Size)
-                self.NewRGBD.BilateralFilter(-1, 0.02, 3)
+                #self.NewRGBD.BilateralFilter(-1, 0.02, 3)
                 self.NewRGBD.Vmap_optimize()
                 self.NewRGBD.NMap_optimize()
                 
-                T_Pose = Tracker.RegisterRGBDMesh_optimize2(self.NewRGBD, self.MC.Vertices,self.MC.Normales, self.Pose)#self.MC.
+                
+                T_Pose = Tracker.RegisterRGBDMesh_optimize(self.NewRGBD, self.MC.Vertices,self.MC.Normales, self.PoseTrack)#self.MC.
 
                 for k in range(4):
                     for l in range(4):
-                        self.Pose[k,l] = T_Pose[k,l]             
-                print 'self.Pose'
-                print self.Pose
+                        self.PoseTrack[k,l] = T_Pose[k,l]             
+                print 'self.PoseTrack'
+                print self.PoseTrack
                 
-                if index !=end-1:
-                    #TSDF Fusion
-                    TSDFManager.FuseRGBD_GPU(self.NewRGBD, self.Pose)   
-                    # Mesh rendering
-                    self.MC.runGPU(TSDFManager.TSDFGPU)           
+                #if index !=end-1:
+                #TSDF Fusion
+                TSDFManager.FuseRGBD_GPU(self.NewRGBD, self.PoseTrack)   
+                # Mesh rendering
+                #self.MC.runGPU(TSDFManager.TSDFGPU)           
                 
                 elapsed_time = time.time() - start_time2
                 print "Image number %d done : %f s" % (index,elapsed_time)
-            
-           
+
+            self.MC.runGPU(TSDFManager.TSDFGPU)
             start_time3 = time.time()
             #self.RGBD.VtxToPly("result.ply",Vertices,Normales)
             self.MC.SaveToPly("result.ply")
@@ -334,13 +343,10 @@ class Application(tk.Frame):
     
             # projection in 2d space to draw it
             rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-            transfoInv = self.InvPose(self.Pose)
-            # projection of the first image
-            #rendering = self.FirstRGBD.Draw_optimize(rendering,transfoInv, 1, self.color_tag)
             # projection of the current image/ Overlay
             rendering = self.NewRGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
             # Projection directly with the output of the marching cubes  
-            rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normales,transfoInv, 1, self.color_tag)
+            rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normales,self.PoseTrack, 1, self.color_tag)
     
             # Show figure and images
                 

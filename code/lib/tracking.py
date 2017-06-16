@@ -509,15 +509,19 @@ class Tracker():
 
                     distance = LA.norm(pt[0:3] - match_vtx)
                     if (distance > self.thresh_dist):
-                        print "no Vtx correspondance"
-                        print distance
+#==============================================================================
+#                         print "no Vtx correspondance"
+#                         print distance
+#==============================================================================
                         continue
                     match_nmle = NewImage.Nmls[line_index, column_index]
 
                     distance = LA.norm(nmle - match_nmle)
                     if (distance > self.thresh_norm):
-                        print "no Nmls correspondance"
-                        print distance
+#==============================================================================
+#                         print "no Nmls correspondance"
+#                         print distance
+#==============================================================================
                         continue
                         
                     w = 1.0
@@ -558,7 +562,7 @@ class Tracker():
         
         
                 delta_qsi = -LA.tensorsolve(A, b)
-                delta_transfo = LA.inv(Exponential(delta_qsi))
+                delta_transfo = self.InvPose(Exponential(delta_qsi))
                 
                 res = np.dot(delta_transfo, res)
                 
@@ -578,9 +582,6 @@ class Tracker():
         
         for l in range(1,self.lvl+1):
             for it in range(self.max_iter[l-1]):
-                #nbMatches = 0
-                #row = np.array([0.,0.,0.,0.,0.,0.,0.])
-                #Mat = np.zeros(27, np.float32)
                 b = np.zeros(6, np.float32)
                 A = np.zeros((6,6), np.float32)
                 
@@ -619,16 +620,16 @@ class Tracker():
                 diff_Vtx = diff_Vtx*diff_Vtx
                 norm_diff_Vtx = diff_Vtx.sum(axis=1)
                 mask_vtx =  (norm_diff_Vtx < self.thresh_dist)
-                print "norm_diff_Vtx : max, min , median"
-                #print norm_diff_Vtx[51300]
-                print "max : %f; min : %f; median : %f; var :  %f " % (np.max(norm_diff_Vtx),np.min(norm_diff_Vtx) ,np.median(norm_diff_Vtx),np.var(norm_diff_Vtx) )
-                #print "mask_vtx"
-                #print norm_diff_Vtx*mask_vtx
-                #print sum(mask_vtx)  
+                #print "norm_diff_Vtx : max, min , median"
+                #print "max : %f; min : %f; median : %f; var :  %f " % (np.max(norm_diff_Vtx),np.min(norm_diff_Vtx) ,np.median(norm_diff_Vtx),np.var(norm_diff_Vtx) )
                 
                 diff_Nmle = NewImage.Nmls[line_index[:], column_index[:]] - nmle 
                 diff_Nmle = diff_Nmle*diff_Nmle
                 norm_diff_Nmle = diff_Nmle.sum(axis=1)
+                print "norm_diff_Nmle : max, min , median"
+                print "max : %f; min : %f; median : %f; var :  %f " % (np.max(norm_diff_Nmle),np.min(norm_diff_Nmle) ,np.median(norm_diff_Nmle),np.var(norm_diff_Nmle) )                
+                
+                
                 mask_nmls =  (norm_diff_Nmle < self.thresh_norm)
                 print "mask_nmls"
                 print sum(mask_nmls)     
@@ -647,7 +648,7 @@ class Tracker():
                 print "cdt_line"
                 print sum( (cdt_line==0))  
                 
-                mask = cdt_line*cdt_column * (pt[:,2] > 0.0) * (norm_Norme_Nmle > 0.0) * (norm_diff_Vtx < self.thresh_dist) * (norm_diff_Nmle < self.thresh_norm)
+                mask = cdt_line*cdt_column * mask_pt * (norm_Norme_Nmle > 0.0) * mask_vtx * mask_nmls
                 print "final correspondence"
                 print sum(mask)
 
@@ -657,7 +658,7 @@ class Tracker():
                       w*mask[:]*nmle[ :, 1], \
                       w*mask[:]*nmle[ :, 2], \
                       w*mask[:]*(NewImage.Vtx[line_index[:], column_index[:]][:,1]*nmle[:,2] - NewImage.Vtx[line_index[:], column_index[:]][:,2]*nmle[:,1]), \
-                      w*mask[:]*(NewImage.Vtx[line_index[:], column_index[:]][:,2]*nmle[:,0] - NewImage.Vtx[line_index[:], column_index[:]][:,0]*nmle[:,2]), \
+                      w*mask[:]*(- NewImage.Vtx[line_index[:], column_index[:]][:,0]*nmle[:,2] + NewImage.Vtx[line_index[:], column_index[:]][:,2]*nmle[:,0] ), \
                       w*mask[:]*(NewImage.Vtx[line_index[:], column_index[:]][:,0]*nmle[:,1] - NewImage.Vtx[line_index[:], column_index[:]][:,1]*nmle[:,0]) ) , axis = 1)
                 
                 Buffer_B[:] = ((w*mask[:]*(nmle[:,0]*(NewImage.Vtx[line_index[:], column_index[:]][:,0] - pt[:,0])\
@@ -677,7 +678,7 @@ class Tracker():
                     break
            
                 delta_qsi = -LA.tensorsolve(A, b)
-                delta_transfo = LA.inv(Exponential(delta_qsi))
+                delta_transfo = self.InvPose(Exponential(delta_qsi))
                 
                 res = np.dot(delta_transfo, res)
                 print "delta_transfo"
@@ -685,8 +686,6 @@ class Tracker():
                 print "res"
                 print res
 
-                
-        res = self.InvPose(res)   
         
         return res        
 
