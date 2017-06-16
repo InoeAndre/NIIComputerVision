@@ -328,12 +328,12 @@ class Application(tk.Frame):
                 #TSDF Fusion
                 TSDFManager.FuseRGBD_GPU(self.NewRGBD, self.PoseTrack)   
                 # Mesh rendering
-                #self.MC.runGPU(TSDFManager.TSDFGPU)           
+                self.MC.runGPU(TSDFManager.TSDFGPU)           
                 
                 elapsed_time = time.time() - start_time2
                 print "Image number %d done : %f s" % (index,elapsed_time)
 
-            self.MC.runGPU(TSDFManager.TSDFGPU)
+            #self.MC.runGPU(TSDFManager.TSDFGPU)
             start_time3 = time.time()
             #self.RGBD.VtxToPly("result.ply",Vertices,Normales)
             self.MC.SaveToPly("result.ply")
