@@ -269,9 +269,9 @@ class Application(tk.Frame):
         self.MC = []
         
         # Loop for each image
-        i = 0
+        i = 10
         # Loop for each body part bp
-        bp = 8
+        bp = 10
         # Current Depth Image (i.e: i)
         start_time = time.time()
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
@@ -313,11 +313,13 @@ class Application(tk.Frame):
 
         
         # extract one body part
-        self.RGBD.depth_image *= (self.RGBD.labels == 10) #+ (self.RGBD.labels == 10) # 9 = head; 10 = torso 
-        mask = (self.RGBD.labels == 10)# + (self.RGBD.labels == 10)
-        mask3D = np.stack( (mask,mask,mask),axis=2)
-        self.RGBD.Vtx *= mask3D
-        self.RGBD.Nmls *= mask3D
+#==============================================================================
+#         self.RGBD.depth_image *= (self.RGBD.labels == bp) #+ (self.RGBD.labels == 10) # 9 = head; 10 = torso 
+#         mask = (self.RGBD.labels == bp)# + (self.RGBD.labels == 10)
+#         mask3D = np.stack( (mask,mask,mask),axis=2)
+#         self.RGBD.Vtx *= mask3D
+#         self.RGBD.Nmls *= mask3D
+#==============================================================================
 
         # get the transformation
 #==============================================================================
@@ -350,16 +352,62 @@ class Application(tk.Frame):
         print 'self.T_Pose'
         print self.T_Pose
         
+        
+        param = np.array([X/2 , X /5.0, Y/2 , Y /5.0, -0.1, Z/5.0], dtype = np.float32)
+        
+        x = np.arange(X )
+        y = np.arange(Y )
+        
+        ptx = (x-param[0])/param[1]
+        pty = (y-param[2])/param[3]
+
+
+        x_raw = np.zeros([int(X) ,int(Y)  ], np.float32)
+        y_raw = np.zeros([int(X) ,int(Y)  ], np.float32)
+        
+        for i in range(int(Y) ):
+            x_raw[0:int(X ),i] = ptx
+        
+        for i in range( int(X) ):
+            y_raw[i,0:int(Y) ] = pty
+        
+        
+        x_T = self.T_Pose[0,0]*x_raw + self.T_Pose[0,1]*y_raw + self.T_Pose[0,3]
+        y_T =  self.T_Pose[1,0]*x_raw + self.T_Pose[1,1]*y_raw + self.T_Pose[1,3]
+        z_T =  self.T_Pose[2,0]*x_raw + self.T_Pose[2,1]*y_raw + self.T_Pose[2,3]
+        
+        z = np.arange(int(Z))
+        ptz = (z-param[4])/param[5]
+        
+        pt_Tx = np.zeros([int(X) ,int(Y) ,int(Z) ], np.float32)
+        pt_Ty = np.zeros([int(X) ,int(Y) ,int(Z) ], np.float32)
+        pt_Tz = np.zeros([int(X) ,int(Y) ,int(Z) ], np.float32)
+        
+        for i in range(int(Z)):
+        	pt_Tx[:,:,i] = x_T + self.T_Pose[0,2]*ptz[i]
+        	pt_Ty[:,:,i] = y_T + self.T_Pose[1,2]*ptz[i]
+        	pt_Tz[:,:,i] = z_T + self.T_Pose[2,2]*ptz[i]
+
+
+        pixX = (np.round((pt_Tx/np.abs(pt_Tz))*self.intrinsic[0][0] + self.intrinsic[0][2])).astype(np.int)
+        pixY = (np.round((pt_Ty/np.abs(pt_Tz))*self.intrinsic[1][1] + self.intrinsic[1][2])).astype(np.int)
+        print "pixX,pixY"
+        print pixX
+        print pixY
+
+
         # TSDF of the body part
-        TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU[0],self.WeightGPU[0]) 
-        TSDFManager.FuseRGBD_GPU(self.RGBD, self.T_Pose)   
-        print TSDFManager.TSDF.shape
-        print np.min(TSDFManager.TSDF)
-        tsdfmax = np.max(TSDFManager.TSDF)
-        print tsdfmax 
-        tmp = ~(TSDFManager.TSDF ==tsdfmax)
-        tmp = tmp*TSDFManager.TSDF
-        print np.max(tmp)
+#==============================================================================
+#         TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU[0],self.WeightGPU[0]) 
+#         TSDFManager.FuseRGBD_GPU(self.RGBD, self.T_Pose)   
+#         print TSDFManager.TSDF.shape
+#         print np.min(TSDFManager.TSDF)
+#         tsdfmax = np.max(TSDFManager.TSDF)
+#         print tsdfmax 
+#         tmp = ~(TSDFManager.TSDF ==tsdfmax)
+#         tmp = tmp*TSDFManager.TSDF
+#         print np.max(tmp)
+#==============================================================================
 
       
         # Create Mesh
@@ -371,8 +419,8 @@ class Application(tk.Frame):
 #         self.MC.SaveToPly("torso.ply")
 #         elapsed_time = time.time() - start_time3
 #         print "SaveToPly: %f" % (elapsed_time)             
-#         # Get new current image
 #==============================================================================
+        # Get new current image
         
         # Once it done for all part
         # Transform the segmented part in the current image (alignment current image mesh)
