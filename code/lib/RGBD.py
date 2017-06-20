@@ -438,14 +438,18 @@ class RGBD():
         
     def SetTransfoMat3D(self,evecs,i):       
         '''Generate the transformation matrix '''
-        ctrMass = self.ctr3D[i]
+        ctr = self.ctr3D[i]
         e1 = evecs[0]
         e2 = evecs[1]
         e3 = evecs[2]
+        print "e1,e2,e3"
+        print e1
+        print e2
+        print e3
         e1b = np.array( [e1[0],e1[1],e1[2],0])
         e2b = np.array( [e2[0],e2[1],e2[2],0])
         e3b = np.array( [e3[0],e3[1],e3[2],0])
-        origine = np.array( [ctrMass[0],ctrMass[1],ctrMass[2],1])
+        origine = np.array( [ctr[0],ctr[1],ctr[2],1])
         Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
         self.TransfoBB.append(Transfo.transpose())
         #print "TransfoBB[%d]" %(i)
@@ -453,6 +457,7 @@ class RGBD():
         
         
     def bdyPts3D(self, mask):
+        ''' create of cloud of point from part of the RGBD image '''
         start_time2 = time.time()
         nbPts = sum(sum(mask))
         res = np.zeros((nbPts, 3), dtype = np.float32)
@@ -467,6 +472,7 @@ class RGBD():
         return res
 
     def bdyPts3D_optimize(self, mask):
+        ''' create of cloud of point from part of the RGBD image '''
         #start_time2 = time.time()
         nbPts = sum(sum(mask))
         
@@ -490,14 +496,17 @@ class RGBD():
         """
         returns: data transformed 
         """
+        # list of center in the 3D space
         self.ctr3D = []
+        # list of transformed Vtx of each bounding boxes
         self.TVtxBB = []
+        # list of coordinates sys with center
         self.TransfoBB = []
         self.vects3D = []
         self.PtCloud = []
         self.pca = PCA(n_components=3)
-        self.coords=[]
-        self.coordsT=[]
+        self.coordsL=[]
+        self.coordsGbl=[]
         self.mask=[]
         for i in range(self.bdyPart.shape[0]):
             self.mask.append( (self.labels == (i+1)) )
@@ -514,7 +523,7 @@ class RGBD():
             self.vects3D.append(self.pca.components_)
             self.TVtxBB.append( self.pca.transform(self.PtCloud[i]))
             self.FindCoord3D(i)
-            self.SetTransfoMat3D(self.pca.components_,i)       
+            self.SetTransfoMat3D(self.pca.components_,i)#self.pca.components_,i)       
 
             
     def FindCoord3D(self,i):       
@@ -537,19 +546,21 @@ class RGBD():
         xYmZ = np.array([minX,maxY,maxZ])
         XymZ = np.array([maxX,minY,maxZ])
         XYmZ = np.array([maxX,maxY,maxZ])           
-        
+        #print "xymz"
+        #print xymz
         # New coordinates and new images
-        self.coordsT.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
-        #print "coordsT[%d]" %(i)
-        #print self.coordsT[i]
+        self.coordsGbl.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
+        #print "coordsGbl[%d]" %(i)
+        #print self.coordsGbl[i]
         
         # transform back
-        self.coords.append( self.pca.inverse_transform(self.coordsT[i]))
-        #print "coord[%d]" %(i)
-        #print self.coords[i]
+        self.coordsL.append( self.pca.inverse_transform(self.coordsGbl[i]))
+        #print "coordsL[%d]" %(i)
+        #print self.coordsL[i]
             
 
     def GetProjPts2D(self, vects3D, Pose, s=1) :  
+        '''Project a list of vertexes in the image RGBD'''
         line_index = 0
         column_index = 0
         pix = np.array([0., 0., 1.])
@@ -574,6 +585,7 @@ class RGBD():
         return drawVects
             
     def GetProjPts2D_optimize(self, vects3D, Pose, s=1) :  
+        '''Project a list of vertexes in the image RGBD'''
         line_index = 0
         column_index = 0
         pix = np.array([0., 0., 1.])
