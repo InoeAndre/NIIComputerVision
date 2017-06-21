@@ -438,7 +438,7 @@ class RGBD():
         
     def SetTransfoMat3D(self,evecs,i):       
         '''Generate the transformation matrix '''
-        ctr = self.ctr3D[i]
+        ctr = self.coordsGbl[i][0]
         e1 = evecs[0]
         e2 = evecs[1]
         e3 = evecs[2]
@@ -500,32 +500,42 @@ class RGBD():
         """
         # list of center in the 3D space
         self.ctr3D = []
+        self.ctr3D.append([0.,0.,0.])
         # list of transformed Vtx of each bounding boxes
         self.TVtxBB = []
+        self.TVtxBB.append([0.,0.,0.])
         # list of coordinates sys with center
         self.TransfoBB = []
+        self.TransfoBB.append([0.,0.,0.])
         self.vects3D = []
+        self.vects3D.append([0.,0.,0.])
         self.PtCloud = []
-        self.pca = PCA(n_components=3)
+        self.PtCloud.append([0.,0.,0.])
+        self.pca = []
+        self.pca.append(PCA(n_components=3))
         self.coordsL=[]
+        self.coordsL.append([0.,0.,0.])
         self.coordsGbl=[]
+        self.coordsGbl.append([0.,0.,0.])
         self.mask=[]
-        for i in range(self.bdyPart.shape[0]):
-            self.mask.append( (self.labels == (i+1)) )
+        self.mask.append([0.,0.,0.])
+        for i in range(1,self.bdyPart.shape[0]+1):
+            self.mask.append( (self.labels == i) )
             
             # compute center of 3D
             self.PtCloud.append(self.bdyPts3D_optimize(self.mask[i]))
-            self.pca.fit(self.PtCloud[i]) 
+            self.pca.append(PCA(n_components=3))
+            self.pca[i].fit(self.PtCloud[i]) 
             
             # Compute 3D centers
             self.ctr3D.append(self.GetCenter3D(i))         
             #print "ctr3D indexes :"
             #print self.ctr3D[i]
             
-            self.vects3D.append(self.pca.components_)
-            self.TVtxBB.append( self.pca.transform(self.PtCloud[i]))
+            self.vects3D.append(self.pca[i].components_)
+            self.TVtxBB.append( self.pca[i].transform(self.PtCloud[i]))
             self.FindCoord3D(i)
-            self.SetTransfoMat3D(self.pca.components_,i)  
+            self.SetTransfoMat3D(self.pca[i].components_,i)  
 
             
     def FindCoord3D(self,i):       
@@ -556,7 +566,7 @@ class RGBD():
         #print self.coordsGbl[i]
         
         # transform back
-        self.coordsL.append( self.pca.inverse_transform(self.coordsGbl[i]))
+        self.coordsL.append( self.pca[i].inverse_transform(self.coordsGbl[i]))
         #print "coordsL[%d]" %(i)
         #print self.coordsL[i]
             

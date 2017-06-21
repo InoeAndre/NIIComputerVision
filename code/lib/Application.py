@@ -274,7 +274,7 @@ class Application(tk.Frame):
         # Loop for each image
         i = 10
         # Loop for each body part bp
-        bp = 0
+        bp = 2
         # Current Depth Image (i.e: i)
         start_time = time.time()
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
@@ -295,22 +295,27 @@ class Application(tk.Frame):
         elapsed_time = time.time() - start_time
         print "depth conversion: %f s" % (elapsed_time)
         
+
         
         # Compute the dimension of the body part to create the volume
         #Compute for axis X,Y and Z
         pt = self.RGBD.GetProjPts2D_optimize(self.RGBD.coordsL[bp],self.T_Pose)
         X = int(round(LA.norm(pt[1]-pt[0])))
         Y = int(round(LA.norm(pt[3]-pt[0])))
-        Z = 512#int(round(LA.norm(pt[4]-pt[0])))
+        Z = int(round(LA.norm(pt[4]-pt[0])))
         if Z ==0 : #cannot compute anything if Z ==0
             Z =1
         print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
+        VolSize = max(X,Y,Z)
+        X = VolSize
+        Y = VolSize
+        Z = VolSize
 
         # Create the volume
         mf = cl.mem_flags
-        self.TSDF.append(np.zeros((X,Y,Z), dtype = np.int16))
+        self.TSDF.append(np.zeros((VolSize,VolSize,VolSize), dtype = np.int16))
         self.TSDFGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF[0].nbytes))
-        self.Weight.append(np.zeros((X,Y,Z), dtype = np.int16))
+        self.Weight.append(np.zeros((VolSize,VolSize,VolSize), dtype = np.int16))
         self.WeightGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight[0].nbytes))
         
 
@@ -321,32 +326,19 @@ class Application(tk.Frame):
         mask3D = np.stack( (mask,mask,mask),axis=2)
         self.RGBD.Vtx *= mask3D
         self.RGBD.Nmls *= mask3D
+        print "max vtx : %lf" %(np.max(self.RGBD.Vtx))
+        print np.max(self.RGBD.Nmls)
+        print np.max(self.RGBD.depth_image)
+        
+        print sum(sum(mask))
+        
 
-        # get the transformation
-#==============================================================================
-#         mat_list = np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype = np.float32)
-#         mat_list = self.RGBD.pca.inverse_transform(mat_list)
-#         self.RGBD.pca.inverse_transform
-#         T_l2g = Id4
-#         ref_T_l2g = self.RGBD.ctr3D[bp]
-#         
-#         T_l2g[0:3,3] = ref_T_l2g
-#         T_l2g[0:3,0:3] = LA.inv(mat_list[0:3,0:3])
-#         #T_l2g = self.InvPose(T_l2g)
-#         
-#         Tl = Id4
-#         for k in range(4):
-#             for l in range(4):
-#                 Tl[k,l] = T_l2g[k,l]
-#         print "Tl"
-#         print Tl
-#         print Tl.shape
-#==============================================================================
         
         # Get the tranform from the local coordinates system to the global system
-        Tl = self.RGBD.TransfoBB[bp]#T_l2g#self.RGBD.TransfoBB[bp]#
-        Tl[0:3,0:3] = LA.inv(self.RGBD.TransfoBB[bp][0:3,0:3])#T_l2g#self.RGBD.TransfoBB[bp]#
-
+        Tg =self.RGBD.TransfoBB[bp]
+        Tl = self.InvPose(Tg)#self.RGBD.TransfoBB[bp-1]#T_l2g#
+        #Tl[0:3,0:3] = LA.inv(self.RGBD.TransfoBB[bp][0:3,0:3])#np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype = np.float32)#T_l2g#self.RGBD.TransfoBB[bp]#
+        #Tl[0:3,3] = [-0.5,0.0,0.0]
         # Compute the whole transform (local transform + image alignment transform)
         ref_pose = np.dot(self.T_Pose,Tl)
         for k in range(4):
@@ -356,7 +348,9 @@ class Application(tk.Frame):
         print self.T_Pose
         
         
-        param = np.array([X/2 , X /5.0, Y/2 , Y /5.0, -0.1, Z/5.0], dtype = np.float32)
+        
+        # compute TSDF indexes
+        param = np.array([VolSize/2 , VolSize /5.0, VolSize/2 , VolSize /5.0, -0.1, VolSize/5.0], dtype = np.float32)
         
         x = np.arange(X )
         y = np.arange(Y )
@@ -555,6 +549,8 @@ class Application(tk.Frame):
         rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         # projection of the current image/ Overlay
         rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
+        rendering = self.RGBD.Draw_optimize(rendering,Tl, 1, self.color_tag)
+        #rendering = self.RGBD.Draw_optimize(rendering,Tg, 1, self.color_tag)
 
 
         
@@ -564,7 +560,7 @@ class Application(tk.Frame):
         # 3D reconstruction of the whole image
         self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()        
-        rendering = self.DrawColors2D(self.RGBD,rendering,self.Pose)
+        #rendering = self.DrawColors2D(self.RGBD,rendering,self.Pose)
         img = Image.fromarray(rendering, 'RGB')
         self.imgTk=ImageTk.PhotoImage(img)
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
