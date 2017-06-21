@@ -170,6 +170,8 @@ class Application(tk.Frame):
         self.RGBD.GetNewSys(Pose,self.ctr2D,10)
         for i in range(len(self.ctr2D)):
             c = self.ctr2D[i]
+            #print 'c'
+            #print c
             pt0 = self.RGBD.drawNewSys[i][0]
             pt1 = self.RGBD.drawNewSys[i][1]
             pt2 = self.RGBD.drawNewSys[i][2]    
@@ -184,6 +186,7 @@ class Application(tk.Frame):
         for i in range(len(self.RGBD.coordsL)):
             self.OBBcoords2D.append(self.RGBD.GetProjPts2D_optimize(self.RGBD.coordsL[i],Pose))
             pt = self.OBBcoords2D[i]
+            #print 'self.OBBcoords2D[]'
             #print pt
             # create lines of the boxes
             for j in range(3):
@@ -271,7 +274,7 @@ class Application(tk.Frame):
         # Loop for each image
         i = 10
         # Loop for each body part bp
-        bp = 10
+        bp = 0
         # Current Depth Image (i.e: i)
         start_time = time.time()
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
@@ -292,16 +295,16 @@ class Application(tk.Frame):
         elapsed_time = time.time() - start_time
         print "depth conversion: %f s" % (elapsed_time)
         
+        
         # Compute the dimension of the body part to create the volume
         #Compute for axis X,Y and Z
         pt = self.RGBD.GetProjPts2D_optimize(self.RGBD.coordsL[bp],self.T_Pose)
         X = int(round(LA.norm(pt[1]-pt[0])))
         Y = int(round(LA.norm(pt[3]-pt[0])))
-        Z = int(round(LA.norm(pt[4]-pt[0])))
+        Z = 512#int(round(LA.norm(pt[4]-pt[0])))
+        if Z ==0 : #cannot compute anything if Z ==0
+            Z =1
         print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
-
-
-        
 
         # Create the volume
         mf = cl.mem_flags
@@ -313,24 +316,23 @@ class Application(tk.Frame):
 
         
         # extract one body part
-#==============================================================================
-#         self.RGBD.depth_image *= (self.RGBD.labels == bp) #+ (self.RGBD.labels == 10) # 9 = head; 10 = torso 
-#         mask = (self.RGBD.labels == bp)# + (self.RGBD.labels == 10)
-#         mask3D = np.stack( (mask,mask,mask),axis=2)
-#         self.RGBD.Vtx *= mask3D
-#         self.RGBD.Nmls *= mask3D
-#==============================================================================
+        self.RGBD.depth_image *= (self.RGBD.labels == bp) #+ (self.RGBD.labels == 10) # 9 = head; 10 = torso 
+        mask = (self.RGBD.labels == bp)# + (self.RGBD.labels == 10)
+        mask3D = np.stack( (mask,mask,mask),axis=2)
+        self.RGBD.Vtx *= mask3D
+        self.RGBD.Nmls *= mask3D
 
         # get the transformation
 #==============================================================================
 #         mat_list = np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype = np.float32)
 #         mat_list = self.RGBD.pca.inverse_transform(mat_list)
+#         self.RGBD.pca.inverse_transform
 #         T_l2g = Id4
 #         ref_T_l2g = self.RGBD.ctr3D[bp]
 #         
 #         T_l2g[0:3,3] = ref_T_l2g
-#         T_l2g[0:3,0:3] = mat_list[0:3,0:3]
-#         T_l2g = self.InvPose(T_l2g)
+#         T_l2g[0:3,0:3] = LA.inv(mat_list[0:3,0:3])
+#         #T_l2g = self.InvPose(T_l2g)
 #         
 #         Tl = Id4
 #         for k in range(4):
@@ -342,7 +344,8 @@ class Application(tk.Frame):
 #==============================================================================
         
         # Get the tranform from the local coordinates system to the global system
-        Tl = self.InvPose(self.RGBD.TransfoBB[bp])#T_l2g#self.RGBD.TransfoBB[bp]#
+        Tl = self.RGBD.TransfoBB[bp]#T_l2g#self.RGBD.TransfoBB[bp]#
+        Tl[0:3,0:3] = LA.inv(self.RGBD.TransfoBB[bp][0:3,0:3])#T_l2g#self.RGBD.TransfoBB[bp]#
 
         # Compute the whole transform (local transform + image alignment transform)
         ref_pose = np.dot(self.T_Pose,Tl)
@@ -397,17 +400,15 @@ class Application(tk.Frame):
 
 
         # TSDF of the body part
-#==============================================================================
-#         TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU[0],self.WeightGPU[0]) 
-#         TSDFManager.FuseRGBD_GPU(self.RGBD, self.T_Pose)   
-#         print TSDFManager.TSDF.shape
-#         print np.min(TSDFManager.TSDF)
-#         tsdfmax = np.max(TSDFManager.TSDF)
-#         print tsdfmax 
-#         tmp = ~(TSDFManager.TSDF ==tsdfmax)
-#         tmp = tmp*TSDFManager.TSDF
-#         print np.max(tmp)
-#==============================================================================
+        TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU[0],self.WeightGPU[0]) 
+        TSDFManager.FuseRGBD_GPU(self.RGBD, self.T_Pose)   
+        print TSDFManager.TSDF.shape
+        print np.min(TSDFManager.TSDF)
+        tsdfmax = np.max(TSDFManager.TSDF)
+        print tsdfmax 
+        tmp = ~(TSDFManager.TSDF ==tsdfmax)
+        tmp = tmp*TSDFManager.TSDF
+        print np.max(tmp)
 
       
         # Create Mesh
@@ -426,6 +427,7 @@ class Application(tk.Frame):
         # Transform the segmented part in the current image (alignment current image mesh)
         #Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)  
         # restart processing of each body part for the current image.
+        
         
         '''
         TEST 1 Visualize it 
@@ -448,11 +450,9 @@ class Application(tk.Frame):
         #self.DrawSkeleton2D(self.Pose)
         #self.DrawCenters2D(self.Pose)
         #self.DrawSys2D(self.Pose)
-        #self.DrawOBBox2D(self.Pose)
-        #self.DrawMesh2D(self.Pose,self.verts,self.faces)        
+        #self.DrawOBBox2D(self.Pose)     
         '''
-        
-        #
+
         
         '''
         # For global Fusion
@@ -551,5 +551,37 @@ class Application(tk.Frame):
 #==============================================================================
         '''
 
+        # projection in 2d space to draw it
+        rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
+        # projection of the current image/ Overlay
+        rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
+
+
+        
+
+        # Show figure and images
+            
+        # 3D reconstruction of the whole image
+        self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
+        self.canvas.pack()        
+        rendering = self.DrawColors2D(self.RGBD,rendering,self.Pose)
+        img = Image.fromarray(rendering, 'RGB')
+        self.imgTk=ImageTk.PhotoImage(img)
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+        #self.DrawSkeleton2D(self.Pose)
+        #self.DrawCenters2D(self.Pose)
+        #self.DrawSys2D(self.Pose)
+        #self.DrawOBBox2D(self.Pose)
+        #self.DrawMesh2D(self.Pose,self.verts,self.faces)
+        
+
+        #enable keyboard and mouse monitoring
+        self.root.bind("<Key>", self.key)
+        self.root.bind("<Button-1>", self.mouse_press)
+        self.root.bind("<ButtonRelease-1>", self.mouse_release)
+        self.root.bind("<B1-Motion>", self.mouse_motion)
+
+        self.w = tk.Scale(master, from_=1, to=10, orient=tk.HORIZONTAL)
+        self.w.pack()
 
 

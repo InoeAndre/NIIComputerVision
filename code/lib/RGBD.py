@@ -442,10 +442,12 @@ class RGBD():
         e1 = evecs[0]
         e2 = evecs[1]
         e3 = evecs[2]
-        print "e1,e2,e3"
-        print e1
-        print e2
-        print e3
+#==============================================================================
+#         print "e1,e2,e3"
+#         print e1
+#         print e2
+#         print e3
+#==============================================================================
         e1b = np.array( [e1[0],e1[1],e1[2],0])
         e2b = np.array( [e2[0],e2[1],e2[2],0])
         e3b = np.array( [e3[0],e3[1],e3[2],0])
@@ -523,7 +525,7 @@ class RGBD():
             self.vects3D.append(self.pca.components_)
             self.TVtxBB.append( self.pca.transform(self.PtCloud[i]))
             self.FindCoord3D(i)
-            self.SetTransfoMat3D(self.pca.components_,i)#self.pca.components_,i)       
+            self.SetTransfoMat3D(self.pca.components_,i)  
 
             
     def FindCoord3D(self,i):       
