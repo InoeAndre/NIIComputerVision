@@ -438,7 +438,7 @@ class RGBD():
         
     def SetTransfoMat3D(self,evecs,i):       
         '''Generate the transformation matrix '''
-        ctr = self.coordsGbl[i][0]
+        ctr = self.coordsGbl[i][0]#self.ctr3D[i]#[0.,0.,0.]#
         e1 = evecs[0]
         e2 = evecs[1]
         e3 = evecs[2]
@@ -447,6 +447,10 @@ class RGBD():
 #         print e1
 #         print e2
 #         print e3
+#         scalProd = sum(e1*e2)
+#         scalProd1 = sum(e1*e3)
+#         scalProd2 = sum(e2*e3)
+#         print "scalProd : %f %f %f" % (scalProd,scalProd1,scalProd2)
 #==============================================================================
         e1b = np.array( [e1[0],e1[1],e1[2],0])
         e2b = np.array( [e2[0],e2[1],e2[2],0])
@@ -561,14 +565,14 @@ class RGBD():
         #print "xymz"
         #print xymz
         # New coordinates and new images
-        self.coordsGbl.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
-        #print "coordsGbl[%d]" %(i)
-        #print self.coordsGbl[i]
-        
-        # transform back
-        self.coordsL.append( self.pca[i].inverse_transform(self.coordsGbl[i]))
+        self.coordsL.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
         #print "coordsL[%d]" %(i)
         #print self.coordsL[i]
+        
+        # transform back
+        self.coordsGbl.append( self.pca[i].inverse_transform(self.coordsL[i]))
+        #print "coordsGbl[%d]" %(i)
+        #print self.coordsGbl[i]
             
 
     def GetProjPts2D(self, vects3D, Pose, s=1) :  
