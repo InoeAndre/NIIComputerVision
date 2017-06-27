@@ -185,12 +185,10 @@ class Application(tk.Frame):
         self.OBBcoords2D.append([0.,0.,0.])
         # for each body part
         for i in range(1,len(self.RGBD.coordsGbl)):
-            print len(self.RGBD.coordsGbl[i])
-            print len(self.RGBD.coordsGbl[i])
             self.OBBcoords2D.append(self.RGBD.GetProjPts2D_optimize(self.RGBD.coordsGbl[i],Pose))
             pt = self.OBBcoords2D[i]
-            print 'self.OBBcoords2D[]'
-            print pt.shape
+            #print 'self.OBBcoords2D[]'
+            #print pt.shape
             # create lines of the boxes
             for j in range(3):
                 self.canvas.create_line(pt[j][0],pt[j][1],pt[j+1][0],pt[j+1][1],fill="red",width =2)
@@ -252,7 +250,53 @@ class Application(tk.Frame):
         PoseInv[0:3,3] = -np.dot(PoseInv[0:3,0:3],Pose[0:3,3])
         PoseInv[3,3] = 1.0
         return PoseInv
-      
+    
+    
+    def ShiftCenter(self,bp):
+        '''Compute the shift according to the body part''' 
+        if bp == 0:
+            dx = 0
+            dy = 0
+        elif bp == 1 :
+            dx = 0
+            dy = 0
+        elif bp == 2 :
+            dx = 0.12
+            dy = -0.05          
+        elif bp == 3 or bp == 11 :
+            dx = 0.0
+            dy = 0.0   
+        elif bp == 4 :
+            dx = -0.1
+            dy = -0.1 
+        elif bp == 5 :
+            dx = 0
+            dy = 0   
+        elif bp == 6 :
+            dx = 0.01
+            dy = 0.1   
+        elif bp == 7 :
+            dx = 0
+            dy = 0   
+        elif bp == 8 :
+            dx = -0.01
+            dy = 0.05   
+        elif bp == 9 :
+            dx = +0.3
+            dy = -0.2   
+        elif bp == 10 :
+            dx = -0.05
+            dy = -0.2   
+        elif bp == 12 :
+            dx = -0.01
+            dy = +0.05   
+        elif bp == 13 :
+            dx = 0
+            dy = 0   
+        elif bp == 14 :
+            dx = -0.05
+            dy = -0.05               
+        return [dx,dy]      
 
     ## Constructor function
     def __init__(self, path,  GPUManager, master=None):
@@ -336,6 +380,8 @@ class Application(tk.Frame):
         ptNmls = []
         ptClouds.append(np.zeros((1,3),np.float32))
         ptNmls.append(np.ones((1,3),np.float32))
+        param = []
+        param.append(np.array([0. , 0., 0. , 0., 0., 0.], dtype = np.float32))
         
             
         # Loop for each body part bp
@@ -385,10 +431,21 @@ class Application(tk.Frame):
             print nbPts
       
 
+            # initialize parameters     
+            param.append(np.array([X/2 , 110.0, Y/2 , 100.0, -0.1, 100.0], dtype = np.float32)) 
+            # 100.0 = Y / (Y/100.0)
             
             # Get the tranform from the local coordinates system to the global system Tl??
             Tglo = self.RGBD.TransfoBB[bp]
             Tg.append(Tglo)
+            # define center
+            orig = 1 
+            [dx,dy] = self.ShiftCenter(bp)
+            Tg[bp][0,3] = self.RGBD.coordsGbl[bp][orig][0] + dx
+            Tg[bp][1,3] = self.RGBD.coordsGbl[bp][orig][1] + dy
+            Tg[bp][2,3] = self.RGBD.coordsGbl[bp][orig][2] 
+            
+            
             Tlcl = self.InvPose(Tg[bp])
             Tl.append(Tlcl)
             #Tl[0:3,0:3] = LA.inv(self.RGBD.TransfoBB[bp][0:3,0:3])#np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype = np.float32)#T_l2g#self.RGBD.TransfoBB[bp]#
@@ -413,22 +470,29 @@ class Application(tk.Frame):
 
             #Points of clouds in the TSDF local coordinates system
     
-            #rescale the points of clouds       
-            
-            # compute TSDF indexes
-            #param = np.array([X/2 , X /5.0, Y/2 , Y /5.0, -0.1, Z/5.0], dtype = np.float32)
-            
+
+
             # create points of clouds
             ptClouds.append(np.zeros((X*Y*Z,3),np.float32))
             ptNmls.append(np.ones((X*Y*Z,3),np.float32))
+            # For each point
             for i in range(X):
                 for j in range(Y):
-                    for k in range(Z):
-                        d = k
-                        if d > 0.0:
-                            x = d*(j - self.intrinsic[0,2])/self.intrinsic[0,0]
-                            y = d*(i - self.intrinsic[1,2])/self.intrinsic[1,1]
-                            ptClouds[bp][i+j*X+k*X*Y] = (x, y, d)
+                    #rescale the points of clouds  
+                    x = (float(j) - param[bp][0])/param[bp][1]
+                    y = (float(i) - param[bp][2])/param[bp][3]
+                    # transform in the global system
+                    x_T =  Tg[bp][0,0]*x + Tg[bp][0,1]*y + Tg[bp][0,3]
+                    y_T =  Tg[bp][1,0]*x + Tg[bp][1,1]*y + Tg[bp][1,3]
+                    z_T =  Tg[bp][2,0]*x + Tg[bp][2,1]*y + Tg[bp][2,3]                    
+                    for k in range(Z):     
+                        z = (float(k) - param[bp][4])/param[bp][5]
+                        pt_Tx = x_T + Tg[bp][0,2]*z 
+                        pt_Ty = y_T + Tg[bp][1,2]*z
+                        pt_Tz = z_T + Tg[bp][2,2]*z
+                        # add the point to the list
+                        idx =i+j*X+k*X*Y
+                        ptClouds[bp][idx] = (pt_Tx, pt_Ty, pt_Tz)
             
                         
             
@@ -592,21 +656,39 @@ class Application(tk.Frame):
         Vertices2 = Vertices2.reshape(Vertices2.shape[0]*Vertices2.shape[1],Vertices2.shape[2])
         Normales2 = Normales2.reshape(Normales2.shape[0]*Normales2.shape[1],Normales2.shape[2])
         
-        Vertices3 = self.RGBD.pca[1].inverse_transform(ptClouds[1])
-        Normales3 = self.RGBD.pca[1].inverse_transform(ptNmls[1])
+        #Vertices3 = self.RGBD.pca[1].inverse_transform(ptClouds[1])
+        #Normales3 = self.RGBD.pca[1].inverse_transform(ptNmls[1])
         
-        
+        #bp = 10
+        up = 0
         #Vertices2 = TVtxBB
         # projection in 2d space to draw it
         rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         # projection of the current image/ Overlay
         #rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
-        rendering = self.RGBD.DrawMesh(rendering,Vertices3,Normales3,Tg[0], 1, self.color_tag)
+        bp = 1 + up
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
+        bp = 3 + up
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
+        bp = 5 + up
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
+        bp = 7 + up
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
+#==============================================================================
+#         bp = 9 + up
+#         rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
+#==============================================================================
+        bp = 11 + up
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
+        bp = 13 + up
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
         #rendering = self.RGBD.Draw_optimize(rendering,Tl, 1, self.color_tag)
-        print "Vertices3"
-        print Vertices3
-        print "Normales3"
-        print Normales3       
+#==============================================================================
+#         print "Vertices3"
+#         print Vertices3
+#         print "Normales3"
+#         print Normales3       
+#==============================================================================
 
         
 
@@ -625,6 +707,8 @@ class Application(tk.Frame):
         self.DrawOBBox2D(self.Pose)
         #self.DrawOBBox2DLocal(self.Pose)
         #self.DrawMesh2D(self.Pose,self.verts,self.faces)
+        pt = self.RGBD.GetProjPts2D_optimize(self.RGBD.coordsGbl[bp],Id4)
+        self.DrawPoint2D(pt[1],2,"yellow")
         
 
         #enable keyboard and mouse monitoring
