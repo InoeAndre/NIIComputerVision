@@ -10,7 +10,17 @@ import imp
 import numpy as np
 from numpy import linalg as LA
 from math import sin, cos, acos
+import pyopencl as cl
+import pyopencl.array
+from pyopencl.elementwise import ElementwiseKernel
+from pyopencl.reduction import ReductionKernel
+from pyopencl.array import dot
+import time
+
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
+KernelsOpenCL = imp.load_source('RGBDKernels', './lib/TrackerKernels.py')
+
+mf = cl.mem_flags
 
 def in_mat_zero2one(mat):
     """This fonction replace in the matrix all the 0 to 1"""
@@ -97,112 +107,87 @@ def Logarithm(Mat):
 class Tracker():
 
     # Constructor
-    def __init__(self, thresh_dist, thresh_norm, lvl, max_iter, thresh_conv):
+    def __init__(self, GPUManager, Size, Intrinsic, thresh_dist, thresh_norm, lvl, max_iter, thresh_conv):
         self.thresh_dist = thresh_dist
         self.thresh_norm = thresh_norm
         self.lvl = lvl
         self.max_iter = max_iter
         self.thresh_conv = thresh_conv
+        self.Size = Size
+        self.intrinsic = Intrinsic
+        self.GPUManager = GPUManager
+        
+        self.programs = {}
+        self.programs['My_dot'] = cl.Program(self.GPUManager.context, KernelsOpenCL.KERNEL_DOT).build()
+        
+        self.GICP = ElementwiseKernel(self.GPUManager.context, 
+                                               """float *vmap, float *nmap, float *vmap2, float *nmap2, float *Buffer_1, 
+                                               float *Buffer_2, float *Buffer_3, float *Buffer_4, float *Buffer_5, 
+                                               float *Buffer_6, float *Buffer_B, float *Pose, float *Intrinsic, 
+                                               float thresh_dis, float thresh_norm, int nbLines, int nbColumns""",
+                                               KernelsOpenCL.Kernel_GICP,
+                                               "GICP")
+        
+        self.my_dot = ReductionKernel(self.GPUManager.context, np.float32, neutral="0",
+                                reduce_expr="a+b", map_expr="x[i]*y[i]",
+                                arguments="__global float *x, __global float *y")
+        
+        intrinsic_curr = np.array([self.intrinsic[0,0], self.intrinsic[1,1], self.intrinsic[0,2], self.intrinsic[1,2]])
+        self.intrinsic_d = cl.array.to_device(self.GPUManager.queue, intrinsic_curr)
+        self.Pose_d = cl.array.zeros(self.GPUManager.queue, (4,4), np.float32)
+        
+        self.Buffer_d_1 = cl.array.zeros(self.GPUManager.queue, (self.Size[0]*self.Size[1], 1), dtype = np.float32)
+        self.Buffer_d_2 = cl.array.zeros(self.GPUManager.queue, (self.Size[0]*self.Size[1], 1), dtype = np.float32)
+        self.Buffer_d_3 = cl.array.zeros(self.GPUManager.queue, (self.Size[0]*self.Size[1], 1), dtype = np.float32)
+        self.Buffer_d_4 = cl.array.zeros(self.GPUManager.queue, (self.Size[0]*self.Size[1], 1), dtype = np.float32)
+        self.Buffer_d_5 = cl.array.zeros(self.GPUManager.queue, (self.Size[0]*self.Size[1], 1), dtype = np.float32)
+        self.Buffer_d_6 = cl.array.zeros(self.GPUManager.queue, (self.Size[0]*self.Size[1], 1), dtype = np.float32)
+        self.Buffer_d = [self.Buffer_d_1, self.Buffer_d_2, self.Buffer_d_3, self.Buffer_d_4, self.Buffer_d_5, self.Buffer_d_6]
+        self.Buffer_B_d = cl.array.zeros(self.GPUManager.queue, (self.Size[0]*self.Size[1], 1), dtype = np.float32)
         
         
     """
     Function that estimate the relative rigid transformation between two input RGB-D images
     """
-    def RegisterRGBD(self, Image1, Image2):
-        
+    def RegisterRGBD_GPU(self, Image1, Image2):
         res = np.identity(4)
+        b = np.zeros(6, np.float32)
+        A = np.zeros((6,6), np.float32)
         
-        line_index = 0
-        column_index = 0
-        pix = np.array([0., 0., 1.])
-        
-        pt = np.array([0., 0., 0., 1.])
-        nmle = np.array([0., 0., 0.])
         for l in range(1,self.lvl+1):
             for it in range(self.max_iter[l-1]):
-                nbMatches = 0
-                row = np.array([0.,0.,0.,0.,0.,0.,0.])
-                Mat = np.zeros(27, np.float32)
-                b = np.zeros(6, np.float32)
-                A = np.zeros((6,6), np.float32)
+                self.Pose_d.set(res.astype(np.float32))
                 
-                # For each pixel find correspondinng point by projection
-                for i in range(Image1.Size[0]/l): # line index (i.e. vertical y axis)
-                    for j in range(Image1.Size[1]/l):
-                        # Transform current 3D position and normal with current transformation
-                        pt[0:3] = Image1.Vtx[i*l,j*l][:]
-                        if (LA.norm(pt[0:3]) < 0.1):
-                            continue
-                        pt = np.dot(res, pt)
-                        nmle[0:3] = Image1.Nmls[i*l,j*l][0:3]
-                        if (LA.norm(nmle) == 0.):
-                            continue
-                        nmle = np.dot(res[0:3,0:3], nmle)
-                        
-                        # Project onto Image2
-                        pix[0] = pt[0]/pt[2]
-                        pix[1] = pt[1]/pt[2]
-                        pix = np.dot(Image2.intrinsic, pix)
-                        column_index = int(round(pix[0]))
-                        line_index = int(round(pix[1]))
-                        
-                        if (column_index < 0 or column_index > Image2.Size[1]-1 or line_index < 0 or line_index > Image2.Size[0]-1):
-                            continue
-                        
-                        # Compute distance betwn matches and btwn normals
-                        match_vtx = Image2.Vtx[line_index, column_index]
-                        distance = LA.norm(pt[0:3] - match_vtx)
-                        if (distance > self.thresh_dist):
-                            continue
-                        
-                        match_nmle = Image2.Nmls[line_index, column_index]
-                        distance = LA.norm(nmle - match_nmle)
-                        if (distance > self.thresh_norm):
-                            continue
-                            
-                        w = 1.0
-                        # Complete Jacobian matrix
-                        row[0] = w*nmle[0]
-                        row[1] = w*nmle[1]
-                        row[2] = w*nmle[2]
-                        row[3] = w*(-match_vtx[2]*nmle[1] + match_vtx[1]*nmle[2])
-                        row[4] = w*(match_vtx[2]*nmle[0] - match_vtx[0]*nmle[2])
-                        row[5] = w*(-match_vtx[1]*nmle[0] + match_vtx[0]*nmle[1])
-                        row[6] = w*(nmle[0]*(match_vtx[0] - pt[0]) + nmle[1]*(match_vtx[1] - pt[1]) + nmle[2]*(match_vtx[2] - pt[2]))
-                                    
-                        nbMatches+=1
-                            
-                        shift = 0
-                        for k in range(6):
-                            for k2 in range(k,7):
-                                Mat[shift] = Mat[shift] + row[k]*row[k2]
-                                shift+=1
-               
-                print ("nbMatches: ", nbMatches)             
-                shift = 0
-                for k in range(6):
-                    for k2 in range(k,7):
-                        val = Mat[shift]
-                        shift +=1
-                        if (k2 == 6):
-                            b[k] = val
+                self.GICP(Image1.vmap_d, Image1.nmap_d, Image2.vmap_d, Image2.nmap_d,
+                          self.Buffer_d_1, self.Buffer_d_2, self.Buffer_d_3, self.Buffer_d_4, self.Buffer_d_5,
+                          self.Buffer_d_6, self.Buffer_B_d, self.Pose_d, self.intrinsic_d,
+                          self.thresh_dist, self.thresh_norm, self.Size[0], self.Size[1])
+                
+                for i in range(6):
+                    for j in range(i,7):
+                        if (j == 6):
+                            value = self.my_dot(self.Buffer_d[i],self.Buffer_B_d).get()
+                            value = value.reshape((1,1))
+                            b[i] = value[0,0]
                         else:
-                            A[k,k2] = A[k2,k] = val
+                            value = self.my_dot(self.Buffer_d[i],self.Buffer_d[j]).get()
+                            value = value.reshape((1,1))
+                            A[i,j] = A[j,i] = value[0,0]
                 
                 det = LA.det(A)
                 if (det < 1.0e-10):
                     print "determinant null"
                     break
-        
-        
+           
                 delta_qsi = -LA.tensorsolve(A, b)
                 delta_transfo = LA.inv(Exponential(delta_qsi))
                 
                 res = np.dot(delta_transfo, res)
                 
-                print res
+        print res
+        
                 
-    def RegisterRGBD_optimize(self, Image1, Image2):
+    def RegisterRGBD_CPU(self, Image1, Image2):
         
         res = np.identity(4)
         

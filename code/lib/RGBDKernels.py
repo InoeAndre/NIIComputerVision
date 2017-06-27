@@ -98,12 +98,17 @@ if (i%3 == 0) {
         float div_f = (float)(v1.z != 0.0f) + (float)(v2.z != 0.0f) +
                         (float)(v3.z != 0.0f) +(float)(v4.z != 0.0f) ;
         
-        float3 nmle = (nmle1 + nmle2 + nmle3 + nmle4)/div_f;
-        nmle = normalize(nmle);
-        
-        nmap[i] = nmle.x;
-        nmap[i+1] = nmle.y;
-        nmap[i+2] = nmle.z;
+        if (div_f > 0.0f) {
+            float3 nmle = (nmle1 + nmle2 + nmle3 + nmle4)/div_f;
+            nmle = normalize(nmle);
+            nmap[i] = nmle.x;
+            nmap[i+1] = nmle.y;
+            nmap[i+2] = nmle.z;
+        } else {
+            nmap[i] = 0.0f;
+            nmap[i+1] = 0.0f;
+            nmap[i+2] = 0.0f;
+        }
     }
 }"""
 
@@ -151,4 +156,35 @@ if (i%3 == 0) {
         }
     }
 }
+"""
+
+# Input:
+#   vmap = input vertex image
+#   nmap = output normal image
+#   Pose = extrinsic matrix of the current camera
+# Output:
+#   Transforms the vertex image 
+Kernel_Transform = """
+// i is the global index in the res image (of size(n*m*3))
+if (i%3 == 0) {
+    float3 pt = (float3) {vmap[i], vmap[i+1], vmap[i+2]};
+
+    if (pt.z != 0.0f) {
+        float3 nmle = (float3) {nmap[i], nmap[i+1], nmap[i+2]};
+        
+        float3 pt_T = (float3) {pt.x*Pose[0] + pt.y*Pose[1] + pt.z*Pose[2] + Pose[3],
+                                pt.x*Pose[4] + pt.y*Pose[5] + pt.z*Pose[6] + Pose[7], 
+                                pt.x*Pose[8] + pt.y*Pose[9] + pt.z*Pose[10] + Pose[11]};
+        float3 nmle_T = (float3) {nmle.x*Pose[0] + nmle.y*Pose[1] + nmle.z*Pose[2], 
+                                  nmle.x*Pose[4] + nmle.y*Pose[5] + nmle.z*Pose[6],
+                                  nmle.x*Pose[8] + nmle.y*Pose[9] + nmle.z*Pose[10]};
+        
+        vmap[i] = pt_T.x;
+        vmap[i+1] = pt_T.y;
+        vmap[i+2] = pt_T.z;
+        nmap[i] = nmle_T.x;
+        nmap[i+1] = nmle_T.y;
+        nmap[i+2] = nmle_T.z;
+    }
+}        
 """

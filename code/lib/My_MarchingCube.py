@@ -10,6 +10,8 @@ Created on Mon May  1 13:38:34 2017
 import imp
 import numpy as np
 import pyopencl as cl
+import pyopencl.array
+from pyopencl.elementwise import ElementwiseKernel
 import math
 
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
@@ -28,8 +30,29 @@ class My_MarchingCube():
         
         self.GPUManager = GPUManager
         
-        self.GPUManager.programs['MarchingCubesIndexing'] = cl.Program(self.GPUManager.context, KernelsOpenCL.Kernel_MarchingCubeIndexing).build()
-        self.GPUManager.programs['MarchingCubes'] = cl.Program(self.GPUManager.context, KernelsOpenCL.Kernel_MarchingCube).build()
+        self.MC_Indexing = ElementwiseKernel(self.GPUManager.context, 
+                                               """short *TSDF, short *IndexVal, short *Offset, int *faces_counter,
+                                               float iso, int dim_x, int dim_y, int dim_z""",
+                                               KernelsOpenCL.Kernel_MarchingCubeIndexing,
+                                               "MC_Indexing", 
+                                               preamble = KernelsOpenCL.Preambule_MCIndexing)
+        
+        self.MC = ElementwiseKernel(self.GPUManager.context, 
+                                                """short *TSDF, short *Offset, short *IndexVal, 
+                                                float *Vertices, int *Faces, float *Param, 
+                                                int dim_x, int dim_y, int dim_z""",
+                                               KernelsOpenCL.Kernel_MarchingCube,
+                                               "MC", 
+                                               preamble = KernelsOpenCL.Preambule_MC)
+        
+        self.Offset_d = cl.array.zeros(self.GPUManager.queue, self.Size, np.int16)
+        self.Index_d = cl.array.zeros(self.GPUManager.queue, self.Size, np.int16)
+        self.FaceCounter_d = cl.array.zeros(self.GPUManager.queue, 1, np.int32)
+        self.Param_d = cl.array.to_device(self.GPUManager.queue, self.res)
+        
+        
+        self.GPUManager.programs['MarchingCubesIndexing'] = cl.Program(self.GPUManager.context, KernelsOpenCL.Kernel_G_MarchingCubeIndexing).build()
+        self.GPUManager.programs['MarchingCubes'] = cl.Program(self.GPUManager.context, KernelsOpenCL.Kernel_G_MarchingCube).build()
         self.GPUManager.programs['MergeVtx'] = cl.Program(self.GPUManager.context, KernelsOpenCL.Kernel_MergeVtx).build()
         self.GPUManager.programs['SimplifyMesh'] = cl.Program(self.GPUManager.context, KernelsOpenCL.Kernel_SimplifyMesh).build()
         self.GPUManager.programs['InitArray'] = cl.Program(self.GPUManager.context, KernelsOpenCL.Kernel_InitArray).build()
@@ -58,23 +81,37 @@ class My_MarchingCube():
     def runGPU(self, VolGPU):
         
         self.nb_faces[0] = 0
+        self.FaceCounter_d.set(self.nb_faces)
         
-        self.GPUManager.programs['MarchingCubesIndexing'].MarchingCubesIndexing(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
-                                VolGPU, self.OffsetGPU, self.IndexGPU, self.Size_Volume, np.int32(self.iso), self.FaceCounterGPU)
+        self.MC_Indexing(VolGPU, self.Index_d, self.Offset_d, self.FaceCounter_d, self.iso, self.Size[0], self.Size[1], self.Size[2])
+        self.nb_faces = self.FaceCounter_d.get()
+        self.nb_vertices[0] = 3*self.nb_faces[0]
         
-        cl.enqueue_read_buffer(self.GPUManager.queue, self.FaceCounterGPU, self.nb_faces).wait()
         print "nb Faces: ", self.nb_faces[0]
         
-        self.FacesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.nb_faces[0]*3*4) #int32 = 4 bytes
-        self.VerticesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.nb_faces[0]*9*4)
+        self.FacesGPU = cl.array.zeros(self.GPUManager.queue, (self.nb_faces[0], 3), np.int32) #cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.nb_faces[0]*3*4) #int32 = 4 bytes
+        self.VerticesGPU = cl.array.zeros(self.GPUManager.queue, (self.nb_vertices[0], 3), np.float32) #cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.nb_faces[0]*9*4)
         
-        self.GPUManager.programs['MarchingCubes'].MarchingCubes(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
-                                VolGPU, self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.ParamGPU, self.Size_Volume)
+        self.MC(VolGPU, self.Offset_d, self.Index_d, self.VerticesGPU, self.FacesGPU, self.Param_d, self.Size[0], self.Size[1], self.Size[2])
+       
+        self.Vertices = self.VerticesGPU.get()
+        self.Normales = np.zeros((self.nb_vertices[0], 3), dtype = np.float32)
+        self.Faces = self.FacesGPU.get()
+        
+        #self.nb_faces[0] = 0
+        
+        #self.GPUManager.programs['MarchingCubesIndexing'].MarchingCubesIndexing(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
+        #                        VolGPU.data, self.OffsetGPU, self.IndexGPU, self.Size_Volume, np.int32(self.iso), self.FaceCounterGPU)
+        
+        #cl.enqueue_read_buffer(self.GPUManager.queue, self.FaceCounterGPU, self.nb_faces).wait()
+        #print "nb Faces: ", self.nb_faces[0]
+        
+        #self.FacesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.nb_faces[0]*3*4) #int32 = 4 bytes
+        #self.VerticesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.nb_faces[0]*9*4)
+        
+        #self.GPUManager.programs['MarchingCubes'].MarchingCubes(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
+        #                        VolGPU, self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.ParamGPU, self.Size_Volume)
 
-        #self.Vertices = np.zeros((3*self.nb_faces[0], 3), dtype = np.float32)
-        #self.Faces = np.zeros((self.nb_faces[0], 3), dtype = np.int32)
-        #cl.enqueue_read_buffer(self.GPUManager.queue, self.VerticesGPU, self.Vertices)
-        #cl.enqueue_read_buffer(self.GPUManager.queue, self.FacesGPU, self.Faces).wait()
     '''
         Merge duplicated vertices
     '''

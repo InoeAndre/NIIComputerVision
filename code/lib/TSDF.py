@@ -10,9 +10,12 @@ import imp
 import numpy as np
 from numpy import linalg as LA
 import pyopencl as cl
+import pyopencl.array
+from pyopencl.elementwise import ElementwiseKernel
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
+KernelsOpenCL = imp.load_source('TSDFKernel', './lib/TSDFKernel.py')
 
 def sign(x):
     if (x < 0):
@@ -32,7 +35,7 @@ class TSDFManager():
     # Constructor
     def __init__(self, Size, Image, GPUManager):
         self.Size = Size
-        self.TSDF = np.zeros(self.Size, dtype = np.float32)
+        #self.TSDF = np.zeros(self.Size, dtype = np.float32)
         self.c_x = self.Size[0]/2
         self.c_y = self.Size[1]/2
         self.c_z = -0.1
@@ -40,20 +43,38 @@ class TSDFManager():
         self.dim_y = self.Size[1]/5.0
         self.dim_z = self.Size[2]/5.0
         self.res = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32)
+        self.nu = 0.5
         
         self.GPUManager = GPUManager
-        self.Size_Volume = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
-                               hostbuf = np.array([self.Size[0], self.Size[1], self.Size[2]], dtype = np.int32))
-        self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
-        self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
-                               hostbuf = self.res)
+        
+        self.TSDF_Update_GPU = ElementwiseKernel(self.GPUManager.context, 
+                                               """short *TSDF, float *depth, float *Pose, float *Param, 
+                                               float *Intrinsic, float nu, int dim_x, int dim_y, int dim_z, 
+                                               int nbLines, int nbColumns""",
+                                               KernelsOpenCL.Kernel_TSDF,
+                                               "TSDF_Update_GPU")
+        
+        
+        self.TSDF_d = cl.array.zeros(self.GPUManager.queue, self.Size, np.int16)
+        self.Param_d = cl.array.to_device(self.GPUManager.queue, self.res)
+        self.Pose_d = cl.array.zeros(self.GPUManager.queue, (4,4), np.float32)
+        intrinsic_curr = np.array([Image.intrinsic[0,0], Image.intrinsic[1,1], Image.intrinsic[0,2], Image.intrinsic[1,2]])
+        self.intrinsic_d = cl.array.to_device(self.GPUManager.queue, intrinsic_curr)
+        
+        
+        
+        #self.Size_Volume = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
+        #                       hostbuf = np.array([self.Size[0], self.Size[1], self.Size[2]], dtype = np.int32))
+        #self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
+        #self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
+        #                       hostbuf = self.res)
         
         #fmt = cl.ImageFormat(cl.channel_order.RGB, cl.channel_type.FLOAT)
         #self.VMapGPU = cl.Image(self.GPUManager.context, mf.READ_ONLY, fmt, shape = (Image.Size[1], Image.Size[0]))
         #cl.enqueue_copy(self.GPUManager.queue, self.VMapGPU, Image.Vtx, origin = (0,0), region = (Image.Size[1], Image.Size[0]))
-        self.DepthGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Image.depth_image.nbytes)
-        self.Calib_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf = Image.intrinsic)
-        self.Pose_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, 64)
+        #self.DepthGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Image.depth_image.nbytes)
+        #self.Calib_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf = Image.intrinsic)
+        #self.Pose_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, 64)
         
     
 #######
@@ -62,14 +83,21 @@ class TSDFManager():
 
     # Fuse on the GPU
     def FuseRGBD_GPU(self, Image, Pose):
-        Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
+        Transform = np.identity(4)
+        Transform[0:3,0:3] = LA.inv(Pose[0:3,0:3])
+        Transform[0:3, 3] = -np.dot(Transform[0:3,0:3],Pose[0:3,3])
+        self.Pose_d.set(Transform.astype(np.float32))
         
-        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
-        cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
+        self.TSDF_Update_GPU(self.TSDF_d, Image.depth_d, self.Pose_d, self.Param_d, self.intrinsic_d, self.nu, self.Size[0], self.Size[1], self.Size[2], Image.Size[0], Image.Size[1])
         
-        self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
-                                self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-                                np.int32(Image.Size[0]), np.int32(Image.Size[1]))
+        #Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
+        
+        #cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
+        #cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
+        
+        #self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
+        #                        self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
+        #                        np.int32(Image.Size[0]), np.int32(Image.Size[1]))
         
         #cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
         
@@ -90,47 +118,9 @@ class TSDFManager():
 #####
 #End GPU code
 #####
-    
+   
     # Fuse a new RGBD image into the TSDF volume
     def FuseRGBD(self, Image, Pose, s = 1):
-        Transform = LA.inv(Pose)
-        
-        nu = 0.1
-        line_index = 0
-        column_index = 0
-        pix = np.array([0., 0., 1.])
-        pt = np.array([0., 0., 0., 1.])
-        for x in range(self.Size[0]/s): # line index (i.e. vertical y axis)
-            pt[0] = (x-self.c_x)/self.dim_x
-            print x
-            for y in range(self.Size[1]/s):
-                pt[1] = (y-self.c_y)/self.dim_y
-                for z in range(self.Size[2]/s):
-                    # Project each voxel into  the Image
-                    pt[2] = (z-self.c_z)/self.dim_z
-                    pt = np.dot(Transform, pt)
-                    
-                    # Project onto Image
-                    pix[0] = pt[0]/pt[2]
-                    pix[1] = pt[1]/pt[2]
-                    pix = np.dot(Image.intrinsic, pix)
-                    column_index = int(round(pix[0]))
-                    line_index = int(round(pix[1]))
-                    
-                    if (column_index < 0 or column_index > Image.Size[1]-1 or line_index < 0 or line_index > Image.Size[0]-1):
-                        continue
-                        
-                    depth = Image.Vtx[line_index][column_index][2]
-                    
-                    # Listing 2
-                    dist = pt[2] - depth
-                    if (dist > 0):
-                        self.TSDF[x][y][z] = min(1.0, dist/nu)
-                    else:
-                        self.TSDF[x][y][z] = max(-1.0, dist/nu)
-                        
-    # Fuse a new RGBD image into the TSDF volume
-    def FuseRGBD_optimized(self, Image, Pose, s = 1):
         Transform = LA.inv(Pose)
         
         nu = 0.1

@@ -230,7 +230,7 @@ class Application(tk.Frame):
         self.RGBD.NMap_GPU()  
         elapsed_time2 = time.time() - start_time
         print "NMap_GPU: %f" % (elapsed_time2)
-        self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., -0.1], [0., 0., 0., 1.]], dtype = np.float32)
+        self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         start_time2 = time.time()
         rendering = self.RGBD.Draw_GPU(self.Pose, 1, self.color_tag).astype(np.uint8)
         #self.RGBD.myPCA()
@@ -256,12 +256,12 @@ class Application(tk.Frame):
         Test Register
         '''
         '''
-        ImageTest = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 10000.0)
-        ImageTest.LoadMat(self.lImages,self.pos2d,self.connection)
-        ImageTest.ReadFromMat()
-        ImageTest.BilateralFilter(-1, 0.02, 3)
-        ImageTest.Vmap_optimize()
-        ImageTest.NMap_optimize()
+        ImageTest = RGBD.RGBD(self.GPUManager, self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, 1000.0)
+        ImageTest.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )
+        ImageTest.ReadFromMat(self.Index)
+        ImageTest.BilateralFilter_GPU(2, 0.02, 3)
+        ImageTest.Vmap_GPU()
+        ImageTest.NMap_GPU()
         test_v = np.array([0.01, 0.02,0.015, 0.01, 0.02, 0.03]) #[random.random()/10 for _ in range(6)])
         A = TrackManager.Exponential(test_v)
         R = LA.inv(A[0:3,0:3])
@@ -269,10 +269,15 @@ class Application(tk.Frame):
         print A
         print R
         print tra
-        ImageTest.Transform(A)
+        ImageTest.Transform_GPU(A)
         
-        Tracker = TrackManager.Tracker(0.01, 0.04, 1, [10], 0.001)
-        Tracker.RegisterRGBD_optimize(ImageTest, self.RGBD)
+        Tracker = TrackManager.Tracker(self.GPUManager, self.RGBD.Size, self.intrinsic, 0.02, 0.2, 1, [5], 0.001)
+        for i in range(10):
+            start_time = time.time()
+            Tracker.RegisterRGBD_GPU(ImageTest, self.RGBD)
+            elapsed_time = time.time() - start_time
+            print "RegisterRGBD_GPU: %f" % (elapsed_time)
+        #Tracker.RegisterRGBD_optimize(ImageTest, self.RGBD)
         
         #Tracker = TrackManager.Tracker(0.1, 0.2, 1, [10], 0.001)
         #Tracker.RegisterRGBD(ImageTest, self.RGBD)
@@ -285,12 +290,13 @@ class Application(tk.Frame):
         Test TSDF
         '''
         
-        '''
+        
         TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager)
-        start_time = time.time()
-        TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
-        elapsed_time = time.time() - start_time
-        print "FuseRGBD_GPU: %f" % (elapsed_time)
+        for i in range(10):
+            start_time = time.time()
+            TSDFManager.FuseRGBD_GPU(self.RGBD, self.Pose)
+            elapsed_time = time.time() - start_time
+            print "FuseRGBD_GPU: %f" % (elapsed_time)
         #start_time = time.time()
         #self.RGBD.depth_image = TSDFManager.RayTracing_GPU(self.RGBD, self.Pose)
         #elapsed_time = time.time() - start_time
@@ -299,31 +305,33 @@ class Application(tk.Frame):
         
         self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
         start_time = time.time()
-        self.MC.runGPU(TSDFManager.TSDFGPU)
+        self.MC.runGPU(TSDFManager.TSDF_d)
         elapsed_time = time.time() - start_time
         print "MarchingCubes: %f" % (elapsed_time)
-        start_time = time.time()
-        self.MC.MergeVtxGPU()
+        
+        #start_time = time.time()
+        #self.MC.MergeVtxGPU()
         #self.MC.MergeVtx()
-        elapsed_time = time.time() - start_time
-        print "MergeVtx: %f" % (elapsed_time)
+        #elapsed_time = time.time() - start_time
+        #print "MergeVtx: %f" % (elapsed_time)
         start_time = time.time()
         self.MC.SaveToPly("result.ply")
         elapsed_time = time.time() - start_time
         print "SaveToPly: %f" % (elapsed_time)
         
-        rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, 2)
+        
+        #rendering = self.MC.DrawPoints(self.Pose, self.intrinsic, self.Size, 2)
         
         #start_time = time.time()
         #TSDFManager.FuseRGBD_optimized(self.RGBD, self.Pose)
         #elapsed_time = time.time() - start_time
         #print "FuseRGBD_optimized: %f" % (elapsed_time)
         #self.RGBD.depth_image = TSDFManager.RayTracing(self.RGBD, self.Pose)
-        self.RGBD.BilateralFilter(-1, 0.02, 3)
-        self.RGBD.Vmap_optimize()
-        self.RGBD.NMap_optimize()
+        #self.RGBD.BilateralFilter(-1, 0.02, 3)
+        #self.RGBD.Vmap()
+        #self.RGBD.NMap()
         #rendering = self.RGBD.Draw_optimize(self.Pose, 1, self.color_tag)
-        '''
+        
         
         '''
         End Test

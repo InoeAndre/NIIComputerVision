@@ -102,6 +102,11 @@ class RGBD():
                                                KernelsOpenCL.Kernel_Draw,
                                                "draw_vmap")
         
+        self.transform_vnmap = ElementwiseKernel(self.GPUManager.context, 
+                                               "float *vmap, float *nmap, float *Pose",
+                                               KernelsOpenCL.Kernel_Transform,
+                                               "transform_vnmap")
+        
         
         # Allocate on CPU 
         self.draw_result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint32)
@@ -203,8 +208,8 @@ class RGBD():
 
     def NMap_GPU(self):
         self.vmap_to_nmap(self.vmap_d, self.nmap_d, self.Size[0], self.Size[1])
-        #self.Vtx = self.vmap_d.get()
-        #self.Nmls = self.nmap_d.get()
+        self.Vtx = self.vmap_d.get()
+        self.Nmls = self.nmap_d.get()
         
  
 ##################################################################
@@ -270,6 +275,12 @@ class RGBD():
         pt = np.dstack((self.Vtx, stack_pt))
         self.Vtx = np.dot(Pose,pt.transpose(0,2,1)).transpose(1,2,0)[:, :, 0:3]
         self.Nmls = np.dot(Pose[0:3,0:3],self.Nmls.transpose(0,2,1)).transpose(1,2,0)
+        
+    def Transform_GPU(self, Pose):
+        self.Pose_d.set(Pose.astype(np.float32))
+        self.transform_vnmap(self.vmap_d, self.nmap_d, self.Pose_d)
+        self.Vtx = self.vmap_d.get()
+        self.Nmls = self.nmap_d.get()
         
 
 ##################################################################
