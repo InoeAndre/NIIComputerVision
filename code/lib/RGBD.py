@@ -438,7 +438,7 @@ class RGBD():
         
     def SetTransfoMat3D(self,evecs,i):       
         '''Generate the transformation matrix '''
-        ctr = self.coordsGbl[i][0]#self.ctr3D[i]#[0.,0.,0.]#
+        ctr = self.ctr3D[i]#self.coordsGbl[i][0]#[0.,0.,0.]#
         e1 = evecs[0]
         e2 = evecs[1]
         e3 = evecs[2]

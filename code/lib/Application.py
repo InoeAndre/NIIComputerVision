@@ -309,6 +309,8 @@ class Application(tk.Frame):
         Id4 = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         
         # initialize lists because of  segmentation
+        
+        # Init for TSDF
         self.TSDF = []
         self.TSDF.append([0.,0.,0.])
         self.TSDFGPU = []
@@ -317,7 +319,7 @@ class Application(tk.Frame):
         self.Weight.append([0.,0.,0.])
         self.WeightGPU = []
         self.WeightGPU.append([0.,0.,0.])
-        self.MC = []
+        # Init for Local Transform and inverse Transform
         self.Tg = []
         self.Tg.append(Id4)
         self.Tl = []
@@ -329,8 +331,12 @@ class Application(tk.Frame):
         self.param = []
         self.param.append(np.array([0. , 0., 0. , 0., 0., 0.], dtype = np.float32))
         self.ctrBis = []
-        self.ctrBis.append(np.array([0. , 0., 0.], dtype = np.float32))        
-        
+        self.ctrBis.append(np.array([0. , 0., 0.], dtype = np.float32)) 
+        # For Marching cubes output
+        self.Vertices = []
+        self.Vertices.append(np.zeros((1,3),np.float32))
+        self.Normales = []
+        self.Normales.append(np.zeros((1,3),np.float32))
         # Loop for each image
         i = 20
 
@@ -356,8 +362,7 @@ class Application(tk.Frame):
         
             
         # Loop for each body part bp
-        for bp in range(1,self.RGBD.bdyPart.shape[0]+1):
-            #bp = 10              
+        for bp in range(1,self.RGBD.bdyPart.shape[0]+1):           
             # Compute the dimension of the body part to create the volume
             #Compute for axis X,Y by projecting into the 2D space
             pt = self.RGBD.GetProjPts2D_optimize(self.RGBD.coordsGbl[bp],Id4)
@@ -373,85 +378,63 @@ class Application(tk.Frame):
             # Compute Z with the esp
             distZ3D = (self.RGBD.coordsGbl[bp][4][2]-self.RGBD.coordsGbl[bp][0][2])
             Z= int(distZ3D/epsZ)
-            
-            
+            # show result
             print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
     
     
             # Create the volume
-            #mf = cl.mem_flags
+            mf = cl.mem_flags
             self.TSDF.append(np.zeros((X,Y,Z), dtype = np.int16))
-            #self.TSDFGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF[i].nbytes))
-            #self.Weight.append(np.zeros((X,Y,Z), dtype = np.int16))
-            #self.WeightGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight[i].nbytes))
-    
-            
-#==============================================================================
-#             # extract one body part
-#             depth_image = np.zeros((self.Size[0],self.Size[1]))
-#             depth_image = (self.RGBD.labels == bp)              
-#             mask = (self.RGBD.labels == bp)
-#             mask3D = np.stack( (mask,mask,mask),axis=2)            
-#             Vertices = self.RGBD.Vtx
-#             Vertices = Vertices *mask3D
-#             Normales = self.RGBD.Nmls 
-#             Normales = Normales * mask3D
-#             print "max vtx : %lf" %(np.max(Vertices))
-#             print np.max(Normales)
-#             print np.max(depth_image)
-#             nbPts = sum(sum(mask))
-#             print nbPts
-#==============================================================================
+            self.TSDFGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF[bp].nbytes))
+            self.Weight.append(np.zeros((X,Y,Z), dtype = np.int16))
+            self.WeightGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight[bp].nbytes))
       
 
-            # initialize parameters     
+            # initialize parameters using epsilons values of X,Y and Z  
             self.param.append(np.array([X/2 , 1/epsX, Y/2 , 1/epsY, -0.1, 1/epsZ], dtype = np.float32)) 
-            # 100.0 = Y / (Y/100.0)
             
             # Get the tranform from the local coordinates system to the global system Tl??
             Tglo = self.RGBD.TransfoBB[bp]
-            self.Tg.append(Tglo)
-            # define center
-            self.Tg[bp][0,3] = self.RGBD.ctr3D[bp][0] 
-            self.Tg[bp][1,3] = self.RGBD.ctr3D[bp][1] 
-            self.Tg[bp][2,3] = self.RGBD.ctr3D[bp][2] 
-            
+            self.Tg.append(Tglo.astype(np.float32))
             # Compute the inverse local Trqnsform
             Tlcl = self.InvPose(self.Tg[bp])
             self.Tl.append(Tlcl)
-            # Compute the whole transform (local transform + image alignment transform)
             print "self.Tg[bp]"
             print self.Tg[bp]
             print "self.Tl[bp]"
             print self.Tl[bp]
 
+
             #Points of clouds in the TSDF local coordinates system
             # create points of clouds
             self.ptClouds.append(np.zeros((X*Y*Z,3),np.float32))
             self.ptNmls.append(np.ones((X*Y*Z,3),np.float32))
-            # For each point
+            # Transform the cloud of points with rescaling and local transform
             self.TransfoLocalCldOfPts(bp,X,Y,Z)
             
                         
             # Recompute the center because the cloud of points are not centered 
             # in the computed centered self.RGBD.ctr3D[bp]
             self.ctrBis.append(np.mean(self.ptClouds[bp],axis = 0))
+            # Recenter the clouds of points
             dpt = self.RGBD.ctr3D[bp]-self.ctrBis[bp]
             self.Tg[bp][0,3] = self.RGBD.ctr3D[bp][0] +dpt[0]
             self.Tg[bp][1,3] = self.RGBD.ctr3D[bp][1] +dpt[1]
             self.Tg[bp][2,3] = self.RGBD.ctr3D[bp][2] +dpt[2]
             
-            
+            # Compute the inverse local Trqnsform
             Tlcl = self.InvPose(self.Tg[bp])
             self.Tl.append(Tlcl)
-
-            # Compute the whole transform (local transform + image alignment transform)
+            #show transform matrix
             print "self.Tg[bp]"
             print self.Tg[bp]
             print "self.Tl[bp]"
             print self.Tl[bp]           
             
-
+            # Compute the whole transform (local transform + image alignment transform)
+            #self.TBP_Pose[bp] = np.dot(self.T_Pose,self.Tg)
+            
+            # Transform definitely the cloud of points with rescaling and local transform
             self.TransfoLocalCldOfPts(bp,X,Y,Z)   
                         
                         
