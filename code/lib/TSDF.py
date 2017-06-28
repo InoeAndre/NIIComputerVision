@@ -31,16 +31,16 @@ mf = cl.mem_flags
 class TSDFManager():
     
     # Constructor
-    def __init__(self, Size, Image, GPUManager,TSDFGPU,WeightGPU):
+    def __init__(self, Size, Image, GPUManager,TSDFGPU,WeightGPU,param):
         self.Size = Size
         self.TSDF = np.zeros(Size, dtype = np.int16)
         self.Weight = np.zeros(Size, dtype = np.int16)
-        self.c_x = self.Size[0]/2
-        self.c_y = self.Size[1]/2
-        self.c_z = -0.1
-        self.dim_x = self.Size[0]/5.0
-        self.dim_y = self.Size[1]/5.0
-        self.dim_z = self.Size[2]/5.0
+        self.c_x = param[0]#self.Size[0]/2
+        self.c_y = param[2]#self.Size[1]/2
+        self.c_z = param[4]#-0.1
+        self.dim_x = param[1]#self.Size[0]/5.0
+        self.dim_y = param[3]#self.Size[1]/5.0
+        self.dim_z = param[5]#self.Size[2]/5.0
         self.res = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32)
         
         self.GPUManager = GPUManager

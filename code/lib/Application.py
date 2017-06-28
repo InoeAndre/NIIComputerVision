@@ -257,8 +257,8 @@ class Application(tk.Frame):
         for i in range(X):
             for j in range(Y):
                 #rescale the points of clouds  
-                x = (float(j) - self.param[bp][0])/self.param[bp][1]
-                y = (float(i) - self.param[bp][2])/self.param[bp][3]
+                x = (float(i) - self.param[bp][0])/self.param[bp][1]
+                y = (float(j) - self.param[bp][2])/self.param[bp][3]
                 # transform in the global system
                 x_T =  self.Tg[bp][0,0]*x + self.Tg[bp][0,1]*y + self.Tg[bp][0,3]
                 y_T =  self.Tg[bp][1,0]*x + self.Tg[bp][1,1]*y + self.Tg[bp][1,3]
@@ -338,7 +338,7 @@ class Application(tk.Frame):
         self.Normales = []
         self.Normales.append(np.zeros((1,3),np.float32))
         # Loop for each image
-        i = 20
+        i = 10
 
         # Current Depth Image (i.e: i)
         start_time = time.time()
@@ -381,15 +381,13 @@ class Application(tk.Frame):
             # show result
             print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
     
-    
             # Create the volume
             mf = cl.mem_flags
             self.TSDF.append(np.zeros((X,Y,Z), dtype = np.int16))
             self.TSDFGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF[bp].nbytes))
             self.Weight.append(np.zeros((X,Y,Z), dtype = np.int16))
             self.WeightGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight[bp].nbytes))
-      
-
+     
             # initialize parameters using epsilons values of X,Y and Z  
             self.param.append(np.array([X/2 , 1/epsX, Y/2 , 1/epsY, -0.1, 1/epsZ], dtype = np.float32)) 
             
@@ -404,7 +402,6 @@ class Application(tk.Frame):
             print "self.Tl[bp]"
             print self.Tl[bp]
 
-
             #Points of clouds in the TSDF local coordinates system
             # create points of clouds
             self.ptClouds.append(np.zeros((X*Y*Z,3),np.float32))
@@ -413,44 +410,19 @@ class Application(tk.Frame):
             self.TransfoLocalCldOfPts(bp,X,Y,Z)
             
                         
-            # Recompute the center because the cloud of points are not centered 
-            # in the computed centered self.RGBD.ctr3D[bp]
-            self.ctrBis.append(np.mean(self.ptClouds[bp],axis = 0))
-            # Recenter the clouds of points
-            dpt = self.RGBD.ctr3D[bp]-self.ctrBis[bp]
-            self.Tg[bp][0,3] = self.RGBD.ctr3D[bp][0] +dpt[0]
-            self.Tg[bp][1,3] = self.RGBD.ctr3D[bp][1] +dpt[1]
-            self.Tg[bp][2,3] = self.RGBD.ctr3D[bp][2] +dpt[2]
-            
-            # Compute the inverse local Trqnsform
-            Tlcl = self.InvPose(self.Tg[bp])
-            self.Tl.append(Tlcl)
-            #show transform matrix
-            print "self.Tg[bp]"
-            print self.Tg[bp]
-            print "self.Tl[bp]"
-            print self.Tl[bp]           
-            
-            # Compute the whole transform (local transform + image alignment transform)
-            #self.TBP_Pose[bp] = np.dot(self.T_Pose,self.Tg)
-            
-            # Transform definitely the cloud of points with rescaling and local transform
-            self.TransfoLocalCldOfPts(bp,X,Y,Z)   
-                        
-                        
+            # TSDF of the body part
+            TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU[bp],self.WeightGPU[bp],self.param[bp]) 
+            TSDFManager.FuseRGBD_GPU(self.RGBD, self.Tg[bp])   
+            print TSDFManager.TSDF.shape
+            print np.min(TSDFManager.TSDF)
+            tsdfmax = np.max(TSDFManager.TSDF)
+            print tsdfmax 
+            tmp = ~(TSDFManager.TSDF ==tsdfmax)
+            tmp = tmp*TSDFManager.TSDF
+            print np.max(tmp)
+    
+          
 #==============================================================================
-#             # TSDF of the body part
-#             TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU[0],self.WeightGPU[0]) 
-#             TSDFManager.FuseRGBD_GPU(self.RGBD, Tg)   
-#             print TSDFManager.TSDF.shape
-#             print np.min(TSDFManager.TSDF)
-#             tsdfmax = np.max(TSDFManager.TSDF)
-#             print tsdfmax 
-#             tmp = ~(TSDFManager.TSDF ==tsdfmax)
-#             tmp = tmp*TSDFManager.TSDF
-#             print np.max(tmp)
-#     
-#           
 #             # Create Mesh
 #             self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)     
 #             # Mesh rendering
