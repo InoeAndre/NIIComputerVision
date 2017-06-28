@@ -199,7 +199,7 @@ class Application(tk.Frame):
             self.canvas.create_line(pt[3][0],pt[3][1],pt[7][0],pt[7][1],fill="red",width = 2)
             #draw points of the bounding boxes
             for j in range(8):
-                self.DrawPoint2D(pt[j],2,"black")
+                self.DrawPoint2D(pt[j],2,"blue")
                 
                 
     def DrawOBBox2DLocal(self,Pose):
@@ -222,7 +222,7 @@ class Application(tk.Frame):
             self.canvas.create_line(pt[3][0],pt[3][1],pt[7][0],pt[7][1],fill="red",width = 2)
             #draw points of the bounding boxes
             for j in range(8):
-                self.DrawPoint2D(pt[j],2,"black")                
+                self.DrawPoint2D(pt[j],2,"blue")                
 
     def DrawMesh2D(self,Pose,vertex,triangle):
         '''Draw in the canvas the triangles of the Mesh in 2D''' 
@@ -251,56 +251,6 @@ class Application(tk.Frame):
         PoseInv[3,3] = 1.0
         return PoseInv
     
-    
-    def ShiftCenter(self,bp):
-        '''Compute the shift according to the body part''' 
-        if bp == 0:
-            dx = 0
-            dy = 0
-        elif bp == 1 :
-            dx = 0.07    
-            dy = 0.0
-        elif bp == 2 :
-            dx = 0.1
-            dy = +0.15          
-        elif bp == 3  :
-            dx = -0.08
-            dy = -0.01   
-        elif bp == 4 :
-            dx = -0.05
-            dy = +0.1 
-        elif bp == 5 :
-            dx = 0.1
-            dy = -0.08   
-        elif bp == 6 :
-            dx = 0.1
-            dy = -0.1   
-        elif bp == 7 :
-            dx = 0.06
-            dy = -0.08               
-        elif bp == 8 :
-            dx = -0.1
-            dy = -0.1   
-        elif bp == 9 :
-            dx = -0.07
-            dy = -0.05   
-        elif bp == 10 :
-            dx = 0.1
-            dy = 0.05   
-        elif bp == 11 :
-            dx = 0.05
-            dy = -0.05              
-        elif bp == 12 :
-            dx = -0.03
-            dy = -0.05   
-        elif bp == 13 :
-            dx = -0.05  
-            dy = -0.05   
-        elif bp == 14 :
-            dx = 0.0
-            dy = -0.01               
-        return [dx,dy]      
-
     ## Constructor function
     def __init__(self, path,  GPUManager, master=None):
         self.root = master
@@ -354,7 +304,7 @@ class Application(tk.Frame):
         
         
         # Loop for each image
-        i = 200
+        i = 20
 
         # Current Depth Image (i.e: i)
         start_time = time.time()
@@ -385,7 +335,8 @@ class Application(tk.Frame):
         ptNmls.append(np.ones((1,3),np.float32))
         param = []
         param.append(np.array([0. , 0., 0. , 0., 0., 0.], dtype = np.float32))
-        
+        ctrBis = []
+        ctrBis.append(np.array([0. , 0., 0.], dtype = np.float32))
             
         # Loop for each body part bp
         for bp in range(1,self.RGBD.bdyPart.shape[0]+1):
@@ -400,11 +351,11 @@ class Application(tk.Frame):
             epsX = abs(distX3D/float(X))
             distY3D = (self.RGBD.coordsGbl[bp][3][1]-self.RGBD.coordsGbl[bp][0][1])
             epsY = abs(distY3D/float(Y))
-            esp = min(epsX,epsY) 
-            print "espX %f,espY %f,esp %f" % (epsX,epsY,esp)
+            epsZ = min(epsX,epsY) 
+            print "espX %f,espY %f,epsZ %f" % (epsX,epsY,epsZ)
             # Compute Z with the esp
             distZ3D = (self.RGBD.coordsGbl[bp][4][2]-self.RGBD.coordsGbl[bp][0][2])
-            Z= int(distZ3D/esp)
+            Z= int(distZ3D/epsZ)
             
             
             print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
@@ -435,17 +386,15 @@ class Application(tk.Frame):
       
 
             # initialize parameters     
-            param.append(np.array([X/2 , 110.0, Y/2 , 100.0, -0.1, 100.0], dtype = np.float32)) 
+            param.append(np.array([X/2 , 1/epsX, Y/2 , 1/epsY, -0.1, 1/epsZ], dtype = np.float32)) 
             # 100.0 = Y / (Y/100.0)
             
             # Get the tranform from the local coordinates system to the global system Tl??
             Tglo = self.RGBD.TransfoBB[bp]
             Tg.append(Tglo)
             # define center
-            #orig = 1 
-            [dx,dy] = self.ShiftCenter(bp)
-            Tg[bp][0,3] = self.RGBD.ctr3D[bp][0] + dx
-            Tg[bp][1,3] = self.RGBD.ctr3D[bp][1] + dy
+            Tg[bp][0,3] = self.RGBD.ctr3D[bp][0] 
+            Tg[bp][1,3] = self.RGBD.ctr3D[bp][1] 
             Tg[bp][2,3] = self.RGBD.ctr3D[bp][2] 
             
             
@@ -460,16 +409,6 @@ class Application(tk.Frame):
             print Tl[bp]
             Vertices2[:,:,0:3] =Vertices2[:,:,0:3] + Vertices
             Normales2 = Normales2 + Normales
-            
-#==============================================================================
-#             ref_pose = np.dot(self.T_Pose,Tl)
-#             for k in range(4):
-#                 for l in range(4):
-#                     self.T_Pose[k,l] = ref_pose[k,l]
-#             print 'self.T_Pose'
-#             print self.T_Pose
-#==============================================================================
-            
 
             #Points of clouds in the TSDF local coordinates system
     
@@ -499,11 +438,41 @@ class Application(tk.Frame):
             
                         
             
+            ctrBis.append(np.mean(ptClouds[bp],axis = 0))
+            dpt = self.RGBD.ctr3D[bp]-ctrBis[bp]
+            Tg[bp][0,3] = self.RGBD.ctr3D[bp][0] +dpt[0]
+            Tg[bp][1,3] = self.RGBD.ctr3D[bp][1] +dpt[1]
+            Tg[bp][2,3] = self.RGBD.ctr3D[bp][2] +dpt[2]
             
             
-           
+            Tlcl = self.InvPose(Tg[bp])
+            Tl.append(Tlcl)
+            #Tl[0:3,0:3] = LA.inv(self.RGBD.TransfoBB[bp][0:3,0:3])#np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]], dtype = np.float32)#T_l2g#self.RGBD.TransfoBB[bp]#
+            #Tl[0:3,3] = [-0.5,0.0,0.0]
+            # Compute the whole transform (local transform + image alignment transform)
+            print "Tg[bp]"
+            print Tg[bp]
+            print "Tl[bp]"
+            print Tl[bp]           
             
-    
+
+            for i in range(X):
+                for j in range(Y):
+                    #rescale the points of clouds  
+                    x = (float(j) - param[bp][0])/param[bp][1]
+                    y = (float(i) - param[bp][2])/param[bp][3]
+                    # transform in the global system
+                    x_T =  Tg[bp][0,0]*x + Tg[bp][0,1]*y + Tg[bp][0,3]
+                    y_T =  Tg[bp][1,0]*x + Tg[bp][1,1]*y + Tg[bp][1,3]
+                    z_T =  Tg[bp][2,0]*x + Tg[bp][2,1]*y + Tg[bp][2,3]                    
+                    for k in range(Z):     
+                        z = (float(k) - param[bp][4])/param[bp][5]
+                        pt_Tx = x_T + Tg[bp][0,2]*z 
+                        pt_Ty = y_T + Tg[bp][1,2]*z
+                        pt_Tz = z_T + Tg[bp][2,2]*z
+                        # add the point to the list
+                        idx =i+j*X+k*X*Y
+                        ptClouds[bp][idx] = (pt_Tx, pt_Ty, pt_Tz)    
 #==============================================================================
 #             # TSDF of the body part
 #             TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU[0],self.WeightGPU[0]) 
@@ -669,28 +638,28 @@ class Application(tk.Frame):
         rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         # projection of the current image/ Overlay
         #rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
-        bp = 1 + up
-        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
-        bp = 3 + up
-        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
-        bp = 5 + up
-        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
-        bp = 7 + up
-        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
         bp = 9 + up
-        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],0.5*ptNmls[bp],Tg[0], 1, self.color_tag)
+        bp = 1 + up
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],0.3*ptNmls[bp],Tg[0], 1, self.color_tag)
+        bp = 3 + up
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],0.3*ptNmls[bp],Tg[0], 1, self.color_tag)
+        bp = 5 + up
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],0.3*ptNmls[bp],Tg[0], 1, self.color_tag)
+        bp = 7 + up
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],0.3*ptNmls[bp],Tg[0], 1, self.color_tag)
         bp = 11 + up
         rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
         bp = 13 + up
         rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
         bp = 1
-        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],0.8*ptNmls[bp],Tg[0], 1, self.color_tag)
         bp = 3
-        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],0.8*ptNmls[bp],Tg[0], 1, self.color_tag)
         bp = 5
-        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],0.8*ptNmls[bp],Tg[0], 1, self.color_tag)
         bp = 7
-        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
+        rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],0.8*ptNmls[bp],Tg[0], 1, self.color_tag)
         bp = 9
         rendering = self.RGBD.DrawMesh(rendering,ptClouds[bp],ptNmls[bp],Tg[0], 1, self.color_tag)
         bp = 11
@@ -722,8 +691,11 @@ class Application(tk.Frame):
         self.DrawOBBox2D(self.Pose)
         #self.DrawOBBox2DLocal(self.Pose)
         #self.DrawMesh2D(self.Pose,self.verts,self.faces)
-        pt = self.RGBD.GetProjPts2D_optimize(self.RGBD.coordsGbl[bp],Id4)
-        self.DrawPoint2D(pt[1],2,"yellow")
+        pt = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Id4)
+        #ptBis = self.RGBD.GetProjPts2D_optimize(ctrBis,Id4)
+        for bp in range(1,15):
+            self.DrawPoint2D(pt[bp],2,"yellow")
+            #self.DrawPoint2D(ptBis[bp],2,"green")
         
 
         #enable keyboard and mouse monitoring
