@@ -18,12 +18,12 @@ Kernel_TSDF = """
                           Pose[8]*pt.x + Pose[9]*pt.y + Pose[10]*pt.z + Pose[11]};
     
     // Project onto Image
-    int2 pix = (int2){convert_int(round(Intrinsic[1]*pt_T.y/fabs(pt_T.z) + Intrinsic[3])), 
-                      convert_int(round(Intrinsic[0]*pt_T.x/fabs(pt_T.z) + Intrinsic[2]))};
-    if (pix.x > -1 && pix.x < nbLines && pix.y > -1 && pix.y < nbColumns ) {
+    int2 pix = (int2){convert_int(round(Intrinsic[0]*pt_T.y/fabs(pt_T.z) + Intrinsic[2])),
+                       convert_int(round(Intrinsic[1]*pt_T.x/fabs(pt_T.z) + Intrinsic[3]))};
+    if (pix.x > -1 && pix.x < nbColumns && pix.y > -1 && pix.y < nbLines ) {
             float dist = max(-1.0f, min(1.0f, (-(pt_T.z - depth[pix.x + nbColumns*pix.y])/nu)));
             // Global update
-            TSDF[i] = (depth[pix.x + nbColumns*pix.y] > 0.0f) ? (short)(dist*30000.0f) : 30000;
+            TSDF[i] = (depth[pix.x + nbColumns*pix.y] > 0.0f) ? convert_short(dist*30000.0f) : 30000;
     } else {
         TSDF[i] = 30000;
     }

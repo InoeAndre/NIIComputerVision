@@ -162,39 +162,36 @@ if (x < dim_x-1 && y < dim_y-1 && z < dim_z-1) {
     float vals[8] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
     
     // get the 8  current summits
-    s[0][0] = ((float)(x) - Param[0])/Param[1];
-    s[0][1] = ((float)(y) - Param[2])/Param[3]; 
-    s[1][0] = ((float)(x+1) - Param[0])/Param[1]; 
-    s[1][1] = ((float)(y) - Param[2])/Param[3]; 
-    s[2][0] = ((float)(x+1) - Param[0])/Param[1]; 
-    s[2][1] = ((float)(y+1) - Param[2])/Param[3]; 
-    s[3][0] = ((float)(x) - Param[0])/Param[1]; 
-    s[3][1] = ((float)(y+1) - Param[2])/Param[3]; 
-    s[4][0] = ((float)(x) - Param[0])/Param[1]; 
-    s[4][1] = ((float)(y) - Param[2])/Param[3]; 
-    s[5][0] = ((float)(x+1) - Param[0])/Param[1]; 
-    s[5][1] = ((float)(y) - Param[2])/Param[3]; 
-    s[6][0] = ((float)(x+1) - Param[0])/Param[1]; 
-    s[6][1] = ((float)(y+1) - Param[2])/Param[3]; 
-    s[7][0] = ((float)(x) - Param[0])/Param[1]; 
-    s[7][1] = ((float)(y+1) - Param[2])/Param[3]; 
+    s[0][0] = (convert_float(x) - Param[0])/Param[1];
+    s[0][1] = (convert_float(y) - Param[2])/Param[3]; 
+    s[1][0] = (convert_float(x+1) - Param[0])/Param[1]; 
+    s[1][1] = (convert_float(y) - Param[2])/Param[3]; 
+    s[2][0] = (convert_float(x+1) - Param[0])/Param[1]; 
+    s[2][1] = (convert_float(y+1) - Param[2])/Param[3]; 
+    s[3][0] = (convert_float(x) - Param[0])/Param[1]; 
+    s[3][1] = (convert_float(y+1) - Param[2])/Param[3]; 
+    s[4][0] = (convert_float(x) - Param[0])/Param[1]; 
+    s[4][1] = (convert_float(y) - Param[2])/Param[3]; 
+    s[5][0] = (convert_float(x+1) - Param[0])/Param[1]; 
+    s[5][1] = (convert_float(y) - Param[2])/Param[3]; 
+    s[6][0] = (convert_float(x+1) - Param[0])/Param[1]; 
+    s[6][1] = (convert_float(y+1) - Param[2])/Param[3]; 
+    s[7][0] = (convert_float(x) - Param[0])/Param[1]; 
+    s[7][1] = (convert_float(y+1) - Param[2])/Param[3]; 
     
-    s[0][2] = ((float)(z) - Param[4])/Param[5];
-    s[1][2] = ((float)(z) - Param[4])/Param[5]; 
-    s[2][2] = ((float)(z) - Param[4])/Param[5]; 
-    s[3][2] = ((float)(z) - Param[4])/Param[5];
-    s[4][2] = ((float)(z+1) - Param[4])/Param[5];
-    s[5][2] = ((float)(z+1) - Param[4])/Param[5];
-    s[6][2] = ((float)(z+1) - Param[4])/Param[5];
-    s[7][2] = ((float)(z+1) - Param[4])/Param[5];
+    s[0][2] = (convert_float(z) - Param[4])/Param[5];
+    s[1][2] = (convert_float(z) - Param[4])/Param[5]; 
+    s[2][2] = (convert_float(z) - Param[4])/Param[5]; 
+    s[3][2] = (convert_float(z) - Param[4])/Param[5];
+    s[4][2] = (convert_float(z+1) - Param[4])/Param[5];
+    s[5][2] = (convert_float(z+1) - Param[4])/Param[5];
+    s[6][2] = (convert_float(z+1) - Param[4])/Param[5];
+    s[7][2] = (convert_float(z+1) - Param[4])/Param[5];
         
-    int index;
     bool reverse = false;
     
-    //int id = z + dim_z*y + dim_z*dim_y*x;
-    
     // get the index value corresponding to the implicit function
-    index = IndexVal[i];
+    int index = convert_int(IndexVal[i]);
     
     if (index != 0) {
         
@@ -209,14 +206,14 @@ if (x < dim_x-1 && y < dim_y-1 && z < dim_z-1) {
         
             // get the values of the implicit function at the summits
             // [val_0 ... val_7]
-            vals[0] = 1.0f/(0.00001f + fabs((float)(TSDF[z + dim_z*y + dim_z*dim_y*x])/30000.0f));
-            vals[1] = 1.0f/(0.00001f + fabs((float)(TSDF[z + dim_z*y + dim_z*dim_y*(x+1)])/30000.0f));
-            vals[2] = 1.0f/(0.00001f + fabs((float)(TSDF[z + dim_z*(y+1) + dim_z*dim_y*(x+1)])/30000.0f));
-            vals[3] = 1.0f/(0.00001f + fabs((float)(TSDF[z + dim_z*(y+1) + dim_z*dim_y*x])/30000.0f));
-            vals[4] = 1.0f/(0.00001f + fabs((float)(TSDF[z+1 + dim_z*y + dim_z*dim_y*x])/30000.0f));
-            vals[5] = 1.0f/(0.00001f + fabs((float)(TSDF[z+1 + dim_z*y + dim_z*dim_y*(x+1)])/30000.0f));
-            vals[6] = 1.0f/(0.00001f + fabs((float)(TSDF[z+1 + dim_z*(y+1) + dim_z*dim_y*(x+1)])/30000.0f));
-            vals[7] = 1.0f/(0.00001f + fabs((float)(TSDF[z+1 + dim_z*(y+1) + dim_z*dim_y*x])/30000.0f));
+            vals[0] = 1.0f/(0.00001f + fabs(convert_float(TSDF[z + dim_z*y + dim_z*dim_y*x])/30000.0f));
+            vals[1] = 1.0f/(0.00001f + fabs(convert_float(TSDF[z + dim_z*y + dim_z*dim_y*(x+1)])/30000.0f));
+            vals[2] = 1.0f/(0.00001f + fabs(convert_float(TSDF[z + dim_z*(y+1) + dim_z*dim_y*(x+1)])/30000.0f));
+            vals[3] = 1.0f/(0.00001f + fabs(convert_float(TSDF[z + dim_z*(y+1) + dim_z*dim_y*x])/30000.0f));
+            vals[4] = 1.0f/(0.00001f + fabs(convert_float(TSDF[z+1 + dim_z*y + dim_z*dim_y*x])/30000.0f));
+            vals[5] = 1.0f/(0.00001f + fabs(convert_float(TSDF[z+1 + dim_z*y + dim_z*dim_y*(x+1)])/30000.0f));
+            vals[6] = 1.0f/(0.00001f + fabs(convert_float(TSDF[z+1 + dim_z*(y+1) + dim_z*dim_y*(x+1)])/30000.0f));
+            vals[7] = 1.0f/(0.00001f + fabs(convert_float(TSDF[z+1 + dim_z*(y+1) + dim_z*dim_y*x])/30000.0f));
         
             int offset = Offset[i];
             
@@ -312,7 +309,7 @@ if (x < dim_x-1 && y < dim_y-1 && z < dim_z-1) {
     // [val_0 ... val_7]
     bool stop = false;
     for (int k=0; k < 8; k++) {
-        vals[k] = (float)(TSDF[s[k][2] + dim_z*s[k][1] + dim_z*dim_y*s[k][0]])/30000.0f;
+        vals[k] = convert_float(TSDF[s[k][2] + dim_z*s[k][1] + dim_z*dim_y*s[k][0]])/30000.0f;
         if (fabs(vals[k]) >= 1.0f) {
             IndexVal[i] = 0;
             stop = true;
@@ -345,7 +342,7 @@ if (x < dim_x-1 && y < dim_y-1 && z < dim_z-1) {
             
         // get the corresponding configuration
         if (index != 0) 
-            Offset[i] = convert_short(atomic_add(&faces_counter[0], ConfigCount[index]));
+            Offset[i] = atomic_add(&faces_counter[0], ConfigCount[index]);
     }
 }
 """

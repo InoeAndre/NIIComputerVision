@@ -90,16 +90,23 @@ class TSDFManager():
         
         self.TSDF_Update_GPU(self.TSDF_d, Image.depth_d, self.Pose_d, self.Param_d, self.intrinsic_d, self.nu, self.Size[0], self.Size[1], self.Size[2], Image.Size[0], Image.Size[1])
         
-        #Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
+#        Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
+#        
+#        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
+#        #cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
+#        
+#        self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
+#                                self.TSDFGPU, Image.depth_d.data, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
+#                                np.int32(Image.Size[0]), np.int32(Image.Size[1]))
+#        
+#        cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
         
-        #cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
-        #cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
-        
-        #self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
-        #                        self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-        #                        np.int32(Image.Size[0]), np.int32(Image.Size[1]))
-        
-        #cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
+#        self.TSDF = self.TSDF_d.get()
+#        import cv2
+#        for i in range(512):
+#            slice_curr = 255.0*(self.TSDF[:,:,i]+30000.0)/60000.0
+#            cv2.imshow("slice", slice_curr.astype(np.uint8))
+#            cv2.waitKey(1)
         
     # Reay tracing on the GPU
     def RayTracing_GPU(self, Image, Pose):
