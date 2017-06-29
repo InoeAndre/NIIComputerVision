@@ -17,11 +17,15 @@ __kernel void Test(__global float *TSDF) {
 
 #__read_only image2d_t VMap
 Kernel_FuseTSDF = """
-__kernel void FuseTSDF(__global float *TSDF, __global float *Depth, __constant float *Param, __constant int *Dim,
-                           __constant float *Pose, __constant float *calib, const int n_row, const int m_col) {
+__kernel void FuseTSDF(__global short int *TSDF, __global float *Depth, __constant float *Param, __constant int *Dim,
+                           __constant float *Pose, __constant float *calib, const int n_row, const int m_col,
+                           __global short int *Weight) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
         const float nu = 0.05f;
-            
+       
+
+        float convVal = 32767.0f;   
+        
         float4 pt;
         float4 pt_T;
         int2 pix;
@@ -48,34 +52,34 @@ __kernel void FuseTSDF(__global float *TSDF, __global float *Depth, __constant f
             pix.x = convert_int(round((pt_T.x/fabs(pt_T.z))*calib[0] + calib[2])); 
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
+            int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
+            
+
+            
             if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1){
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1.0f;
+                if (Weight[idx] == 0)
+                    TSDF[idx] = (short int)(convVal);
                 continue;
             }
             
             float dist = -(pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
-            if (Depth[pix.x + m_col*pix.y] == 0.0f) {
-                TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x] = 1.0f;
+            dist = min(1.0f, max(-1.0f, dist));
+            if (Depth[pix.x + m_col*pix.y] == 0) {
+                if (Weight[idx] == 0)
+                    TSDF[idx] = (short int)(convVal);
                 continue;
             }
+                        
+            if (dist > 1.0f) dist = 1.0f;
+            else dist = max(-1.0f, dist);
+                
+            // Running Average
+            float prev_tsdf = (float)(TSDF[idx])/convVal;
+            float prev_weight = (float)(Weight[idx]);
             
-            /*if (dist > -nu)
-                dist = min(1.0f, dist/nu);
-            else
-                dist = max(1.0f, dist/nu);*/
-            
-        
-            // Global update
-            int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
-            
-            TSDF[idx] = dist;
-            
-            /*TSDF[idx] = (TSDF[idx]*Weight[idx] + dist)/(1.0f+Weight[idx]);
-            
-            if (Weight[idx]+1.0f > Wmax) 
-                Weight[idx] = Wmax;
-            else 
-                Weight[idx] = Weight[idx]+1.0f;*/
+            TSDF[idx] =  (short int)(round(((prev_tsdf*prev_weight+dist)/(prev_weight+1.0f))*convVal));
+            if (dist < 1.0f && dist > -1.0f)
+                Weight[idx] = min(1000, Weight[idx]+1);
         }
 }
 """

@@ -64,18 +64,18 @@ class My_MarchingCube():
         self.OffsetGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*4)
         self.IndexGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*4)
         self.FaceCounterGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf = self.nb_faces)
-        self.VertexCounterGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf = self.nb_vertices)
+        #self.VertexCounterGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf = self.nb_vertices)
         
         self.ParamGPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf = self.res)
         
-        self.Array_x_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*4)
-        self.Array_y_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*4)
-        self.Array_z_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*4)
-        self.Normales_x_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*4)
-        self.Normales_y_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*4)
-        self.Normales_z_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*4)
-        self.Weights_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*4)
-        self.VtxInd_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*4)
+        self.Array_x_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*2)
+        self.Array_y_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*2)
+        self.Array_z_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*2)
+        self.Normales_x_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*2)
+        self.Normales_y_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*2)
+        self.Normales_z_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*2)
+        self.Weights_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*2)
+        self.VtxInd_GPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Size[0]*self.Size[1]*self.Size[2]*2)
         
         
     def runGPU(self, VolGPU):
@@ -125,12 +125,13 @@ class My_MarchingCube():
             dim_x = self.nb_faces[0]/stride +1
             dim_y = stride
             
+
         self.GPUManager.programs['InitArray'].InitArray(self.GPUManager.queue, (dim_x, dim_y), None, \
                                 self.Array_x_GPU, self.Array_y_GPU, self.Array_z_GPU, self.Weights_GPU, 
                                 self.Normales_x_GPU, self.Normales_y_GPU, self.Normales_z_GPU,
-                                self.VerticesGPU, self.ParamGPU, self.Size_Volume, self.VertexCounterGPU, np.int32(self.nb_faces[0]))
+                                self.VerticesGPU, self.ParamGPU, self.Size_Volume, np.int32(self.nb_faces[0]))
         
-            
+
         self.GPUManager.programs['MergeVtx'].MergeVtx(self.GPUManager.queue, (dim_x, dim_y), None, \
                                 self.Array_x_GPU, self.Array_y_GPU, self.Array_z_GPU, self.Weights_GPU, 
                                 self.Normales_x_GPU, self.Normales_y_GPU, self.Normales_z_GPU, self.VtxInd_GPU,

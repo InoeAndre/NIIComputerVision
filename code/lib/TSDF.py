@@ -33,7 +33,7 @@ mf = cl.mem_flags
 class TSDFManager():
     
     # Constructor
-    def __init__(self, Size, Image, GPUManager):
+    def __init__(self, Size, Image, GPUManager,TSDFGPU,WeightGPU):
         self.Size = Size
         #self.TSDF = np.zeros(self.Size, dtype = np.float32)
         self.c_x = self.Size[0]/2

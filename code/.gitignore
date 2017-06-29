@@ -1,2 +1,5 @@
 *.pyc
+*.~
+*.ply
+*.dae
 __pycache__
