@@ -19,7 +19,7 @@ __kernel void Test(__global float *TSDF) {
 Kernel_FuseTSDF = """
 __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __constant float *Param, __constant int *Dim,
                            __constant float *Pose, __constant float *calib, const int n_row, const int m_col,
-                           __global short int *Weight) {
+                           __global short int *Weight, __global float * CldPtGPU) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
 
         const float nu = 0.05f;
@@ -55,7 +55,9 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
             int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
-            
+            CldPtGPU[3*idx] = pt_T.x;
+            CldPtGPU[3*idx+1] = pt_T.y;
+            CldPtGPU[3*idx+2] = pt_T.z;
             if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1){
                 if (Weight[idx] == 0)
                     TSDF[idx] = (short int)(convVal);
