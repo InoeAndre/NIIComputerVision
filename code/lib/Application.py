@@ -240,7 +240,8 @@ class Application(tk.Frame):
         elapsed_time3 = time.time() - start_time2
         print "bounding boxes process time: %f" % (elapsed_time3)
         
-        self.RGBD2 = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact) 
+        '''
+        self.RGBD2 = RGBD.RGBD(self.GPUManager, self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact) 
         self.RGBD2.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx ) 
         self.RGBD2.ReadFromMat(1) 
         self.RGBD2.BilateralFilter(-1, 0.02, 3) 
@@ -251,6 +252,7 @@ class Application(tk.Frame):
         self.RGBD2.Vmap_optimize()   
         self.RGBD2.NMap_optimize()  
         #self.RGBD2.myPCA()
+        '''
         
         # 3D reconstruction of the whole image
         self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
@@ -263,7 +265,7 @@ class Application(tk.Frame):
         #self.DrawCenters2D(self.Pose)
         #self.DrawSys2D(self.Pose)
         #self.DrawOBBox2D(self.Pose)
-
+   
 
         '''
         Test Register
@@ -319,6 +321,7 @@ class Application(tk.Frame):
         self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
         start_time = time.time()
         self.MC.runGPU(TSDFManager.TSDF_d)
+        self.MC.MergeVtx()
         elapsed_time = time.time() - start_time
         print "MarchingCubes: %f" % (elapsed_time)
         
