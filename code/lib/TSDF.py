@@ -50,13 +50,13 @@ class TSDFManager():
         self.WeightGPU = WeightGPU
         self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = self.res)
-        
+        self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         #fmt = cl.ImageFormat(cl.channel_order.RGB, cl.channel_type.FLOAT)
         #self.VMapGPU = cl.Image(self.GPUManager.context, mf.READ_ONLY, fmt, shape = (Image.Size[1], Image.Size[0]))
         #cl.enqueue_copy(self.GPUManager.queue, self.VMapGPU, Image.Vtx, origin = (0,0), region = (Image.Size[1], Image.Size[0]))
         self.DepthGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Image.depth_image.nbytes)
         self.Calib_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf = Image.intrinsic)
-        self.Pose_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, 64)
+        self.Pose_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, self.Pose.nbytes)
         
     
 #######
@@ -74,8 +74,8 @@ class TSDFManager():
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
         
-        print "Pose"
-        print Pose
+        print "self.Pose_GPU"
+        print self.Pose_GPU
         print "self.Size"
         print self.Size
         print "self.res"
@@ -84,6 +84,8 @@ class TSDFManager():
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
                                 np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU,CldPtGPU)
+        print "Pose"
+        print Pose        
         
         ptClouds = np.zeros((self.Size[0]*self.Size[1]*self.Size[2],3),np.float32)
         cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
@@ -111,6 +113,12 @@ class TSDFManager():
     
     # Fuse a new RGBD image into the TSDF volume
     def FuseRGBD(self, Image, Pose, CldPts,s = 1):
+        print self.c_x
+        print self.dim_x
+        print self.c_y
+        print self.dim_y
+        print self.c_z
+        print self.dim_z
         Transform = Pose#LA.inv(Pose)
         convVal = 32767.0
         nu = 0.05
@@ -121,11 +129,14 @@ class TSDFManager():
         for x in range(self.Size[0]/s): # line index (i.e. vertical y axis)
             pt[0] = (x-self.c_x)/self.dim_x
             print x
+            #print pt[0]
             for y in range(self.Size[1]/s):
                 pt[1] = (y-self.c_y)/self.dim_y
                 x_T =  Transform[0,0]*pt[0] + Transform[0,1]*pt[1] + Transform[0,3]
                 y_T =  Transform[1,0]*pt[0] + Transform[1,1]*pt[1] + Transform[1,3]
-                z_T =  Transform[2,0]*pt[0] + Transform[2,1]*pt[1] + Transform[2,3]  
+                z_T =  Transform[2,0]*pt[0] + Transform[2,1]*pt[1] + Transform[2,3] 
+                #print Transform
+                #print pt
                 for z in range(self.Size[2]/s):
                     # Project each voxel into  the Image
                     pt[2] = (z-self.c_z)/self.dim_z
@@ -133,7 +144,7 @@ class TSDFManager():
                     pt_Ty = y_T + Transform[1,2]*pt[2]
                     pt_Tz = z_T + Transform[2,2]*pt[2]
                     #pt = np.dot(Transform, pt)
-                    idx =x+y*self.Size[0]+z*self.Size[0]*self.Size[1]
+                    idx =x*self.Size[2]*self.Size[1]+y*self.Size[2]+z
                     CldPts[idx][0] =pt_Tx
                     CldPts[idx][1] =pt_Ty
                     CldPts[idx][2] =pt_Tz

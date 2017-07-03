@@ -306,6 +306,7 @@ class Application(tk.Frame):
         self.connection = connectionMat['SkeletonConnectionMap']
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         self.T_Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
+        self.PoseBP = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         Id4 = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         
         # initialize lists because of  segmentation
@@ -368,7 +369,7 @@ class Application(tk.Frame):
         
             
         # Loop for each body part bp
-        for bp in range(1,2):#self.RGBD.bdyPart.shape[0]+1):#           
+        for bp in range(1,self.RGBD.bdyPart.shape[0]+1):# ,2):          
             # Compute the dimension of the body part to create the volume
             #Compute for axis X,Y by projecting into the 2D space
             VoxSize = 0.005
@@ -398,7 +399,10 @@ class Application(tk.Frame):
             print self.Tg[bp]
             print "self.Tl[bp]"
             print self.Tl[bp]
-
+            
+            for i in range(4):
+                for j in range(4):
+                    self.PoseBP[i][j] = self.Tg[bp][i][j]
             #Points of clouds in the TSDF local coordinates system
             # create points of clouds
             self.ptClouds.append(np.zeros((X*Y*Z,3),np.float))
@@ -411,8 +415,8 @@ class Application(tk.Frame):
             self.ptClouds2GPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.ptClouds2[bp].nbytes))                           
             # TSDF of the body part
             TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU[bp],self.WeightGPU[bp],self.param[bp]) 
-            #self.ptClouds[bp] = TSDFManager.FuseRGBD_GPU(self.RGBD, self.Tg[bp],self.ptCloudsGPU[bp]) 
-            TSDFManager.FuseRGBD(self.RGBD, self.Tg[bp],self.ptClouds2[bp])
+            self.ptClouds[bp] = TSDFManager.FuseRGBD_GPU(self.RGBD, self.PoseBP,self.ptCloudsGPU[bp]) 
+            #TSDFManager.FuseRGBD(self.RGBD, self.PoseBP,self.ptClouds2[bp])
             self.TSDF[bp] = TSDFManager.TSDF
 #==============================================================================
 #             print TSDFManager.TSDF.shape
@@ -426,15 +430,17 @@ class Application(tk.Frame):
             #self.ctrBis.append(np.mean(self.ptClouds[bp],axis = 0))
             cl.enqueue_copy(GPUManager.queue, self.TSDFGPU[bp], TSDFManager.TSDF).wait()
             # Create Mesh
-            self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)     
-            # Mesh rendering
-            self.MC.runGPU(TSDFManager.TSDFGPU) 
-            start_time3 = time.time()
-            # save
-            bpStr = str(bp)
-            self.MC.SaveToPly("body"+bpStr+".ply")
-            elapsed_time = time.time() - start_time3
-            print "SaveToPly: %f" % (elapsed_time)             
+#==============================================================================
+#             self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)     
+#             # Mesh rendering
+#             self.MC.runGPU(TSDFManager.TSDFGPU) 
+#             start_time3 = time.time()
+#             # save
+#             bpStr = str(bp)
+#             self.MC.SaveToPly("body"+bpStr+".ply")
+#             elapsed_time = time.time() - start_time3
+#             print "SaveToPly: %f" % (elapsed_time)             
+#==============================================================================
             # Get new current image
             
             # Once it done for all part
@@ -470,8 +476,10 @@ class Application(tk.Frame):
 #         bp = 13 + up
 #         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],self.ptNmls[bp],Id4, 1, self.color_tag)
 #==============================================================================
-        bp = 1
-        rendering = self.RGBD.DrawMesh(rendering,self.ptClouds2[bp],0.8*self.ptNmls[bp],Id4, 1, self.color_tag)
+#==============================================================================
+#         bp = 1
+#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.8*self.ptNmls[bp],Id4, 1, self.color_tag)
+#==============================================================================
 #==============================================================================
 #         bp = 3
 #         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.8*self.ptNmls[bp],Id4, 1, self.color_tag)
@@ -487,7 +495,9 @@ class Application(tk.Frame):
 #         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],self.ptNmls[bp],Id4, 1, self.color_tag)        
 #==============================================================================
         #rendering = self.RGBD.Draw_optimize(rendering,Tl, 1, self.color_tag)
-
+        
+        for bp in range(1,self.RGBD.bdyPart.shape[0]+1):
+            rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.8*self.ptNmls[bp],Id4, 1, self.color_tag)
         
 
         # Show figure and images

@@ -54,7 +54,7 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
             pix.x = convert_int(round((pt_T.x/fabs(pt_T.z))*calib[0] + calib[2])); 
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
-            int idx = z + Dim[0]*y + Dim[0]*Dim[1]*x;
+            int idx = z + Dim[2]*y + Dim[2]*Dim[1]*x;
             CldPtGPU[3*idx] = pt_T.x;
             CldPtGPU[3*idx+1] = pt_T.y;
             CldPtGPU[3*idx+2] = pt_T.z;
@@ -84,7 +84,47 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
                 Weight[idx] = min(1000, Weight[idx]+1);
             
          }
-        
+        /* Pose */
+        /*
+        CldPtGPU[0] = Pose[0];
+        CldPtGPU[1] = Pose[1];
+        CldPtGPU[2] = Pose[2];
+        CldPtGPU[3] = Pose[3];
+        CldPtGPU[4] = Pose[4];
+        CldPtGPU[5] = Pose[5];
+        CldPtGPU[6] = Pose[6];
+        CldPtGPU[7] = Pose[7];   
+        CldPtGPU[8] = Pose[8];
+        CldPtGPU[9] = Pose[9];
+        CldPtGPU[10] = Pose[10];
+        CldPtGPU[11] = Pose[11];
+        CldPtGPU[12] = Pose[12];
+        CldPtGPU[13] = Pose[13];
+        CldPtGPU[14] = Pose[14];
+        CldPtGPU[15] = Pose[15]; 
+        */     
+        /* x,y,z */
+        /*
+        CldPtGPU[16] = x;
+        CldPtGPU[17] = y;
+        CldPtGPU[18] = z;
+        CldPtGPU[19] = pt.x;
+        CldPtGPU[20] = pt.y;
+        CldPtGPU[21] = pt.z;
+        CldPtGPU[22] = pt_T.x;
+        CldPtGPU[23] = pt_T.y;   
+        CldPtGPU[24] = pt_T.z;
+        CldPtGPU[25] = Param[0];
+        CldPtGPU[26] = Param[1];
+        CldPtGPU[27] = Param[2];
+        CldPtGPU[28] = Param[3];
+        CldPtGPU[29] = Param[4];
+        CldPtGPU[30] = Param[5];
+        CldPtGPU[31] = calib[0];   
+        CldPtGPU[32] = calib[2];    
+        CldPtGPU[33] = calib[4];    
+        CldPtGPU[34] = calib[5]; 
+        */
 }
 """
 
