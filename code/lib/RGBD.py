@@ -456,7 +456,7 @@ class RGBD():
         e2b = np.array( [e2[0],e2[1],e2[2],0])
         e3b = np.array( [e3[0],e3[1],e3[2],0])
         origine = np.array( [ctr[0],self.ctr3D[i][1],ctr[2],1])
-        Transfo = np.stack( (e2b,e1b,e3b,origine),axis = 0 )
+        Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
         self.TransfoBB.append(Transfo.transpose())
         #print "TransfoBB[%d]" %(i)
         #print self.TransfoBB[i]        

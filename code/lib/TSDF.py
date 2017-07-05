@@ -64,7 +64,7 @@ class TSDFManager():
 #####
 
     # Fuse on the GPU
-    def FuseRGBD_GPU(self, Image, Pose, CldPtGPU):
+    def FuseRGBD_GPU(self, Image, Pose):#, CldPtGPU):
         Transform = np.zeros(Pose.shape,Pose.dtype)
         Transform[0:3,0:3] = LA.inv(Pose[0:3,0:3])
         Transform[0:3,3] = -np.dot(Transform[0:3,0:3],Pose[0:3,3])
@@ -83,14 +83,14 @@ class TSDFManager():
         
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU,CldPtGPU)
+                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU)#,CldPtGPU)
         print "Pose"
         print Pose        
         
         ptClouds = np.zeros((self.Size[0]*self.Size[1]*self.Size[2],3),np.float32)
         cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
         cl.enqueue_read_buffer(self.GPUManager.queue, self.WeightGPU, self.Weight).wait()  
-        cl.enqueue_read_buffer(self.GPUManager.queue, CldPtGPU, ptClouds).wait()  
+        #cl.enqueue_read_buffer(self.GPUManager.queue, CldPtGPU, ptClouds).wait()  
         return ptClouds
         
     # Reay tracing on the GPU
@@ -112,7 +112,7 @@ class TSDFManager():
 #####
     
     # Fuse a new RGBD image into the TSDF volume
-    def FuseRGBD(self, Image, Pose, CldPts,s = 1):
+    def FuseRGBD(self, Image, Pose, s = 1):
         print self.c_x
         print self.dim_x
         print self.c_y
@@ -124,6 +124,8 @@ class TSDFManager():
         nu = 0.05
         line_index = 0
         column_index = 0
+        nb_vert = 0
+        nb_miss = 0
         pix = np.array([0., 0., 1.])
         pt = np.array([0., 0., 0., 1.])
         for x in range(self.Size[0]/s): # line index (i.e. vertical y axis)
@@ -138,6 +140,87 @@ class TSDFManager():
                 #print Transform
                 #print pt
                 for z in range(self.Size[2]/s):
+                    nb_vert +=1
+                    # Project each voxel into  the Image
+                    pt[2] = (z-self.c_z)/self.dim_z
+                    pt_Tx = x_T + Transform[0,2]*pt[2] 
+                    pt_Ty = y_T + Transform[1,2]*pt[2]
+                    pt_Tz = z_T + Transform[2,2]*pt[2]
+
+                    # Project onto Image
+                    pix[0] = pt_Tx/pt_Tz
+                    pix[1] = pt_Ty/pt_Tz
+                    pix = np.dot(Image.intrinsic, pix)
+                    #print pix
+                    column_index = int(round(pix[0]))
+                    line_index = int(round(pix[1]))
+                    
+                    if (column_index < 0 or column_index > Image.Size[1]-1 or line_index < 0 or line_index > Image.Size[0]-1):
+                        #print "column_index : %d , line_index : %d" %(column_index,line_index)
+                        nb_miss +=1
+                        if self.Weight[x][y][z]==0 : 
+                            self.TSDF[x][y][z] = int(convVal)
+                            continue
+                        
+                    depth = Image.depth_image[line_index][column_index]
+
+                    
+                    if depth == 0 :
+                        nb_miss +=1
+                        if self.Weight[x][y][z]==0 :
+                            self.TSDF[x][y][z] = int(convVal)
+                            continue
+                   
+                    # Listing 2
+                    dist = -(pt_Tz - depth)/nu
+                    dist = min(1.0, max(-1.0, dist))
+                    
+                    if (dist > 1.0):
+                        self.TSDF[x][y][z] = 1.0
+                        print "x %d, y %d, z %d" %(x,y,z)
+                    else:
+                        self.TSDF[x][y][z] = max(-1.0, dist)
+
+                    prev_tsdf = float(self.TSDF[x][y][z])/convVal
+                    prev_weight = float(self.Weight[x][y][z])
+                    
+                    self.TSDF[x][y][z] =  int(round(((prev_tsdf*prev_weight+dist)/(prev_weight+1.0))*convVal))
+                    if (dist < 1.0 and dist > -1.0):
+                        self.Weight[x][y][z] = min(1000, self.Weight[x][y][z]+1)
+        print "nb vert : %d, nb miss : %d" % (nb_vert,nb_miss)
+        cl.enqueue_copy(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
+                        
+        
+    # Fuse a new RGBD image into the TSDF volume
+    def FuseRGBDCldPts(self, Image, Pose, CldPts,s = 1):
+        print self.c_x
+        print self.dim_x
+        print self.c_y
+        print self.dim_y
+        print self.c_z
+        print self.dim_z
+        Transform = Pose#LA.inv(Pose)
+        convVal = 32767.0
+        nu = 0.05
+        line_index = 0
+        column_index = 0
+        nb_vert = 0
+        nb_miss = 0
+        pix = np.array([0., 0., 1.])
+        pt = np.array([0., 0., 0., 1.])
+        for x in range(self.Size[0]/s): # line index (i.e. vertical y axis)
+            pt[0] = (x-self.c_x)/self.dim_x
+            print x
+            #print pt[0]
+            for y in range(self.Size[1]/s):
+                pt[1] = (y-self.c_y)/self.dim_y
+                x_T =  Transform[0,0]*pt[0] + Transform[0,1]*pt[1] + Transform[0,3]
+                y_T =  Transform[1,0]*pt[0] + Transform[1,1]*pt[1] + Transform[1,3]
+                z_T =  Transform[2,0]*pt[0] + Transform[2,1]*pt[1] + Transform[2,3] 
+                #print Transform
+                #print pt
+                for z in range(self.Size[2]/s):
+                    nb_vert +=1
                     # Project each voxel into  the Image
                     pt[2] = (z-self.c_z)/self.dim_z
                     pt_Tx = x_T + Transform[0,2]*pt[2] 
@@ -156,13 +239,17 @@ class TSDFManager():
                     line_index = int(round(pix[1]))
                     
                     if (column_index < 0 or column_index > Image.Size[1]-1 or line_index < 0 or line_index > Image.Size[0]-1):
+                        print "column_index : %d , line_index : %d" %(column_index,line_index)
+                        nb_miss +=1
                         if self.Weight[x][y][z]==0 : 
                             self.TSDF[x][y][z] = int(convVal)
                             continue
                         
                     depth = Image.Vtx[line_index][column_index][2]
+
                     
                     if depth == 0 :
+                        nb_miss +=1
                         if self.Weight[x][y][z]==0 :
                             self.TSDF[x][y][z] = int(convVal)
                             continue
@@ -170,8 +257,10 @@ class TSDFManager():
                     # Listing 2
                     dist = -(pt_Tz - depth)/nu
                     dist = min(1.0, max(-1.0, dist))
+                    
                     if (dist > 1.0):
                         self.TSDF[x][y][z] = 1.0
+                        print "x %d, y %d, z %d" %(x,y,z)
                     else:
                         self.TSDF[x][y][z] = max(-1.0, dist)
 
@@ -181,10 +270,9 @@ class TSDFManager():
                     self.TSDF[x][y][z] =  int(round(((prev_tsdf*prev_weight+dist)/(prev_weight+1.0))*convVal))
                     if (dist < 1.0 and dist > -1.0):
                         self.Weight[x][y][z] = min(1000, self.Weight[x][y][z]+1)
-                        
-        
-                    
-                        
+        print "nb vert : %d, nb miss : %d" % (nb_vert,nb_miss)                    
+        cl.enqueue_copy(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
+                
     # Fuse a new RGBD image into the TSDF volume
     def FuseRGBD_optimized(self, Image, Pose, s = 1):
         Transform = Pose#LA.inv(Pose)
