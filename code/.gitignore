@@ -2,4 +2,7 @@
 *.~
 *.ply
 *.dae
+*~
+TEST*
+CloudsOfPointsCompare.py
 __pycache__

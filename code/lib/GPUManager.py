@@ -18,7 +18,7 @@ class GPUManager():
     def __init__(self):
         self.platform = cl.get_platforms()[0]
         self.devices = self.platform.get_devices()
-        self.context = cl.Context([self.devices[1]])
+        self.context = cl.Context([self.devices[0]])
         #self.context = cl.Context([self.devices[1]])
         self.queue = cl.CommandQueue(self.context)
         self.programs = {}
