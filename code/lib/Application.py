@@ -347,9 +347,12 @@ class Application(tk.Frame):
         elapsed_time = time.time() - start_time
         print "depth conversion: %f s" % (elapsed_time)
         
+        #centers for body parts 
+        ctrs = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Id4)
             
+        end = self.RGBD.bdyPart.shape[0]+1
         # Loop for each body part bp
-        for bp in range(1,2): #,self.RGBD.bdyPart.shape[0]+1):#          
+        for bp in range(1,end):
 #==============================================================================
 #             # Compute the dimension of the body part to create the volume
 #             #Compute for axis X,Y by projecting into the 2D space
@@ -415,12 +418,18 @@ class Application(tk.Frame):
             self.TSDFGPU2 = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF2.nbytes)
             self.Weight2 = np.zeros((X,Y,Z), dtype = np.int16)
             self.WeightGPU2 = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight2.nbytes)
+            #centers
+            
+            #rescaling factors
             VoxSize2 = 5.0
-            param2 = np.array([X/2 , X/VoxSize2, Y/2 , Y/VoxSize2, Z/2, Z/VoxSize2], dtype = np.float32)
+            param2 = np.array([ctrs[bp][0] , X/VoxSize2, ctrs[bp][1] , Y/VoxSize2, Z/2, Z/VoxSize2], dtype = np.float32)
+            
+            #radius
+            radius = np.float32(LA.norm(self.RGBD.coordsGbl[bp][1]-self.RGBD.coordsGbl[bp][0]))
             # Transform the cloud of points with rescaling and local transform = the beginning of FuseRGBD
             #TSDFManager.FuseRGBD(RGBD, Id4)
             TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU2,self.WeightGPU2,param2) 
-            self.ptClouds[bp] = TSDFManager.FuseRGBD_GPU(self.RGBD, Id4, self.ptCloudsGPU[bp])#
+            self.ptClouds[bp] = TSDFManager.FuseRGBD_GPU(self.RGBD, Id4, self.ptCloudsGPU[bp],radius)#
             #cl.enqueue_copy(GPUManager.queue, TSDFManager.TSDFGPU, TSDFManager.TSDF).wait()    
     
 
@@ -452,7 +461,11 @@ class Application(tk.Frame):
             bpStr = str(bp)
             self.MC.SaveToPly("body"+bpStr+".ply")
             elapsed_time = time.time() - start_time3
-            print "SaveToPly: %f" % (elapsed_time)             
+            print "SaveToPly: %f" % (elapsed_time)      
+            
+            #Fill list of MC's Vert and Nmls
+            self.Vertices.append(self.MC.Vertices)
+            self.Normales.append(self.MC.Normales)
             # Get new current image
             
             # Once it done for all part
@@ -467,54 +480,8 @@ class Application(tk.Frame):
         # projection of the current image/ Overlay
         #rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
         
-#==============================================================================
-#         bp = 1 + up
-#         rendering = self.RGBD.DrawMesh(rendering,self.MC.Vertices,self.MC.Normales,self.Tg[bp], 1, self.color_tag)
-#==============================================================================
-
-#==============================================================================
-#         bp = 1 + up
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.3*self.ptNmls[bp],Id4, 1, self.color_tag)
-#         bp = 3 + up
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.3*self.ptNmls[bp],Id4, 1, self.color_tag)
-#         bp = 5 + up
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.3*self.ptNmls[bp],Id4, 1, self.color_tag)
-#         bp = 7 + up
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.3*self.ptNmls[bp],Id4, 1, self.color_tag)
-#         bp = 9 + up
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.5*self.ptNmls[bp],Id4, 1, self.color_tag)        
-#         bp = 11 + up
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],self.ptNmls[bp],Id4, 1, self.color_tag)
-#         bp = 13 + up
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],self.ptNmls[bp],Id4, 1, self.color_tag)
-#==============================================================================
-#==============================================================================
-#         bp = 1
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.8*self.ptNmls[bp],Id4, 1, self.color_tag)
-#==============================================================================
-#==============================================================================
-#         bp = 3
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.8*self.ptNmls[bp],Id4, 1, self.color_tag)
-#         bp = 5
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.8*self.ptNmls[bp],Id4, 1, self.color_tag)
-#         bp = 7
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.8*self.ptNmls[bp],Id4, 1, self.color_tag)
-#         bp = 9
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],self.ptNmls[bp],Id4, 1, self.color_tag)
-#         bp = 11
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],self.ptNmls[bp],Id4, 1, self.color_tag)
-#         bp = 13
-#         rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],self.ptNmls[bp],Id4, 1, self.color_tag)        
-#==============================================================================
-        #rendering = self.RGBD.Draw_optimize(rendering,Tl, 1, self.color_tag)
-        
-#==============================================================================
-#         for bp in range(1,self.RGBD.bdyPart.shape[0]+1):
-#             rendering = self.RGBD.DrawMesh(rendering,self.ptClouds[bp],0.8*self.ptNmls[bp],Id4, 1, self.color_tag)
-#==============================================================================
-        
-        for bp in range(1,2):#RGBD.bdyPart.shape[0]+1):
-            rendering = self.RGBD.DrawMesh(rendering,self.MC.Vertices,self.MC.Normales,Id4, 1, self.color_tag)
+        for bp in range(1,end):
+            rendering = self.RGBD.DrawMesh(rendering,self.Vertices[bp],self.Normales[bp],Id4, 1, self.color_tag)
         # Show figure and images
             
         # 3D reconstruction of the whole image
@@ -530,10 +497,10 @@ class Application(tk.Frame):
         self.DrawOBBox2D(self.Pose)
         #self.DrawOBBox2DLocal(self.Pose)
         #self.DrawMesh2D(self.Pose,self.verts,self.faces)
-        pt = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Id4)
+        
         #ptBis = self.RGBD.GetProjPts2D_optimize(self.ctrBis,Id4)
-        for bp in range(1,2):
-            self.DrawPoint2D(pt[bp],2,"yellow")
+        for bp in range(1,end):
+            self.DrawPoint2D(ctrs[bp],2,"yellow")
             #self.DrawPoint2D(ptBis[bp-1],2,"green")
         
 
