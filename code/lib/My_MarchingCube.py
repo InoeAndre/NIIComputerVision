@@ -385,12 +385,13 @@ class My_MarchingCube():
 #         print "line_index24 : %d" %(line_index[24])
 #         print "column_index24 : %d" %(column_index[24])
 #==============================================================================
-        if (color == 0):
+        if (color == 1):
             result[line_index[:], column_index[:]]= np.dstack((RGBD.color_image[ ::s, ::s,2], \
                                                                     RGBD.color_image[ ::s, ::s,1]*cdt_line, \
                                                                     RGBD.color_image[ ::s, ::s,0]*cdt_column) )
         else:
             RGBD.Nmls[line_index[:], column_index[:]]= np.dstack( ( nmle[ :,0], nmle[ :,1], nmle[ :,2]) )
             RGBD.Vtx[line_index[:], column_index[:]] = np.dstack( ( pt[ :,0], pt[ :,1], pt[ :,2]) )
+            RGBD.depth_image[line_index[:], column_index[:]] =  pt[ :,2] 
 
 

@@ -382,7 +382,7 @@ class Segmentation(object):
         
         #vect_elbow = intersection_elbow[0]-pos2D[5]
         vect_215 = intersection215[0]-pos2D[shoulder]  
-        #cross product 
+        #cross product to know which point to select
         t = np.cross(np.insert(vect_elbow, vect_elbow.shape[0],0),np.insert(vect65, vect65.shape[0],0))
         t1 = np.cross(np.insert(vect_215,vect_215.shape[0],0),np.insert(-vect65,vect65.shape[0],0))
         if t1[2]>0:
@@ -393,7 +393,8 @@ class Segmentation(object):
             intersection_elbow[0] = intersection_elbow[1]
             intersection_elbow[1] = tmp
 
-        #the upper arm need a fifth point -> Let us find it by considering it as the center of the left part of the body
+        #the upper arm need a fifth point -> Let us find it by finding the first starting from the spine shoulder 
+        #that meet the background in half of the body part
         B1 = np.logical_and( (A==0),self.polygonOutline(pos2D[[elbow, shoulder, 20, 0],:]))
         f = np.nonzero(B1)
         d = np.argmin(np.sum( np.square(np.array([pos2D[20,0]-f[1], pos2D[20,1]-f[0]]).transpose()),axis=1 ))

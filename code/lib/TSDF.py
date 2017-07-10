@@ -64,18 +64,21 @@ class TSDFManager():
 #####
 
     # Fuse on the GPU
-    def FuseRGBD_GPU(self, Image, Pose):#, CldPtGPU):
+    def FuseRGBD_GPU(self, Image, Pose, CldPtGPU):#,radius):
         Transform = np.zeros(Pose.shape,Pose.dtype)
         Transform[0:3,0:3] = LA.inv(Pose[0:3,0:3])
         Transform[0:3,3] = -np.dot(Transform[0:3,0:3],Pose[0:3,3])
         Transform[3,3] = 1.0
         #Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
         
+        #radiusGPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, radius.nbytes)
+        
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
+        #cl.enqueue_write_buffer(self.GPUManager.queue, radiusGPU, radius)
         
-        print "self.Pose_GPU"
-        print self.Pose_GPU
+        print "Pose"
+        print Pose
         print "self.Size"
         print self.Size
         print "self.res"
@@ -83,14 +86,13 @@ class TSDFManager():
         
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU)#,CldPtGPU)
-        print "Pose"
-        print Pose        
+                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU,CldPtGPU)#),radiusGPU)
+    
         
-        ptClouds = np.zeros((self.Size[0]*self.Size[1]*self.Size[2],3),np.float32)
+        ptClouds =  np.zeros((20,3),np.float32)#np.zeros((self.Size[0]*self.Size[1]*self.Size[2],3),np.float32)
         cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
         cl.enqueue_read_buffer(self.GPUManager.queue, self.WeightGPU, self.Weight).wait()  
-        #cl.enqueue_read_buffer(self.GPUManager.queue, CldPtGPU, ptClouds).wait()  
+        cl.enqueue_read_buffer(self.GPUManager.queue, CldPtGPU, ptClouds).wait()  
         return ptClouds
         
     # Reay tracing on the GPU

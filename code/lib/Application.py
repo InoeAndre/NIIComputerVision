@@ -251,26 +251,6 @@ class Application(tk.Frame):
         PoseInv[3,3] = 1.0
         return PoseInv
 
-    def TransfoLocalCldOfPts(self,bp,X,Y,Z):
-        '''Compute the inverse transform of Pose'''  
-        # For each point
-        for i in range(X):
-            x = (float(i) - self.param[bp][0])/self.param[bp][1]
-            for j in range(Y):
-                #rescale the points of clouds  
-                y = (float(j) - self.param[bp][2])/self.param[bp][3]
-                # transform in the global system
-                x_T =  self.Tg[bp][0,0]*x + self.Tg[bp][0,1]*y + self.Tg[bp][0,3]
-                y_T =  self.Tg[bp][1,0]*x + self.Tg[bp][1,1]*y + self.Tg[bp][1,3]
-                z_T =  self.Tg[bp][2,0]*x + self.Tg[bp][2,1]*y + self.Tg[bp][2,3]                    
-                for k in range(Z):     
-                    z = (float(k) - self.param[bp][4])/self.param[bp][5]
-                    pt_Tx = x_T + self.Tg[bp][0,2]*z 
-                    pt_Ty = y_T + self.Tg[bp][1,2]*z
-                    pt_Tz = z_T + self.Tg[bp][2,2]*z
-                    # add the point to the list
-                    idx =i+j*X+k*X*Y
-                    self.ptClouds[bp][idx] = (pt_Tx, pt_Ty, pt_Tz)
     
     
     ## Constructor function

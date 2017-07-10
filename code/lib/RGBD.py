@@ -493,7 +493,9 @@ class RGBD():
         res = np.dstack((x_res,y_res,z_res)).reshape(nbPts,3)
 
         #elapsed_time3 = time.time() - start_time2
-        #print "making pointcloud process time: %f" % (elapsed_time3)       
+        #print "making pointcloud process time: %f" % (elapsed_time3)    
+        
+
         return res
     
     
@@ -508,6 +510,9 @@ class RGBD():
         # list of transformed Vtx of each bounding boxes
         self.TVtxBB = []
         self.TVtxBB.append([0.,0.,0.])
+        # list of transformed Vtx of each bounding boxes
+        self.TNmlsBB = []
+        self.TNmlsBB.append([0.,0.,0.])        
         # list of coordinates sys with center
         self.TransfoBB = []
         self.TransfoBB.append([0.,0.,0.])
@@ -537,7 +542,19 @@ class RGBD():
             #print self.ctr3D[i]
             
             self.vects3D.append(self.pca[i].components_)
-            self.TVtxBB.append( self.pca[i].transform(self.PtCloud[i]))
+            self.TVtxBB.append( self.pca[i].inverse_transform(self.PtCloud[i]))
+            
+            xNml = self.Nmls[:,:,0]*self.mask[i]
+            yNml = self.Nmls[:,:,1]*self.mask[i]
+            zNml = self.Nmls[:,:,2]*self.mask[i]
+            
+            x_resNml = xNml[~(xNml==0)]
+            y_resNml = yNml[~(yNml==0)]
+            z_resNml = zNml[~(zNml==0)]
+            
+            resNmls = np.dstack((x_resNml,y_resNml,z_resNml)).reshape(x_resNml.shape[0],3)
+            self.TNmlsBB.append( resNmls)#self.pca[i].transform(resNmls))
+        
             self.FindCoord3D(i)
             self.SetTransfoMat3D(self.pca[i].components_,i)  
 
@@ -546,13 +563,15 @@ class RGBD():
         '''
         draw the bounding boxes in 3D for each part of the human body
         '''     
+        # Adding a space so that the bounding boxes are wider
+        wider = 0.005
         # extremes planes of the bodies
-        minX = np.min(self.TVtxBB[i][:,0])
-        maxX = np.max(self.TVtxBB[i][:,0])
-        minY = np.min(self.TVtxBB[i][:,1])
-        maxY = np.max(self.TVtxBB[i][:,1])
-        minZ = np.min(self.TVtxBB[i][:,2])
-        maxZ = np.max(self.TVtxBB[i][:,2])
+        minX = np.min(self.TVtxBB[i][:,0])# - wider
+        maxX = np.max(self.TVtxBB[i][:,0])# + wider
+        minY = np.min(self.TVtxBB[i][:,1]) - wider
+        maxY = np.max(self.TVtxBB[i][:,1]) + wider
+        minZ = np.min(self.TVtxBB[i][:,2]) - wider
+        maxZ = np.max(self.TVtxBB[i][:,2]) + wider
         # extremes points of the bodies
         xymz = np.array([minX,minY,minZ])
         xYmz = np.array([minX,maxY,minZ])           
@@ -570,7 +589,7 @@ class RGBD():
         #print self.coordsL[i]
         
         # transform back
-        self.coordsGbl.append( self.pca[i].inverse_transform(self.coordsL[i]))
+        self.coordsGbl.append( self.pca[i].transform(self.coordsL[i]))
         #print "coordsGbl[%d]" %(i)
         #print self.coordsGbl[i]
             
