@@ -514,7 +514,7 @@ class Application(tk.Frame):
 #==============================================================================
         
         for bp in range(1,2):#RGBD.bdyPart.shape[0]+1):
-            rendering = RGBD.DrawMesh(rendering,self.MC.Vertices,self.MC.Normales,Id4, 1, self.color_tag)
+            rendering = self.RGBD.DrawMesh(rendering,self.MC.Vertices,self.MC.Normales,Id4, 1, self.color_tag)
         # Show figure and images
             
         # 3D reconstruction of the whole image

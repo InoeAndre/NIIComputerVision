@@ -542,7 +542,7 @@ class RGBD():
             #print self.ctr3D[i]
             
             self.vects3D.append(self.pca[i].components_)
-            self.TVtxBB.append( self.pca[i].inverse_transform(self.PtCloud[i]))
+            self.TVtxBB.append( self.pca[i].transform(self.PtCloud[i]))
             
             xNml = self.Nmls[:,:,0]*self.mask[i]
             yNml = self.Nmls[:,:,1]*self.mask[i]
@@ -589,7 +589,7 @@ class RGBD():
         #print self.coordsL[i]
         
         # transform back
-        self.coordsGbl.append( self.pca[i].transform(self.coordsL[i]))
+        self.coordsGbl.append( self.pca[i].inverse_transform(self.coordsL[i]))
         #print "coordsGbl[%d]" %(i)
         #print self.coordsGbl[i]
             
