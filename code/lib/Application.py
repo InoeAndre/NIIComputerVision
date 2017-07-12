@@ -346,19 +346,19 @@ class Application(tk.Frame):
         #centers for body parts 
         ctrs = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Id4)
             
-        end = 2#self.RGBD.bdyPart.shape[0]+1
+        end = 3#self.RGBD.bdyPart.shape[0]+1
         # Loop for each body part bp
         for bp in range(1,end):
             # Compute the dimension of the body part to create the volume
             #Compute for axis X,Y by projecting into the 2D space
+            VoxSize = 0.005
+            X = int(round(LA.norm(self.RGBD.coordsGbl[bp][3]-self.RGBD.coordsGbl[bp][0])/VoxSize))
+            Y = int(round(LA.norm(self.RGBD.coordsGbl[bp][1]-self.RGBD.coordsGbl[bp][0])/VoxSize))
+            Z = int(round(LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])/VoxSize))
+            # show result
+            print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
+    
 #==============================================================================
-#             VoxSize = 0.005
-#             X = int(round(LA.norm(self.RGBD.coordsGbl[bp][3]-self.RGBD.coordsGbl[bp][0])/VoxSize))
-#             Y = int(round(LA.norm(self.RGBD.coordsGbl[bp][1]-self.RGBD.coordsGbl[bp][0])/VoxSize))
-#             Z = int(round(LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])/VoxSize))
-#             # show result
-#             print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
-#     
 #             # Create the volume
 #             mf = cl.mem_flags
 #             self.TSDF.append(np.zeros((X,Y,Z), dtype = np.int16))
@@ -405,7 +405,13 @@ class Application(tk.Frame):
             
             #GPU + model
             mf = cl.mem_flags
-            X=Y=Z=512
+            # Expand dimension in all the space accessible 
+            ExpFact = 512.0/float(X)
+            X = 512
+            Y = int(round(Y * ExpFact))
+            Z = 512#int(round(Z * ExpFact))
+            #X=Y=Z=512
+            print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
             self.TSDF2 = np.zeros((X,Y,Z), dtype = np.int16)
             self.TSDFGPU2 = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF2.nbytes)
             self.Weight2 = np.zeros((X,Y,Z), dtype = np.int16)
@@ -413,8 +419,9 @@ class Application(tk.Frame):
             #centers
             
             #rescaling factors
-            VoxSize2 = 5.0
-            param2 = np.array([X/2 , X/VoxSize2, Y/2 , Y/VoxSize2, Z/2, Z/VoxSize2], dtype = np.float32)
+            VoxSize2 = LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])/100.0
+            print LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])
+            param2 = np.array([X/2 , 1.0/VoxSize2, Y/2 , 1.0/VoxSize2, Z/2, 1.0/VoxSize2], dtype = np.float32)
             #radius
             radius = np.float32(LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])/1.0)
             # Transform the cloud of points with rescaling and local transform = the beginning of FuseRGBD

@@ -63,7 +63,7 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
             CldPtGPU[3*idx+1] = pt_T.y;
             CldPtGPU[3*idx+2] = pt_T.z;
             */
-            /*
+            
             if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1){
                 if (Weight[idx] == 0)
                     TSDF[idx] = (short int)(convVal);
@@ -80,8 +80,8 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
                 continue;
             }
             
-            */
             
+            /*
             float mx = pt_T.x - center[0];
             float my = pt_T.y - center[1];
             float mz = pt_T.z - center[2];
@@ -93,7 +93,7 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
             CldPtGPU[19] = mx;
             CldPtGPU[20] = my;
             CldPtGPU[21] = mz;               
-            
+            */
             if (dist > 1.0f) dist = 1.0f;
             else dist = max(-1.0f, dist);
                 
