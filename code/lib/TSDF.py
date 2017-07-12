@@ -14,6 +14,7 @@ from array import array
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
+KernelsOpenCL = imp.load_source('KernelsOpenCL', 'lib/KernelsOpenCL.py')
 
 def sign(x):
     if (x < 0):
@@ -64,7 +65,7 @@ class TSDFManager():
 #####
 
     # Fuse on the GPU
-    def FuseRGBD_GPU(self, Image, Pose, CldPtGPU,radius):
+    def FuseRGBD_GPU(self, Image, Pose, CldPtGPU,radius,center):
         Transform = np.zeros(Pose.shape,Pose.dtype)
         Transform[0:3,0:3] = LA.inv(Pose[0:3,0:3])
         Transform[0:3,3] = -np.dot(Transform[0:3,0:3],Pose[0:3,3])
@@ -76,6 +77,7 @@ class TSDFManager():
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
         #cl.enqueue_write_buffer(self.GPUManager.queue, radiusGPU, np.float64(radius))
+        self.center_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf = center)
         
         print "Pose"
         print Pose
@@ -86,7 +88,7 @@ class TSDFManager():
         
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU,CldPtGPU,radius)
+                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU,CldPtGPU,radius,self.center_GPU)
     
         
         ptClouds =  np.zeros((20,3),np.float32)#np.zeros((self.Size[0]*self.Size[1]*self.Size[2],3),np.float32)
@@ -94,7 +96,43 @@ class TSDFManager():
         cl.enqueue_read_buffer(self.GPUManager.queue, self.WeightGPU, self.Weight).wait()  
         cl.enqueue_read_buffer(self.GPUManager.queue, CldPtGPU, ptClouds).wait()  
         return ptClouds
+ 
+
+    # Fuse on the GPU
+    def FuseRGBD_GPUViz(self, Image, Pose, CldPtGPU,radius):
+        Transform = np.zeros(Pose.shape,Pose.dtype)
+        Transform[0:3,0:3] = LA.inv(Pose[0:3,0:3])
+        Transform[0:3,3] = -np.dot(Transform[0:3,0:3],Pose[0:3,3])
+        Transform[3,3] = 1.0
+        #Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
         
+        #radiusGPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, 8)
+        
+        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
+        cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
+        #cl.enqueue_write_buffer(self.GPUManager.queue, radiusGPU, np.float64(radius))
+#==============================================================================
+#         self.Pixels = np.zeros((self.Size[0]*self.Size[1]*self.Size[2],2),np.int16)
+#         self.PixelsGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Pixels.nbytes)
+#==============================================================================
+        print "Pose"
+        print Pose
+        print "self.Size"
+        print self.Size
+        print "self.res"
+        print self.res        
+        self.GPUManager.programs['FuseTSDFViz'] = cl.Program(self.GPUManager.context, KernelsOpenCL.Kernel_FuseTSDFViz).build()
+        self.GPUManager.programs['FuseTSDFViz'].FuseTSDFViz(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
+                                self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
+                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),CldPtGPU,radius)#,self.PixelsGPU)
+    
+        
+        ptClouds =  np.zeros((self.Size[0]*self.Size[1]*self.Size[2],3),np.float32)
+        cl.enqueue_read_buffer(self.GPUManager.queue, CldPtGPU, ptClouds).wait()  
+        #cl.enqueue_read_buffer(self.GPUManager.queue, self.PixelsGPU, self.Pixels).wait()  
+        return ptClouds
+
+       
     # Reay tracing on the GPU
     def RayTracing_GPU(self, Image, Pose):
         result = np.zeros((Image.Size[0], Image.Size[1]), np.float32)

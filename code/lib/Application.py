@@ -308,11 +308,7 @@ class Application(tk.Frame):
         self.ptClouds = []
         self.ptClouds.append(np.zeros((1,3),np.float32))   
         self.ptCloudsGPU = []
-        self.ptCloudsGPU.append(np.zeros((1,3),np.float32))   
-        self.ptClouds2 = []
-        self.ptClouds2.append(np.zeros((1,3),np.float32)) 
-        self.ptClouds2GPU = []
-        self.ptClouds2GPU.append(np.zeros((1,3),np.float32))              
+        self.ptCloudsGPU.append(np.zeros((1,3),np.float32))           
         self.ptNmls = []
         self.ptNmls.append(np.ones((1,3),np.float32))
         self.param = []
@@ -350,15 +346,15 @@ class Application(tk.Frame):
         #centers for body parts 
         ctrs = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Id4)
             
-        end = self.RGBD.bdyPart.shape[0]+1
+        end = 2#self.RGBD.bdyPart.shape[0]+1
         # Loop for each body part bp
         for bp in range(1,end):
+            # Compute the dimension of the body part to create the volume
+            #Compute for axis X,Y by projecting into the 2D space
 #==============================================================================
-#             # Compute the dimension of the body part to create the volume
-#             #Compute for axis X,Y by projecting into the 2D space
 #             VoxSize = 0.005
-#             X = int(round(LA.norm(self.RGBD.coordsGbl[bp][1]-self.RGBD.coordsGbl[bp][0])/VoxSize))
-#             Y = int(round(LA.norm(self.RGBD.coordsGbl[bp][3]-self.RGBD.coordsGbl[bp][0])/VoxSize))
+#             X = int(round(LA.norm(self.RGBD.coordsGbl[bp][3]-self.RGBD.coordsGbl[bp][0])/VoxSize))
+#             Y = int(round(LA.norm(self.RGBD.coordsGbl[bp][1]-self.RGBD.coordsGbl[bp][0])/VoxSize))
 #             Z = int(round(LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])/VoxSize))
 #             # show result
 #             print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
@@ -388,17 +384,13 @@ class Application(tk.Frame):
             for i in range(4):
                 for j in range(4):
                     self.PoseBP[i][j] = self.Tg[bp][i][j]
+            #Points of clouds in the TSDF local coordinates system
+            # create points of clouds
 #==============================================================================
-#             #Points of clouds in the TSDF local coordinates system
-#             # create points of clouds
 #             self.ptClouds.append(np.zeros((X*Y*Z,3),np.float))
 #             self.ptCloudsGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.ptClouds[bp].nbytes))            
 #             self.ptNmls.append(np.ones((X*Y*Z,3),np.float32))
-#             # Transform the cloud of points with rescaling and local transform = the beginning of FuseRGBD
-#             #self.TransfoLocalCldOfPts(bp,X,Y,Z)
 #             
-#             self.ptClouds2.append(np.zeros((X*Y*Z,3),np.float)) 
-#             self.ptClouds2GPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.ptClouds2[bp].nbytes)) 
 #==============================================================================
             
             
@@ -422,34 +414,24 @@ class Application(tk.Frame):
             
             #rescaling factors
             VoxSize2 = 5.0
-            param2 = np.array([ctrs[bp][0] , X/VoxSize2, ctrs[bp][1] , Y/VoxSize2, Z/2, Z/VoxSize2], dtype = np.float32)
-            
+            param2 = np.array([X/2 , X/VoxSize2, Y/2 , Y/VoxSize2, Z/2, Z/VoxSize2], dtype = np.float32)
             #radius
-            radius = np.float32(LA.norm(self.RGBD.coordsGbl[bp][1]-self.RGBD.coordsGbl[bp][0]))
+            radius = np.float32(LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])/1.0)
             # Transform the cloud of points with rescaling and local transform = the beginning of FuseRGBD
             #TSDFManager.FuseRGBD(RGBD, Id4)
-            TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU2,self.WeightGPU2,param2) 
-            self.ptClouds[bp] = TSDFManager.FuseRGBD_GPU(self.RGBD, Id4, self.ptCloudsGPU[bp],radius)#
+            TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU2,self.WeightGPU2,param2)#self.param[bp]) 
+            self.ptClouds[bp] = TSDFManager.FuseRGBD_GPU(self.RGBD, self.PoseBP, self.ptCloudsGPU[bp],radius,(self.RGBD.ctr3D[bp]).astype(np.float32))#
             #cl.enqueue_copy(GPUManager.queue, TSDFManager.TSDFGPU, TSDFManager.TSDF).wait()    
     
 
                           
-#==============================================================================
-#             # TSDF of the body part
-#             TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU[bp],self.WeightGPU[bp],self.param[bp]) 
-#             self.ptClouds[bp] = TSDFManager.FuseRGBD_GPU(self.RGBD, self.PoseBP,self.ptCloudsGPU[bp]) 
-#             #TSDFManager.FuseRGBD(self.RGBD, self.PoseBP,self.ptClouds2[bp])
-#             self.TSDF[bp] = TSDFManager.TSDF
-#==============================================================================
-#==============================================================================
-#             print TSDFManager.TSDF.shape
-#             print np.min(TSDFManager.TSDF)
-#             tsdfmax = np.max(TSDFManager.TSDF)
-#             print tsdfmax 
-#             tmp = ~(TSDFManager.TSDF ==tsdfmax)
-#             tmp = tmp*TSDFManager.TSDF
-#             print np.max(tmp)
-#==============================================================================
+            print TSDFManager.TSDF.shape
+            print np.min(TSDFManager.TSDF)
+            tsdfmax = np.max(TSDFManager.TSDF)
+            print tsdfmax 
+            tmp = ~(TSDFManager.TSDF ==tsdfmax)
+            tmp = tmp*TSDFManager.TSDF
+            print np.max(tmp)
             #self.ctrBis.append(np.mean(self.ptClouds[bp],axis = 0))
             #cl.enqueue_copy(GPUManager.queue, self.TSDFGPU[bp], TSDFManager.TSDF).wait()
             # Create Mesh
@@ -473,15 +455,16 @@ class Application(tk.Frame):
             #Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)  
             # restart processing of each body part for the current image.
 
-        up = 1 
-        #Vertices2 = TVtxBB
         # projection in 2d space to draw it
         rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         # projection of the current image/ Overlay
         #rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
         
         for bp in range(1,end):
-            rendering = self.RGBD.DrawMesh(rendering,self.Vertices[bp],self.Normales[bp],Id4, 1, self.color_tag)
+            for i in range(4):
+                for j in range(4):
+                    self.PoseBP[i][j] = self.Tg[bp][i][j]
+            rendering = self.RGBD.DrawMesh(rendering,self.Vertices[bp],self.Normales[bp],self.PoseBP, 1, self.color_tag)
         # Show figure and images
             
         # 3D reconstruction of the whole image
