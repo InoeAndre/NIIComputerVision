@@ -19,7 +19,7 @@ __kernel void Test(__global float *TSDF) {
 Kernel_FuseTSDF = """
 __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __constant float *Param, __constant int *Dim,
                            __constant float *Pose, __constant float *calib, const int n_row, const int m_col,
-                           __global short int *Weight, __global float * CldPtGPU, const float radius, __constant float *center) {
+                           __global short int *Weight) {
         //const sampler_t smp =  CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
 
         const float nu = 0.05f;
@@ -58,19 +58,12 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
             pix.y = convert_int(round((pt_T.y/fabs(pt_T.z))*calib[4] + calib[5])); 
             
             int idx = z + Dim[2]*y + Dim[2]*Dim[1]*x;
-            /*
-            CldPtGPU[3*idx] = pt_T.x;
-            CldPtGPU[3*idx+1] = pt_T.y;
-            CldPtGPU[3*idx+2] = pt_T.z;
-            */
             
             if (pix.x < 0 || pix.x > m_col-1 || pix.y < 0 || pix.y > n_row-1){
                 if (Weight[idx] == 0)
                     TSDF[idx] = (short int)(convVal);
                 continue;
             }
-            
-            
             
             float dist = -(pt_T.z - Depth[pix.x + m_col*pix.y])/nu;
             dist = min(1.0f, max(-1.0f, dist));            
@@ -80,20 +73,6 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
                 continue;
             }
             
-            
-            /*
-            float mx = pt_T.x - center[0];
-            float my = pt_T.y - center[1];
-            float mz = pt_T.z - center[2];
-            float dist = -( mx*mx + my*my + mz*mz - radius*radius);
-            dist = min(1.0f, max(-1.0f, dist));            
-            
-            CldPtGPU[11] = -( mx*mx + my*my + mz*mz - radius*radius);
-            CldPtGPU[12] = dist;
-            CldPtGPU[19] = mx;
-            CldPtGPU[20] = my;
-            CldPtGPU[21] = mz;               
-            */
             if (dist > 1.0f) dist = 1.0f;
             else dist = max(-1.0f, dist);
                 
@@ -106,31 +85,6 @@ __kernel void FuseTSDF(__global short int *TSDF,  __global float *Depth, __const
                 Weight[idx] = min(1000, Weight[idx]+1);
             
          }
-
-        CldPtGPU[0] = x;
-        CldPtGPU[1] = y;
-        CldPtGPU[2] = pt.x;
-        CldPtGPU[3] = pt.y;
-        CldPtGPU[4] = pt.z;
-        CldPtGPU[5] = x_T;
-        CldPtGPU[6] = y_T;
-        CldPtGPU[7] = z_T;
-        CldPtGPU[8] = pt_T.x;
-        CldPtGPU[9] = pt_T.y;
-        CldPtGPU[10] = pt_T.z;
-
-
-        
-        CldPtGPU[13] = Dim[0];
-        CldPtGPU[14] = Dim[1];
-        CldPtGPU[15] = Dim[2]; 
-        CldPtGPU[16] = 0;
-        CldPtGPU[17] = 0;
-        CldPtGPU[18] = 0;
-        CldPtGPU[22] = 0;
-        CldPtGPU[23] = 0;
-        CldPtGPU[24] = 0;  
-
         
 }
 """

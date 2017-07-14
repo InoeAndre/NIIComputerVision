@@ -36,12 +36,12 @@ class TSDFManager():
         self.Size = Size
         self.TSDF = np.zeros(Size, dtype = np.int16)
         self.Weight = np.zeros(Size, dtype = np.int16)
-        self.c_x = param[0]#self.Size[0]/2
-        self.c_y = param[2]#self.Size[1]/2
-        self.c_z = param[4]#-0.1
-        self.dim_x = param[1]#self.Size[0]/5.0
-        self.dim_y = param[3]#self.Size[1]/5.0
-        self.dim_z = param[5]#self.Size[2]/5.0
+        self.c_x = param[0]
+        self.c_y = param[2]
+        self.c_z = param[4]
+        self.dim_x = param[1]
+        self.dim_y = param[3]
+        self.dim_z = param[5]
         self.res = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32)
         
         self.GPUManager = GPUManager
@@ -52,9 +52,6 @@ class TSDFManager():
         self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = self.res)
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
-        #fmt = cl.ImageFormat(cl.channel_order.RGB, cl.channel_type.FLOAT)
-        #self.VMapGPU = cl.Image(self.GPUManager.context, mf.READ_ONLY, fmt, shape = (Image.Size[1], Image.Size[0]))
-        #cl.enqueue_copy(self.GPUManager.queue, self.VMapGPU, Image.Vtx, origin = (0,0), region = (Image.Size[1], Image.Size[0]))
         self.DepthGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Image.depth_image.nbytes)
         self.Calib_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf = Image.intrinsic)
         self.Pose_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, self.Pose.nbytes)
@@ -65,19 +62,15 @@ class TSDFManager():
 #####
 
     # Fuse on the GPU
-    def FuseRGBD_GPU(self, Image, Pose, CldPtGPU,radius,center):
+    def FuseRGBD_GPU(self, Image, Pose):
         Transform = np.zeros(Pose.shape,Pose.dtype)
         Transform[0:3,0:3] = LA.inv(Pose[0:3,0:3])
         Transform[0:3,3] = -np.dot(Transform[0:3,0:3],Pose[0:3,3])
         Transform[3,3] = 1.0
         #Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
         
-        #radiusGPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, 8)
-        
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
-        #cl.enqueue_write_buffer(self.GPUManager.queue, radiusGPU, np.float64(radius))
-        self.center_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf = center)
         
         print "Pose"
         print Pose
@@ -88,14 +81,11 @@ class TSDFManager():
         
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU,CldPtGPU,radius,self.center_GPU)
+                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU)
     
-        
-        ptClouds =  np.zeros((20,3),np.float32)#np.zeros((self.Size[0]*self.Size[1]*self.Size[2],3),np.float32)
         cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
         cl.enqueue_read_buffer(self.GPUManager.queue, self.WeightGPU, self.Weight).wait()  
-        cl.enqueue_read_buffer(self.GPUManager.queue, CldPtGPU, ptClouds).wait()  
-        return ptClouds
+
  
 
     # Fuse on the GPU
