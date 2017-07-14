@@ -346,7 +346,7 @@ class Application(tk.Frame):
         #centers for body parts 
         ctrs = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Id4)
             
-        end = 3#self.RGBD.bdyPart.shape[0]+1
+        end = self.RGBD.bdyPart.shape[0]+1
         # Loop for each body part bp
         for bp in range(1,end):
             # Compute the dimension of the body part to create the volume
@@ -381,6 +381,7 @@ class Application(tk.Frame):
             print "self.Tl[bp]"
             print self.Tl[bp]
             
+            # Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
             for i in range(4):
                 for j in range(4):
                     self.PoseBP[i][j] = self.Tg[bp][i][j]
@@ -389,8 +390,7 @@ class Application(tk.Frame):
 #==============================================================================
 #             self.ptClouds.append(np.zeros((X*Y*Z,3),np.float))
 #             self.ptCloudsGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.ptClouds[bp].nbytes))            
-#             self.ptNmls.append(np.ones((X*Y*Z,3),np.float32))
-#             
+#             self.ptNmls.append(np.ones((X*Y*Z,3),np.float32))            
 #==============================================================================
             
             
@@ -399,17 +399,19 @@ class Application(tk.Frame):
             # create points of clouds
             mf = cl.mem_flags
             self.ptClouds.append(np.zeros((20,3),np.float32))
-            self.ptCloudsGPU.append(cl.Buffer(GPUManager.context, mf.READ_WRITE, self.ptClouds[bp].nbytes))              
+            self.ptCloudsGPU = cl.Buffer(GPUManager.context, mf.READ_WRITE, self.ptClouds[bp].nbytes)              
             # TSDF of the body part
             #TSDFManager = TSDFtk.TSDFManager((X,Y,Z), RGBD, GPUManager,TSDFGPU[bp],WeightGPU[bp],param[bp])
-            
+            Z=X
             #GPU + model
-            mf = cl.mem_flags
-            # Expand dimension in all the space accessible 
-            ExpFact = 512.0/float(X)
-            X = 512
-            Y = int(round(Y * ExpFact))
-            Z = 512#int(round(Z * ExpFact))
+#==============================================================================
+#             mf = cl.mem_flags
+#             # Expand dimension in all the space accessible 
+#             ExpFact = 512.0/float(X)
+#             X = 512
+#             Y = int(round(Y * ExpFact))
+#             Z = 512#int(round(Z * ExpFact))
+#==============================================================================
             #X=Y=Z=512
             print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
             self.TSDF2 = np.zeros((X,Y,Z), dtype = np.int16)
@@ -419,15 +421,15 @@ class Application(tk.Frame):
             #centers
             
             #rescaling factors
-            VoxSize2 = LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])/100.0
-            print LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])
+            VoxSize2 = VoxSize#LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])/100.0
+            #print LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])
             param2 = np.array([X/2 , 1.0/VoxSize2, Y/2 , 1.0/VoxSize2, Z/2, 1.0/VoxSize2], dtype = np.float32)
             #radius
             radius = np.float32(LA.norm(self.RGBD.coordsGbl[bp][4]-self.RGBD.coordsGbl[bp][0])/1.0)
             # Transform the cloud of points with rescaling and local transform = the beginning of FuseRGBD
             #TSDFManager.FuseRGBD(RGBD, Id4)
             TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU2,self.WeightGPU2,param2)#self.param[bp]) 
-            self.ptClouds[bp] = TSDFManager.FuseRGBD_GPU(self.RGBD, self.PoseBP, self.ptCloudsGPU[bp],radius,(self.RGBD.ctr3D[bp]).astype(np.float32))#
+            self.ptClouds[bp] = TSDFManager.FuseRGBD_GPU(self.RGBD, self.PoseBP, self.ptCloudsGPU,radius,(self.RGBD.ctr3D[bp]).astype(np.float32))#
             #cl.enqueue_copy(GPUManager.queue, TSDFManager.TSDFGPU, TSDFManager.TSDF).wait()    
     
 

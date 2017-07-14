@@ -568,10 +568,10 @@ class RGBD():
         # extremes planes of the bodies
         minX = np.min(self.TVtxBB[i][:,0])# - wider
         maxX = np.max(self.TVtxBB[i][:,0])# + wider
-        minY = np.min(self.TVtxBB[i][:,1]) - wider
-        maxY = np.max(self.TVtxBB[i][:,1]) + wider
-        minZ = np.min(self.TVtxBB[i][:,2]) - wider
-        maxZ = np.max(self.TVtxBB[i][:,2]) + wider
+        minY = np.min(self.TVtxBB[i][:,1])# - wider
+        maxY = np.max(self.TVtxBB[i][:,1])# + wider
+        minZ = np.min(self.TVtxBB[i][:,2])# - wider
+        maxZ = np.max(self.TVtxBB[i][:,2])# + wider
         # extremes points of the bodies
         xymz = np.array([minX,minY,minZ])
         xYmz = np.array([minX,maxY,minZ])           
