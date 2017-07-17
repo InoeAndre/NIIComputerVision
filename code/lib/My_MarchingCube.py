@@ -143,7 +143,33 @@ class My_MarchingCube():
                      
         f.close()
                     
-
+    '''
+        Function to record the created mesh into a .ply file
+    '''
+    def SaveToPlyExt(self, name,nb_vertices,nb_faces,Vertices,Faces):
+        f = open(name, 'wb')    
+        
+        # Write headers
+        f.write("ply\n")
+        f.write("format ascii 1.0\n")
+        f.write("comment ply file created by Diego Thomas\n")
+        f.write("element vertex %d \n" %(nb_vertices))
+        f.write("property float x\n")
+        f.write("property float y\n")
+        f.write("property float z\n")
+        f.write("element face %d \n" %(nb_faces))
+        f.write("property list uchar int vertex_indices\n")
+        f.write("end_header\n")
+        
+        # Write vertices
+        for i in range(nb_vertices):
+            f.write("%f %f %f \n" %(Vertices[i,0], Vertices[i,1], Vertices[i,2]))
+            
+        # Write the faces
+        for i in range(nb_faces):
+            f.write("3 %d %d %d \n" %(Faces[i,0], Faces[i,1], Faces[i,2])) 
+                     
+        f.close()
 
         
                     

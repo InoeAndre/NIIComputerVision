@@ -26,6 +26,7 @@ TrackManager = imp.load_source('TrackManager', './lib/tracking.py')
 TSDFtk = imp.load_source('TSDFtk', './lib/TSDF.py')
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
 My_MC = imp.load_source('My_MarchingCube', './lib/My_MarchingCube.py')
+Stitcher = imp.load_source('Stitcher', './lib/Stitching.py')
 
 def in_mat_zero2one(mat):
     """This fonction replace in the matrix all the 0 to 1"""
@@ -305,16 +306,8 @@ class Application(tk.Frame):
         self.Tg.append(Id4)
         self.Tl = []
         self.Tl.append(Id4)
-        self.ptClouds = []
-        self.ptClouds.append(np.zeros((1,3),np.float32))   
-        self.ptCloudsGPU = []
-        self.ptCloudsGPU.append(np.zeros((1,3),np.float32))           
-        self.ptNmls = []
-        self.ptNmls.append(np.ones((1,3),np.float32))
         self.param = []
         self.param.append(np.array([0. , 0., 0. , 0., 0., 0.], dtype = np.float32))
-        self.ctrBis = []
-        self.ctrBis.append(np.array([0. , 0., 0.], dtype = np.float32)) 
         # For Marching cubes output
         self.Vertices = []
         self.Vertices.append(np.zeros((1,3),np.float32))
@@ -343,9 +336,11 @@ class Application(tk.Frame):
         elapsed_time = time.time() - start_time
         print "depth conversion: %f s" % (elapsed_time)
         
-        #centers for body parts 
-        ctrs = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Id4)
-        
+        # Sum of the number of vertices and faces of all body parts
+        nb_verticesGlo = 0
+        nb_facesGlo = 0
+        #Initiate stitcher object 
+        self.StitchBdy = Stitcher.Stitch(self.RGBD.bdyPart.shape[0]+1)
         # Number of body part +1 since the counting starts from 1
         end = self.RGBD.bdyPart.shape[0]+1
         # Loop for each body part bp
@@ -407,12 +402,32 @@ class Application(tk.Frame):
             #Fill list of MC's Vert and Nmls
             self.Vertices.append(self.MC.Vertices)
             self.Normales.append(self.MC.Normales)
-            # Get new current image
+            print self.MC.Faces
+            # Update number of vertices and faces in the stitched mesh
+            nb_verticesGlo = nb_verticesGlo + self.MC.nb_vertices[0]
+            nb_facesGlo = nb_facesGlo +self.MC.nb_faces[0]
             
-            # Once it done for all part
-            # Transform the segmented part in the current image (alignment current image mesh)
-            #Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)  
-            # restart processing of each body part for the current image.
+            # Stitch all the body parts
+            if bp ==1 :
+                self.StitchBdy.StitchedVertices = self.StitchBdy.TransformVert(self.MC.Vertices,self.PoseBP,1) 
+                self.StitchBdy.StitchedFaces = self.MC.Faces
+            else:
+                self.StitchBdy.NaiveStitch(self.MC.Vertices,self.MC.Faces,self.PoseBP)
+            
+           
+        # save with the number of the body part
+        start_time3 = time.time()
+        self.MC.SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,self.StitchBdy.StitchedVertices,self.StitchBdy.StitchedFaces)
+        elapsed_time = time.time() - start_time3
+        print "SaveToPly: %f" % (elapsed_time)  
+        
+        
+        # Get new current image
+            
+
+        # Transform the stitch body in the current image (alignment current image mesh)
+        #Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)  
+        # restart processing of each body part for the current image.
 
         # projection in 2d space to draw it
         rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
@@ -437,10 +452,11 @@ class Application(tk.Frame):
         #self.DrawCenters2D(self.Pose)
         #self.DrawSys2D(self.Pose)
         self.DrawOBBox2D(self.Pose)
-        #self.DrawOBBox2DLocal(self.Pose)
-        #self.DrawMesh2D(self.Pose,self.verts,self.faces)
         
+        # Corners of the bounding boxes
         #ptBis = self.RGBD.GetProjPts2D_optimize(self.ctrBis,Id4)
+        #centers for body parts 
+        ctrs = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Id4)
         for bp in range(1,end):
             self.DrawPoint2D(ctrs[bp],2,"yellow")
             #self.DrawPoint2D(ptBis[bp-1],2,"green")

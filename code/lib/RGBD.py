@@ -564,7 +564,7 @@ class RGBD():
         draw the bounding boxes in 3D for each part of the human body
         '''     
         # Adding a space so that the bounding boxes are wider
-        wider = 0.005
+        #wider = 0.005
         # extremes planes of the bodies
         minX = np.min(self.TVtxBB[i][:,0])# - wider
         maxX = np.max(self.TVtxBB[i][:,0])# + wider
