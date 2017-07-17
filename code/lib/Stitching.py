@@ -20,7 +20,7 @@ class Stitch():
 
         
         
-    def NaiveStitch(self, PartVtx,PartFaces,PoseBP):
+    def NaiveStitch(self, PartVtx,PartNmls,PartFaces,PoseBP):
         '''
         This function will just add the vertices and faces of each body parts 
         together after transforming them in the global coordinates system
@@ -28,23 +28,37 @@ class Stitch():
         #Initialize values from the list of
         ConcatVtx = self.StitchedVertices
         ConcatFaces = self.StitchedFaces
-        # adapt faces so that the global list still gives the corrects indexs
-        #PartFaces = self.TransfoFaces(PartFaces)
+        ConcatNmls = self.StitchedNormales
         # tranform the vertices in the global coordinates system
-        PartVertices = self.TransformVert(PartVtx,PoseBP,1)
+        PartVertices = self.TransformVtx(PartVtx,PoseBP,1)
+        PartNormales = self.TransformNmls(PartNmls,PoseBP,1)
         PartFacets = PartFaces + np.max(self.StitchedFaces)+1
         self.StitchedVertices = np.concatenate((ConcatVtx,PartVertices))
+        self.StitchedNormales = np.concatenate((ConcatNmls,PartNormales))
         self.StitchedFaces = np.concatenate((ConcatFaces,PartFacets))
         
 
         
-    def TransformVert(self, Vtx,Pose, s):
+    def TransformVtx(self, Vtx,Pose, s):
+        """
+        Transform the vertices in a system to another system.
+        Here it will be mostly used to transform from local system to global coordiantes system
+        """
         stack_pt = np.ones(np.size(Vtx,0), dtype = np.float32)
         pt = np.stack( (Vtx[ ::s,0],Vtx[ ::s,1],Vtx[ ::s,2],stack_pt),axis =1 )
         Vtx = np.dot(pt,Pose.T)
         return Vtx[:,0:3]
         
-
+    def TransformNmls(self, Nmls,Pose, s):
+        """
+        Transform the normales in a system to another system.
+        Here it will be mostly used to transform from local system to global coordiantes system
+        """
+        nmle = np.zeros((Nmls.shape[0], Nmls.shape[1]), dtype = np.float32)
+        nmle[ ::s,:] = np.dot(Nmls[ ::s,:],Pose[0:3,0:3].T)
+        return nmle[:,0:3]
+        
+    
     '''
     This function adapt the index in Faces to be able to have coherent concatenation
     '''

@@ -510,9 +510,11 @@ class RGBD():
         # list of transformed Vtx of each bounding boxes
         self.TVtxBB = []
         self.TVtxBB.append([0.,0.,0.])
-        # list of transformed Vtx of each bounding boxes
-        self.TNmlsBB = []
-        self.TNmlsBB.append([0.,0.,0.])        
+#==============================================================================
+#         # list of transformed Vtx of each bounding boxes
+#         self.TNmlsBB = []
+#         self.TNmlsBB.append([0.,0.,0.])        
+#==============================================================================
         # list of coordinates sys with center
         self.TransfoBB = []
         self.TransfoBB.append([0.,0.,0.])
@@ -544,16 +546,18 @@ class RGBD():
             self.vects3D.append(self.pca[i].components_)
             self.TVtxBB.append( self.pca[i].transform(self.PtCloud[i]))
             
-            xNml = self.Nmls[:,:,0]*self.mask[i]
-            yNml = self.Nmls[:,:,1]*self.mask[i]
-            zNml = self.Nmls[:,:,2]*self.mask[i]
-            
-            x_resNml = xNml[~(xNml==0)]
-            y_resNml = yNml[~(yNml==0)]
-            z_resNml = zNml[~(zNml==0)]
-            
-            resNmls = np.dstack((x_resNml,y_resNml,z_resNml)).reshape(x_resNml.shape[0],3)
-            self.TNmlsBB.append( resNmls)#self.pca[i].transform(resNmls))
+#==============================================================================
+#             xNml = self.Nmls[:,:,0]*self.mask[i]
+#             yNml = self.Nmls[:,:,1]*self.mask[i]
+#             zNml = self.Nmls[:,:,2]*self.mask[i]
+#             
+#             x_resNml = xNml[~(xNml==0)]
+#             y_resNml = yNml[~(yNml==0)]
+#             z_resNml = zNml[~(zNml==0)]
+#             
+#             resNmls = np.dstack((x_resNml,y_resNml,z_resNml)).reshape(x_resNml.shape[0],3)
+#             self.TNmlsBB.append( resNmls)#self.pca[i].transform(resNmls))
+#==============================================================================
         
             self.FindCoord3D(i)
             self.SetTransfoMat3D(self.pca[i].components_,i)  
@@ -646,7 +650,7 @@ class RGBD():
         self.drawNewSys = []
         maxDepth = max(0.0001, np.max(self.Vtx[:,:,2]))
 
-        for i in range(len(self.vects3D)):
+        for i in range(1,len(self.vects3D)):
             self.vects3D[i] = np.dot(self.vects3D[i],Pose[0:3,0:3].T )
             vect = self.vects3D[i]
             newPt = np.zeros(vect.shape)

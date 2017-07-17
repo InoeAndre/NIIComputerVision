@@ -162,20 +162,20 @@ class Application(tk.Frame):
     def DrawCenters2D(self,Pose,s=1):
         '''this function draw the center of each oriented coordinates system for each body part''' 
         self.ctr2D = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Pose)        
-        for i in range( len(self.RGBD.ctr3D)):
+        for i in range(1, len(self.RGBD.ctr3D)):
             c = self.ctr2D[i]
             self.DrawPoint2D(c,2,"yellow")
 
     def DrawSys2D(self,Pose):
         '''this function draw the sys of oriented coordinates system for each body part''' 
         self.RGBD.GetNewSys(Pose,self.ctr2D,10)
-        for i in range(len(self.ctr2D)):
+        for i in range(1,len(self.ctr2D)):
             c = self.ctr2D[i]
             #print 'c'
             #print c
-            pt0 = self.RGBD.drawNewSys[i][0]
-            pt1 = self.RGBD.drawNewSys[i][1]
-            pt2 = self.RGBD.drawNewSys[i][2]    
+            pt0 = self.RGBD.drawNewSys[i-1][0]
+            pt1 = self.RGBD.drawNewSys[i-1][1]
+            pt2 = self.RGBD.drawNewSys[i-1][2]    
             self.canvas.create_line(pt0[0],pt0[1],c[0],c[1],fill="gray",width = 2)
             self.canvas.create_line(pt1[0],pt1[1],c[0],c[1],fill="gray",width = 2)
             self.canvas.create_line(pt2[0],pt2[1],c[0],c[1],fill="gray",width = 2)
@@ -304,8 +304,6 @@ class Application(tk.Frame):
         # Init for Local Transform and inverse Transform
         self.Tg = []
         self.Tg.append(Id4)
-        self.Tl = []
-        self.Tl.append(Id4)
         self.param = []
         self.param.append(np.array([0. , 0., 0. , 0., 0., 0.], dtype = np.float32))
         # For Marching cubes output
@@ -314,10 +312,9 @@ class Application(tk.Frame):
         self.Normales = []
         self.Normales.append(np.zeros((1,3),np.float32))
         # Loop for each image
-        i = 10
+        i = 0
 
-        # Current Depth Image (i.e: i)
-        start_time = time.time()
+        # Former Depth Image (i.e: i)
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.RGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
         self.Index = i
@@ -330,23 +327,24 @@ class Application(tk.Frame):
         # select the body part
         self.RGBD.depth_image *= (self.RGBD.labels >0) # 9 = head; 10 = torso 
         self.RGBD.Vmap_optimize()   
-        self.RGBD.NMap_optimize() 
+        self.RGBD.NMap_optimize()        
         # create the transform matrix from local to global coordinate
         self.RGBD.myPCA()
-        elapsed_time = time.time() - start_time
-        print "depth conversion: %f s" % (elapsed_time)
-        
+
+        '''
+        The image is process differently from the other since it does not have any previous value.
+        '''
         # Sum of the number of vertices and faces of all body parts
         nb_verticesGlo = 0
         nb_facesGlo = 0
-        #Initiate stitcher object 
-        self.StitchBdy = Stitcher.Stitch(self.RGBD.bdyPart.shape[0]+1)
         # Number of body part +1 since the counting starts from 1
-        end = self.RGBD.bdyPart.shape[0]+1
-        # Loop for each body part bp
-        for bp in range(1,end):
+        nbBdyPart = self.RGBD.bdyPart.shape[0]-3
+        #Initiate stitcher object 
+        self.StitchBdy = Stitcher.Stitch(nbBdyPart)        
+        # Creating mesh of each body part
+        for bp in range(1,nbBdyPart):
             # Compute the dimension of the body part to create the volume
-            VoxSize = 0.0048
+            VoxSize = 0.0046
             X = int(round(LA.norm(self.RGBD.coordsGbl[bp][3]-self.RGBD.coordsGbl[bp][0])/VoxSize))
             Y = int(round(LA.norm(self.RGBD.coordsGbl[bp][1]-self.RGBD.coordsGbl[bp][0])/VoxSize))
             Z = X
@@ -356,9 +354,6 @@ class Application(tk.Frame):
             # Get the tranform matrix from the local coordinates system to the global system 
             Tglo = self.RGBD.TransfoBB[bp]
             self.Tg.append(Tglo.astype(np.float32))
-            # Compute the inverse local Transform
-            Tlcl = self.InvPose(self.Tg[bp])
-            self.Tl.append(Tlcl)
             
             # Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
             for i in range(4):
@@ -377,16 +372,7 @@ class Application(tk.Frame):
 
             # TSDF Fusion of the body part
             TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU2,param2)
-            TSDFManager.FuseRGBD_GPU(self.RGBD, self.PoseBP)# 
-
-            # some value of TSDF in order to debug
-            print TSDFManager.TSDF.shape
-            print np.min(TSDFManager.TSDF)
-            tsdfmax = np.max(TSDFManager.TSDF)
-            print tsdfmax 
-            tmp = ~(TSDFManager.TSDF ==tsdfmax)
-            tmp = tmp*TSDFManager.TSDF
-            print np.max(tmp)
+            TSDFManager.FuseRGBD_GPU(self.RGBD, self.PoseBP)
 
             # Create Mesh
             self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)     
@@ -397,50 +383,179 @@ class Application(tk.Frame):
             bpStr = str(bp)
             self.MC.SaveToPly("body"+bpStr+".ply")
             elapsed_time = time.time() - start_time3
-            print "SaveToPly: %f" % (elapsed_time)      
+            print "SaveBPToPly: %f" % (elapsed_time)      
             
             #Fill list of MC's Vert and Nmls
             self.Vertices.append(self.MC.Vertices)
             self.Normales.append(self.MC.Normales)
-            print self.MC.Faces
+
             # Update number of vertices and faces in the stitched mesh
             nb_verticesGlo = nb_verticesGlo + self.MC.nb_vertices[0]
             nb_facesGlo = nb_facesGlo +self.MC.nb_faces[0]
             
             # Stitch all the body parts
             if bp ==1 :
-                self.StitchBdy.StitchedVertices = self.StitchBdy.TransformVert(self.MC.Vertices,self.PoseBP,1) 
+                self.StitchBdy.StitchedVertices = self.StitchBdy.TransformVtx(self.MC.Vertices,self.PoseBP,1) 
+                self.StitchBdy.StitchedNormales = self.StitchBdy.TransformNmls(self.MC.Normales,self.PoseBP,1) 
                 self.StitchBdy.StitchedFaces = self.MC.Faces
             else:
-                self.StitchBdy.NaiveStitch(self.MC.Vertices,self.MC.Faces,self.PoseBP)
+                self.StitchBdy.NaiveStitch(self.MC.Vertices,self.MC.Normales,self.MC.Faces,self.PoseBP)
+                    
+        # save with the number of the body part
+        start_time3 = time.time()
+        self.MC.SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,self.StitchBdy.StitchedVertices,self.StitchBdy.StitchedFaces)
+        elapsed_time = time.time() - start_time3
+        print "SaveToPly: %f" % (elapsed_time)                      
+                    
+        # Current Depth Image (i.e: i+1)
+        self.newRGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
+        self.newRGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
+
+        #TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU,param2) 
+        #self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
+        Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)
+        
+        nbImg = 20
+        for imgk in range(1,nbImg):
+            '''
+            Reinitialize every list
+            '''
+            # Init for TSDF
+            self.TSDF = []
+            self.TSDF.append([0.,0.,0.])
+            self.TSDFGPU = []
+            self.TSDFGPU.append([0.,0.,0.])
+            self.Weight = []
+            self.Weight.append([0.,0.,0.])
+            self.WeightGPU = []
+            self.WeightGPU.append([0.,0.,0.])
+            # Init for Local Transform and inverse Transform
+            self.Tg = []
+            self.Tg.append(Id4)
+            self.param = []
+            self.param.append(np.array([0. , 0., 0. , 0., 0., 0.], dtype = np.float32))
+            # For Marching cubes output
+            self.Vertices = []
+            self.Vertices.append(np.zeros((1,3),np.float32))
+            self.Normales = []
+            self.Normales.append(np.zeros((1,3),np.float32))  
+            '''
+            New Image 
+            '''
+            # Get new current image
+            self.newRGBD.ReadFromMat(imgk) 
+            self.newRGBD.BilateralFilter(-1, 0.02, 3) 
+            # segmenting the body
+            self.newRGBD.Crop2Body() 
+            self.newRGBD.BodySegmentation() 
+            self.newRGBD.BodyLabelling()   
+            # select the body part
+            self.newRGBD.depth_image *= (self.newRGBD.labels >0) # 9 = head; 10 = torso 
+            self.newRGBD.Vmap_optimize()   
+            self.newRGBD.NMap_optimize()        
+            # create the transform matrix from local to global coordinate
+            self.newRGBD.myPCA()   
             
-           
+            
+            # Transform the stitch body in the current image (alignment current image mesh) 
+            # New pose estimation
+            NewPose = Tracker.RegisterRGBDMesh_optimize(self.newRGBD,self.StitchBdy.StitchedVertices,self.StitchBdy.StitchedNormales, self.T_Pose)
+            for k in range(4):
+                for l in range(4):
+                    self.T_Pose[k,l] = NewPose[k,l]
+            print 'self.T_Pose'
+            print self.T_Pose 
+
+            
+            # restart processing of each body part for the current image.
+            # Sum of the number of vertices and faces of all body parts
+            nb_verticesGlo = 0
+            nb_facesGlo = 0
+            # Number of body part +1 since the counting starts from 1
+            nbBdyPart = self.newRGBD.bdyPart.shape[0]-3
+            #Initiate stitcher object 
+            self.StitchBdy = Stitcher.Stitch(nbBdyPart)        
+            # Creating mesh of each body part
+            for bp in range(1,nbBdyPart):
+                # Compute the dimension of the body part to create the volume
+                VoxSize = 0.0046
+                X = int(round(LA.norm(self.newRGBD.coordsGbl[bp][3]-self.newRGBD.coordsGbl[bp][0])/VoxSize))
+                Y = int(round(LA.norm(self.newRGBD.coordsGbl[bp][1]-self.newRGBD.coordsGbl[bp][0])/VoxSize))
+                Z = X
+                # show result
+                print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
+                
+                # Get the tranform matrix from the local coordinates system to the global system 
+                Tglo = self.newRGBD.TransfoBB[bp]
+                self.Tg.append(Tglo.astype(np.float32))
+                # Transform in the current image
+                self.Tg[bp] = np.dot(self.T_Pose,self.Tg[bp])
+                # Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
+                for i in range(4):
+                    for j in range(4):
+                        self.PoseBP[i][j] = self.Tg[bp][i][j]
+    
+                # TSDF  and Weight of the body part
+                mf = cl.mem_flags
+                self.TSDF = np.zeros((X,Y,Z), dtype = np.int16)
+                self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
+                self.Weight2 = np.zeros((X,Y,Z), dtype = np.int16)
+                self.WeightGPU2 = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight2.nbytes)
+    
+                #rescaling factors
+                param2 = np.array([X/2 , 1.0/VoxSize, Y/2 , 1.0/VoxSize, Z/2, 1.0/VoxSize], dtype = np.float32)
+    
+                # TSDF Fusion of the body part
+                TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.newRGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU2,param2)
+                TSDFManager.FuseRGBD_GPU(self.newRGBD, self.PoseBP)
+    
+                # Create Mesh
+                self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)     
+                # Mesh rendering
+                self.MC.runGPU(TSDFManager.TSDFGPU) 
+                start_time3 = time.time()
+                # save with the number of the body part
+                bpStr = str(bp)
+                self.MC.SaveToPly("body"+bpStr+".ply")
+                elapsed_time = time.time() - start_time3
+                print "SaveBPToPly: %f" % (elapsed_time)      
+                
+                #Fill list of MC's Vert and Nmls
+                self.Vertices.append(self.MC.Vertices)
+                self.Normales.append(self.MC.Normales)
+    
+                # Update number of vertices and faces in the stitched mesh
+                nb_verticesGlo = nb_verticesGlo + self.MC.nb_vertices[0]
+                nb_facesGlo = nb_facesGlo +self.MC.nb_faces[0]
+                
+                # Stitch all the body parts
+                if bp ==1 :
+                    self.StitchBdy.StitchedVertices = self.StitchBdy.TransformVtx(self.MC.Vertices,self.PoseBP,1) 
+                    self.StitchBdy.StitchedNormales = self.StitchBdy.TransformNmls(self.MC.Normales,self.PoseBP,1) 
+                    self.StitchBdy.StitchedFaces = self.MC.Faces
+                else:
+                    self.StitchBdy.NaiveStitch(self.MC.Vertices,self.MC.Normales,self.MC.Faces,self.PoseBP)
+            print "numero %d finished" %(imgk)
+                    
+
         # save with the number of the body part
         start_time3 = time.time()
         self.MC.SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,self.StitchBdy.StitchedVertices,self.StitchBdy.StitchedFaces)
         elapsed_time = time.time() - start_time3
         print "SaveToPly: %f" % (elapsed_time)  
         
-        
-        # Get new current image
-            
-
-        # Transform the stitch body in the current image (alignment current image mesh)
-        #Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)  
-        # restart processing of each body part for the current image.
 
         # projection in 2d space to draw it
         rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         # projection of the current image/ Overlay
         #rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
         
-        for bp in range(1,end):
+        for bp in range(1,nbBdyPart):
             for i in range(4):
                 for j in range(4):
                     self.PoseBP[i][j] = self.Tg[bp][i][j]
             rendering = self.RGBD.DrawMesh(rendering,self.Vertices[bp],self.Normales[bp],self.PoseBP, 1, self.color_tag)
-        # Show figure and images
-            
+   
         # 3D reconstruction of the whole image
         self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
         self.canvas.pack()        
@@ -451,16 +566,7 @@ class Application(tk.Frame):
         #self.DrawSkeleton2D(self.Pose)
         #self.DrawCenters2D(self.Pose)
         #self.DrawSys2D(self.Pose)
-        self.DrawOBBox2D(self.Pose)
-        
-        # Corners of the bounding boxes
-        #ptBis = self.RGBD.GetProjPts2D_optimize(self.ctrBis,Id4)
-        #centers for body parts 
-        ctrs = self.RGBD.GetProjPts2D_optimize(self.RGBD.ctr3D,Id4)
-        for bp in range(1,end):
-            self.DrawPoint2D(ctrs[bp],2,"yellow")
-            #self.DrawPoint2D(ptBis[bp-1],2,"green")
-        
+        #self.DrawOBBox2D(self.Pose)      
 
         #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)
@@ -470,5 +576,5 @@ class Application(tk.Frame):
 
         self.w = tk.Scale(master, from_=1, to=10, orient=tk.HORIZONTAL)
         self.w.pack()
-
+        
 

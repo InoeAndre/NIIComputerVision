@@ -72,13 +72,6 @@ class TSDFManager():
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
         
-        print "Pose"
-        print Pose
-        print "self.Size"
-        print self.Size
-        print "self.res"
-        print self.res        
-        
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
                                 np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU)
