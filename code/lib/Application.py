@@ -312,7 +312,7 @@ class Application(tk.Frame):
         self.Normales = []
         self.Normales.append(np.zeros((1,3),np.float32))
         # Loop for each image
-        i = 0
+        i = 12
 
         # Former Depth Image (i.e: i)
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
@@ -338,7 +338,7 @@ class Application(tk.Frame):
         nb_verticesGlo = 0
         nb_facesGlo = 0
         # Number of body part +1 since the counting starts from 1
-        nbBdyPart = self.RGBD.bdyPart.shape[0]-3
+        nbBdyPart = self.RGBD.bdyPart.shape[0]+1
         #Initiate stitcher object 
         self.StitchBdy = Stitcher.Stitch(nbBdyPart)        
         # Creating mesh of each body part
@@ -406,7 +406,8 @@ class Application(tk.Frame):
         self.MC.SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,self.StitchBdy.StitchedVertices,self.StitchBdy.StitchedFaces)
         elapsed_time = time.time() - start_time3
         print "SaveToPly: %f" % (elapsed_time)                      
-                    
+        
+        
         # Current Depth Image (i.e: i+1)
         self.newRGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.newRGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
@@ -415,8 +416,8 @@ class Application(tk.Frame):
         #self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
         Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)
         
-        nbImg = 20
-        for imgk in range(1,nbImg):
+        nbImg = 14
+        for imgk in range(self.Index+1,nbImg):
             '''
             Reinitialize every list
             '''
@@ -450,7 +451,8 @@ class Application(tk.Frame):
             self.newRGBD.BodySegmentation() 
             self.newRGBD.BodyLabelling()   
             # select the body part
-            self.newRGBD.depth_image *= (self.newRGBD.labels >0) # 9 = head; 10 = torso 
+            self.newRGBD.depth_image *= (self.newRGBD.labels > 0) # 9 = head; 10 = torso 
+            self.newRGBD.depth_image *= (self.newRGBD.labels < 11) # 9 = head; 10 = torso 
             self.newRGBD.Vmap_optimize()   
             self.newRGBD.NMap_optimize()        
             # create the transform matrix from local to global coordinate
@@ -471,8 +473,6 @@ class Application(tk.Frame):
             # Sum of the number of vertices and faces of all body parts
             nb_verticesGlo = 0
             nb_facesGlo = 0
-            # Number of body part +1 since the counting starts from 1
-            nbBdyPart = self.newRGBD.bdyPart.shape[0]-3
             #Initiate stitcher object 
             self.StitchBdy = Stitcher.Stitch(nbBdyPart)        
             # Creating mesh of each body part
