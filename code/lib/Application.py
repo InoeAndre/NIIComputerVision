@@ -292,27 +292,16 @@ class Application(tk.Frame):
         
         # initialize lists because of  segmentation
         
-        # Init for TSDF
-        self.TSDF = []
-        self.TSDF.append([0.,0.,0.])
-        self.TSDFGPU = []
-        self.TSDFGPU.append([0.,0.,0.])
-        self.Weight = []
-        self.Weight.append([0.,0.,0.])
-        self.WeightGPU = []
-        self.WeightGPU.append([0.,0.,0.])
         # Init for Local Transform and inverse Transform
         self.Tg = []
         self.Tg.append(Id4)
-        self.param = []
-        self.param.append(np.array([0. , 0., 0. , 0., 0., 0.], dtype = np.float32))
         # For Marching cubes output
         self.Vertices = []
         self.Vertices.append(np.zeros((1,3),np.float32))
         self.Normales = []
         self.Normales.append(np.zeros((1,3),np.float32))
         # Loop for each image
-        i = 12
+        i = 0
 
         # Former Depth Image (i.e: i)
         self.RGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
@@ -364,26 +353,28 @@ class Application(tk.Frame):
             mf = cl.mem_flags
             self.TSDF = np.zeros((X,Y,Z), dtype = np.int16)
             self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
-            self.Weight2 = np.zeros((X,Y,Z), dtype = np.int16)
-            self.WeightGPU2 = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight2.nbytes)
+            self.Weight = np.zeros((X,Y,Z), dtype = np.int16)
+            self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
 
             #rescaling factors
-            param2 = np.array([X/2 , 1.0/VoxSize, Y/2 , 1.0/VoxSize, Z/2, 1.0/VoxSize], dtype = np.float32)
+            param = np.array([X/2 , 1.0/VoxSize, Y/2 , 1.0/VoxSize, Z/2, 1.0/VoxSize], dtype = np.float32)
 
             # TSDF Fusion of the body part
-            TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU2,param2)
+            TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU,param)
             TSDFManager.FuseRGBD_GPU(self.RGBD, self.PoseBP)
 
             # Create Mesh
             self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)     
             # Mesh rendering
             self.MC.runGPU(TSDFManager.TSDFGPU) 
-            start_time3 = time.time()
-            # save with the number of the body part
-            bpStr = str(bp)
-            self.MC.SaveToPly("body"+bpStr+".ply")
-            elapsed_time = time.time() - start_time3
-            print "SaveBPToPly: %f" % (elapsed_time)      
+#==============================================================================
+#             start_time3 = time.time()
+#             # save with the number of the body part
+#             bpStr = str(bp)
+#             self.MC.SaveToPly("body"+bpStr+".ply")
+#             elapsed_time = time.time() - start_time3
+#             print "SaveBPToPly: %f" % (elapsed_time)      
+#==============================================================================
             
             #Fill list of MC's Vert and Nmls
             self.Vertices.append(self.MC.Vertices)
@@ -401,40 +392,34 @@ class Application(tk.Frame):
             else:
                 self.StitchBdy.NaiveStitch(self.MC.Vertices,self.MC.Normales,self.MC.Faces,self.PoseBP)
                     
-        # save with the number of the body part
-        start_time3 = time.time()
-        self.MC.SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,self.StitchBdy.StitchedVertices,self.StitchBdy.StitchedFaces)
-        elapsed_time = time.time() - start_time3
-        print "SaveToPly: %f" % (elapsed_time)                      
+#==============================================================================
+#         # save with the number of the body part
+#         start_time3 = time.time()
+#         self.MC.SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,self.StitchBdy.StitchedVertices,self.StitchBdy.StitchedFaces)
+#         elapsed_time = time.time() - start_time3
+#         print "SaveToPly: %f" % (elapsed_time)                      
+#==============================================================================
         
         
         # Current Depth Image (i.e: i+1)
         self.newRGBD = RGBD.RGBD(self.path + '/Depth.tiff', self.path + '/RGB.tiff', self.intrinsic, self.fact)
         self.newRGBD.LoadMat(self.lImages,self.pos2d,self.connection,self.bdyIdx )   
-
+        
+        
         #TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU,param2) 
         #self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
         Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)
-        
-        nbImg = 14
+        TimeStart = time.time()
+        nbImg = 20
         for imgk in range(self.Index+1,nbImg):
+            #Time counting
+            start = time.time()
             '''
             Reinitialize every list
             '''
-            # Init for TSDF
-            self.TSDF = []
-            self.TSDF.append([0.,0.,0.])
-            self.TSDFGPU = []
-            self.TSDFGPU.append([0.,0.,0.])
-            self.Weight = []
-            self.Weight.append([0.,0.,0.])
-            self.WeightGPU = []
-            self.WeightGPU.append([0.,0.,0.])
             # Init for Local Transform and inverse Transform
             self.Tg = []
             self.Tg.append(Id4)
-            self.param = []
-            self.param.append(np.array([0. , 0., 0. , 0., 0., 0.], dtype = np.float32))
             # For Marching cubes output
             self.Vertices = []
             self.Vertices.append(np.zeros((1,3),np.float32))
@@ -452,7 +437,7 @@ class Application(tk.Frame):
             self.newRGBD.BodyLabelling()   
             # select the body part
             self.newRGBD.depth_image *= (self.newRGBD.labels > 0) # 9 = head; 10 = torso 
-            self.newRGBD.depth_image *= (self.newRGBD.labels < 11) # 9 = head; 10 = torso 
+            #self.newRGBD.depth_image *= (self.newRGBD.labels < 11) # 9 = head; 10 = torso 
             self.newRGBD.Vmap_optimize()   
             self.newRGBD.NMap_optimize()        
             # create the transform matrix from local to global coordinate
@@ -489,7 +474,7 @@ class Application(tk.Frame):
                 Tglo = self.newRGBD.TransfoBB[bp]
                 self.Tg.append(Tglo.astype(np.float32))
                 # Transform in the current image
-                self.Tg[bp] = np.dot(self.T_Pose,self.Tg[bp])
+                self.Tg[bp] = np.dot(self.Tg[bp],self.T_Pose)
                 # Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
                 for i in range(4):
                     for j in range(4):
@@ -499,26 +484,28 @@ class Application(tk.Frame):
                 mf = cl.mem_flags
                 self.TSDF = np.zeros((X,Y,Z), dtype = np.int16)
                 self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
-                self.Weight2 = np.zeros((X,Y,Z), dtype = np.int16)
-                self.WeightGPU2 = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight2.nbytes)
+                self.Weight = np.zeros((X,Y,Z), dtype = np.int16)
+                self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
     
                 #rescaling factors
-                param2 = np.array([X/2 , 1.0/VoxSize, Y/2 , 1.0/VoxSize, Z/2, 1.0/VoxSize], dtype = np.float32)
+                param = np.array([X/2 , 1.0/VoxSize, Y/2 , 1.0/VoxSize, Z/2, 1.0/VoxSize], dtype = np.float32)
     
                 # TSDF Fusion of the body part
-                TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.newRGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU2,param2)
+                TSDFManager = TSDFtk.TSDFManager((X,Y,Z), self.newRGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU,param)
                 TSDFManager.FuseRGBD_GPU(self.newRGBD, self.PoseBP)
     
                 # Create Mesh
                 self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)     
                 # Mesh rendering
                 self.MC.runGPU(TSDFManager.TSDFGPU) 
-                start_time3 = time.time()
-                # save with the number of the body part
-                bpStr = str(bp)
-                self.MC.SaveToPly("body"+bpStr+".ply")
-                elapsed_time = time.time() - start_time3
-                print "SaveBPToPly: %f" % (elapsed_time)      
+#==============================================================================
+#                 start_time3 = time.time()
+#                 # save with the number of the body part
+#                 bpStr = str(bp)
+#                 self.MC.SaveToPly("body"+bpStr+".ply")
+#                 elapsed_time = time.time() - start_time3
+#                 print "SaveBPToPly: %f" % (elapsed_time)      
+#==============================================================================
                 
                 #Fill list of MC's Vert and Nmls
                 self.Vertices.append(self.MC.Vertices)
@@ -535,7 +522,8 @@ class Application(tk.Frame):
                     self.StitchBdy.StitchedFaces = self.MC.Faces
                 else:
                     self.StitchBdy.NaiveStitch(self.MC.Vertices,self.MC.Normales,self.MC.Faces,self.PoseBP)
-            print "numero %d finished" %(imgk)
+            time_lapsed = time.time() - start
+            print "numero %d finished : %f" %(imgk,time_lapsed)
                     
 
         # save with the number of the body part
@@ -544,7 +532,10 @@ class Application(tk.Frame):
         elapsed_time = time.time() - start_time3
         print "SaveToPly: %f" % (elapsed_time)  
         
-
+        TimeStart_Lapsed = time.time() - TimeStart
+        print "total timw: %f" %(TimeStart_Lapsed)
+        #"""
+        
         # projection in 2d space to draw it
         rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         # projection of the current image/ Overlay

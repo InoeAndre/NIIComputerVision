@@ -378,17 +378,15 @@ class RGBD():
         MidBdyImage =((imageWBG-(tmp>0))>0)
 
         body = ( self.segm.GetBody( MidBdyImage)>0)
-#==============================================================================
-#         handRight = ( self.segm.GetHand( MidBdyImage,right)>0)
-#         handLeft = ( self.segm.GetHand( MidBdyImage,left)>0)
-#         footRight = ( self.segm.GetFoot( MidBdyImage,right)>0)
-#         footLeft = ( self.segm.GetFoot( MidBdyImage,left)>0)
-#==============================================================================
+        handRight = ( self.segm.GetHand( MidBdyImage,right)>0)
+        handLeft = ( self.segm.GetHand( MidBdyImage,left)>0)
+        footRight = ( self.segm.GetFoot( MidBdyImage,right)>0)
+        footLeft = ( self.segm.GetFoot( MidBdyImage,left)>0)
         #pdb.set_trace()
 
         self.bdyPart = np.array( [armLeft[0], armLeft[1], armRight[0], armRight[1],\
                                   legLeft[0], legLeft[1], legRight[0],legRight[1],\
-                                  head, body]).astype(np.int)#,  handRight, handLeft, footRight, footLeft]).astype(np.int)
+                                  head, body,  handRight, handLeft, footRight, footLeft]).astype(np.int)#]).astype(np.int)#
         self.bdyColor = np.array( [np.array([0,0,255]), np.array([200,200,255]), np.array([0,255,0]), np.array([200,255,200]),\
                                    np.array([255,0,255]), np.array([255,180,255]), np.array([255,255,0]), np.array([255,255,180]),\
                                    np.array([255,0,0]), np.array([255,255,255]),np.array([0,100,0]),np.array([0,191,255]),\
