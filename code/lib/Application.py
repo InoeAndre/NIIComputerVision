@@ -449,7 +449,7 @@ class Application(tk.Frame):
         #self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
         Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)
         TimeStart = time.time()
-        nbImg = 2
+        nbImg = 10
         for imgk in range(Index+1,nbImg):
 #==============================================================================
 #             if imgk == 10:
@@ -460,18 +460,12 @@ class Application(tk.Frame):
             '''
             Reinitialize every list
             '''
-            # Init for Local Transform and inverse Transform
-            Tg = []
-            Tg.append(Id4)
             # For Marching cubes output
             Vertices = []
             Vertices.append(np.zeros((1,3),np.float32))
             Normales = []
             Normales.append(np.zeros((1,3),np.float32)) 
-#==============================================================================
-#             param = []
-#             param.append(np.array([0.0 , 0.0, 0.0 , 0.0, 0.0, 0.0], dtype = np.float32))
-#==============================================================================
+
             '''
             New Image 
             '''
@@ -515,46 +509,14 @@ class Application(tk.Frame):
             nb_facesGlo = 0
             #Initiate stitcher object 
             StitchBdy = Stitcher.Stitch(nbBdyPart)        
-            # Creating mesh of each body part
+            # Updating mesh of each body part
             for bp in range(1,nbBdyPart):
-                print "bp = %d, X= %d; Y= %d; Z= %d" %(bp,X[bp],Y[bp],Z[bp])
-#==============================================================================
-#                 # Compute the dimension of the body part to create the volume
-#                 VoxSize = 0.0046
-#                 Xraw = int(round(LA.norm(self.RGBD[0].coordsGbl[bp][3]-self.RGBD[0].coordsGbl[bp][0])/VoxSize))+1
-#                 Yraw = int(round(LA.norm(self.RGBD[0].coordsGbl[bp][1]-self.RGBD[0].coordsGbl[bp][0])/VoxSize))+1
-#                 Zraw = int(round(LA.norm(self.RGBD[0].coordsGbl[bp][4]-self.RGBD[0].coordsGbl[bp][0])/VoxSize))+1
-#                 
-#                 X = max(Xraw,Zraw) 
-#                 Y = Yraw
-#                 Z = X      
-#                 # show result
-#                 print "X= %d; Y= %d; Z= %d" %(X,Y,Z)
-#==============================================================================
-                
-                # Get the tranform matrix from the local coordinates system to the global system 
-                Tglo = newRGBD[0].TransfoBB[bp]
-                Tg.append(Tglo.astype(np.float32))
                 # Transform in the current image
-                Tg[bp] = np.dot(Tg[bp],T_Pose)
+                Tg_new = np.dot(Tg[bp],T_Pose)
                 # Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
                 for i in range(4):
                     for j in range(4):
-                        PoseBP[i][j] = Tg[bp][i][j]
-    
-#==============================================================================
-#                 # TSDF  and Weight of the body part
-#                 mf = cl.mem_flags
-#                 self.TSDF = np.zeros((X,Y,Z), dtype = np.int16)
-#                 self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
-#                 self.Weight = np.zeros((X,Y,Z), dtype = np.int16)
-#                 self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
-#==============================================================================
-    
-#==============================================================================
-#                 #rescaling factors
-#                 param.append(np.array([X/2 , 1.0/VoxSize, Y/2 , 1.0/VoxSize, Z/2, 1.0/VoxSize], dtype = np.float32))
-#==============================================================================
+                        PoseBP[i][j] = Tg_new[i][j]
     
                 # TSDF Fusion of the body part
                 TSDFManager = TSDFtk.TSDFManager((X[bp],Y[bp],Z[bp]), newRGBD[bp], self.GPUManager,TSDFGPU[bp],WeightGPU[bp],param[bp])
