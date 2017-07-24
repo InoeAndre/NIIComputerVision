@@ -89,9 +89,9 @@ class My_MarchingCube():
     def runGPU(self, VolGPU):
         
         self.nb_faces[0] = 0
-        cl.enqueue_write_buffer(self.GPUManager.queue, self.FaceCounterGPU, self.nb_faces)
+        cl.enqueue_write_buffer(self.GPUManager.queue, self.FaceCounterGPU, self.nb_faces).wait()
         self.GPUManager.programs['MarchingCubesIndexing'].MarchingCubesIndexing(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
-                                VolGPU, self.OffsetGPU, self.IndexGPU, self.Size_Volume, np.int32(self.iso), self.FaceCounterGPU)
+                                VolGPU, self.OffsetGPU, self.IndexGPU, self.Size_Volume, np.int32(self.iso), self.FaceCounterGPU).wait()
         
         
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FaceCounterGPU, self.nb_faces).wait()
@@ -106,7 +106,7 @@ class My_MarchingCube():
         #self.NormalsGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Normals.nbytes)
         
         self.GPUManager.programs['MarchingCubes'].MarchingCubes(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
-                                VolGPU, self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.ParamGPU, self.Size_Volume)
+                                VolGPU, self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.ParamGPU, self.Size_Volume).wait()
         
         cl.enqueue_read_buffer(self.GPUManager.queue, self.VerticesGPU, self.Vertices).wait()
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FacesGPU, self.Faces).wait()

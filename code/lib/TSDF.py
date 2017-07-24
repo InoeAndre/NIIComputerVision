@@ -30,7 +30,7 @@ def in_mat_zero2one(mat):
 mf = cl.mem_flags
 
 class TSDFManager():
-    
+
     # Constructor
     def __init__(self, Size, Image, GPUManager,TSDFGPU,WeightGPU,param):
         self.Size = Size
@@ -55,8 +55,9 @@ class TSDFManager():
         self.DepthGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Image.depth_image.nbytes)
         self.Calib_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf = Image.intrinsic)
         self.Pose_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, self.Pose.nbytes)
-        
-    
+
+
+
 #######
 ##GPU code
 #####
@@ -77,6 +78,11 @@ class TSDFManager():
                                 np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU)
     
         cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
+        '''
+        # TEST if TSDF contains NaN
+        TSDFNaN = np.count_nonzero(np.isnan(self.TSDF))
+        print "TSDFNaN : %d" %(TSDFNaN)
+        '''
         cl.enqueue_read_buffer(self.GPUManager.queue, self.WeightGPU, self.Weight).wait()  
 
  

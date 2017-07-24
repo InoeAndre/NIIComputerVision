@@ -384,8 +384,8 @@ class RGBD():
         footLeft = ( self.segm.GetFoot( MidBdyImage,left)>0)
         #pdb.set_trace()
 
-        self.bdyPart = np.array( [handLeft, handRight,  footRight, footLeft, head,\
-                                  armLeft[0], armRight[0], legLeft[1], legRight[1],   \
+        self.bdyPart = np.array( [handLeft, handRight,  footRight, footLeft, \
+                                  armRight[0], armLeft[0], head, legLeft[1], legRight[1],   \
                                   legRight[0], legLeft[0], armRight[1],  armLeft[1], body]).astype(np.int)#]).astype(np.int)#
         self.bdyColor = np.array( [np.array([0,0,255]), np.array([200,200,255]), np.array([0,255,0]), np.array([200,255,200]),\
                                    np.array([255,0,255]), np.array([255,180,255]), np.array([255,255,0]), np.array([255,255,180]),\

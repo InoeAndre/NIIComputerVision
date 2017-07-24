@@ -356,11 +356,14 @@ class Application(tk.Frame):
         Y.append(0)
         Z = [] 
         Z.append(0)        
-#==============================================================================
-#         TSDFManager = []
-#         TSDFManager.append(TSDFtk.TSDFManager((10,10,10), self.RGBD, self.GPUManager,TSDFGPU[0],WeightGPU[0],param[0]))
-#==============================================================================
+
+
+
+        TSDFManager =TSDFtk.TSDFManager((10,10,10), self.RGBD[0], self.GPUManager,TSDFGPU[0],WeightGPU[0],param[0])
+
         # For Marching cubes output
+        MC = []
+        MC.append(My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager))
         Vertices = []
         Vertices.append(np.zeros((1,3),np.float32))
         Normales = []
@@ -369,12 +372,16 @@ class Application(tk.Frame):
         nb_verticesGlo = 0
         nb_facesGlo = 0
         # Number of body part +1 since the counting starts from 1
-        bpstart = 1
-        nbBdyPart = self.RGBD[0].bdyPart.shape[0]+1
+        up = 0
+        bpstart = 1 +up
+        nbBdyPart = self.RGBD[0].bdyPart.shape[0]+1#2 + up#
         #Initiate stitcher object 
         StitchBdy = Stitcher.Stitch(nbBdyPart)
         # Creating mesh of each body part
         for bp in range(bpstart,nbBdyPart):
+            #MC = 0
+            #TSDFManager = 0
+            bou = bp - bpstart + 1
             # Compute the dimension of the body part to create the volume
             VoxSize = 0.0046
             Xraw = int(round(LA.norm(self.RGBD[0].coordsGbl[bp][3]-self.RGBD[0].coordsGbl[bp][0])/VoxSize))+1
@@ -385,7 +392,8 @@ class Application(tk.Frame):
             Y.append(Yraw)
             Z.append(max(Xraw,Zraw))
             # show result
-            print "bp = %d, X= %d; Y= %d; Z= %d" %(bp,X[bp],Y[bp],Z[bp])
+            print "bp = %d, X= %d; Y= %d; Z= %d" %(bou,X[bou],Y[bou],Z[bou])
+            print X[bou]*Y[bou]*Z[bou]
             
             
             # Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
@@ -393,8 +401,8 @@ class Application(tk.Frame):
                 for j in range(4):
                     PoseBP[i][j] = Tg[bp][i][j]
            
-            bou = bp - bpstart +1
-            # TSDF  and Weight of the body part
+
+            # # TSDF  and Weight of the body part
             TSDF.append(np.zeros((X[bou],Y[bou],Z[bou]), dtype = np.int16))
             TSDFGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, TSDF[bou].nbytes))
             Weight.append(np.zeros((X[bou],Y[bou],Z[bou]), dtype = np.int16))
@@ -408,53 +416,47 @@ class Application(tk.Frame):
             TSDFManager.FuseRGBD_GPU(self.RGBD[bp], PoseBP)
 
             # Create Mesh
-            MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
+            MC.append(My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager))
             # Mesh rendering
-            MC.runGPU(TSDFManager.TSDFGPU)
+            MC[bou].runGPU(TSDFManager.TSDFGPU)
             start_time3 = time.time()
             # save with the number of the body part
             bpStr = str(bp)
-            MC.SaveToPly("body"+bpStr+".ply")
+            MC[bou].SaveToPly("body"+bpStr+".ply")
             elapsed_time = time.time() - start_time3
             #print "SaveBPToPly: %f" % (elapsed_time)      
             
             #Fill list of MC's Vert and Nmls
-            Vertices.append(MC.Vertices)
-            Normales.append(MC.Normales)
+            Vertices.append(MC[bou].Vertices)
+            Normales.append(MC[bou].Normales)
 
             # Update number of vertices and faces in the stitched mesh
-            nb_verticesGlo = nb_verticesGlo + MC.nb_vertices[0]
-            nb_facesGlo = nb_facesGlo +MC.nb_faces[0]
+            nb_verticesGlo = nb_verticesGlo + MC[bou].nb_vertices[0]
+            nb_facesGlo = nb_facesGlo +MC[bou].nb_faces[0]
             
             # Stitch all the body parts
             if bp == bpstart :
-                StitchBdy.StitchedVertices = StitchBdy.TransformVtx(MC.Vertices,PoseBP,1)
-                StitchBdy.StitchedNormales = StitchBdy.TransformNmls(MC.Normales,PoseBP,1)
-                StitchBdy.StitchedFaces = MC.Faces
+                StitchBdy.StitchedVertices = StitchBdy.TransformVtx(MC[bou].Vertices,PoseBP,1)
+                StitchBdy.StitchedNormales = StitchBdy.TransformNmls(MC[bou].Normales,PoseBP,1)
+                StitchBdy.StitchedFaces = MC[bou].Faces
             else:
-                StitchBdy.NaiveStitch(MC.Vertices,MC.Normales,MC.Faces,PoseBP)
-                    
+                StitchBdy.NaiveStitch(MC[bou].Vertices,MC[bou].Normales,MC[bou].Faces,PoseBP)
+
+
         # save with the number of the body part
         #bpStr = str(idx)   #"+bpStr+"      
         start_time3 = time.time()
-        MC.SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,StitchBdy.StitchedVertices,StitchBdy.StitchedFaces)
+        MC[0].SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,StitchBdy.StitchedVertices,StitchBdy.StitchedFaces)
         elapsed_time = time.time() - start_time3
         print "SaveToPly: %f" % (elapsed_time)                     
         
-        #"""
- 
-        
-        
+        """
         #TSDFManager = TSDFtk.TSDFManager((512,512,512), self.RGBD, self.GPUManager,self.TSDFGPU,self.WeightGPU,param2) 
         #self.MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
         Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)
         TimeStart = time.time()
         nbImg = 10
         for imgk in range(Index+1,nbImg):
-#==============================================================================
-#             if imgk == 10:
-#                 continue;
-#==============================================================================
             #Time counting
             start = time.time()
             '''
@@ -512,7 +514,7 @@ class Application(tk.Frame):
             # Updating mesh of each body part
             for bp in range(1,nbBdyPart):
                 # Transform in the current image
-                Tg_new = np.dot(Tg[bp],T_Pose)
+                Tg_new = np.dot(T_Pose,Tg[bp])
                 # Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
                 for i in range(4):
                     for j in range(4):
@@ -521,11 +523,11 @@ class Application(tk.Frame):
                 # TSDF Fusion of the body part
                 TSDFManager = TSDFtk.TSDFManager((X[bp],Y[bp],Z[bp]), newRGBD[bp], self.GPUManager,TSDFGPU[bp],WeightGPU[bp],param[bp])
                 TSDFManager.FuseRGBD_GPU(newRGBD[bp], PoseBP)
-    
+
                 # Create Mesh
-                MC = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)     
+                MC[bp] = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
                 # Mesh rendering
-                MC.runGPU(TSDFManager.TSDFGPU) 
+                MC[bp].runGPU(TSDFManager.TSDFGPU)
 #==============================================================================
 #                 start_time3 = time.time()
 #                 # save with the number of the body part
@@ -536,27 +538,27 @@ class Application(tk.Frame):
 #==============================================================================
                 
                 #Fill list of MC's Vert and Nmls
-                Vertices.append(MC.Vertices)
-                Normales.append(MC.Normales)
+                Vertices.append(MC[bp].Vertices)
+                Normales.append(MC[bp].Normales)
     
                 # Update number of vertices and faces in the stitched mesh
-                nb_verticesGlo = nb_verticesGlo + MC.nb_vertices[0]
-                nb_facesGlo = nb_facesGlo +MC.nb_faces[0]
+                nb_verticesGlo = nb_verticesGlo + MC[bp].nb_vertices[0]
+                nb_facesGlo = nb_facesGlo +MC[bp].nb_faces[0]
                 
                 # Stitch all the body parts
                 if bp ==1 :
-                    StitchBdy.StitchedVertices = StitchBdy.TransformVtx(MC.Vertices,PoseBP,1) 
-                    StitchBdy.StitchedNormales = StitchBdy.TransformNmls(MC.Normales,PoseBP,1) 
-                    StitchBdy.StitchedFaces = MC.Faces
+                    StitchBdy.StitchedVertices = StitchBdy.TransformVtx(MC[bp].Vertices,PoseBP,1)
+                    StitchBdy.StitchedNormales = StitchBdy.TransformNmls(MC[bp].Normales,PoseBP,1)
+                    StitchBdy.StitchedFaces = MC[bp].Faces
                 else:
-                    StitchBdy.NaiveStitch(MC.Vertices,MC.Normales,MC.Faces,PoseBP)
+                    StitchBdy.NaiveStitch(MC[bp].Vertices,MC[bp].Normales,MC[bp].Faces,PoseBP)
             time_lapsed = time.time() - start
             print "numero %d finished : %f" %(imgk,time_lapsed)
                     
 
         # save with the number of the body part
         start_time3 = time.time()
-        MC.SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,StitchBdy.StitchedVertices,StitchBdy.StitchedFaces)
+        MC[0].SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,StitchBdy.StitchedVertices,StitchBdy.StitchedFaces)
         elapsed_time = time.time() - start_time3
         print "SaveToPly: %f" % (elapsed_time)  
         
@@ -569,11 +571,12 @@ class Application(tk.Frame):
         # projection of the current image/ Overlay
         #rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
         
-        for bp in range(1,nbBdyPart):
+        for bp in range(bpstart,nbBdyPart):
+            bou = bp - bpstart + 1
             for i in range(4):
                 for j in range(4):
                     PoseBP[i][j] = Tg[bp][i][j]
-            rendering = self.RGBD[0].DrawMesh(rendering,Vertices[bp],Normales[bp],PoseBP, 1, self.color_tag)
+            rendering = self.RGBD[0].DrawMesh(rendering,Vertices[bou],Normales[bou],PoseBP, 1, self.color_tag)
    
         # 3D reconstruction of the whole image
         self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])
