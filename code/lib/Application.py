@@ -288,7 +288,7 @@ class Application(tk.Frame):
                          [sin(angley),  cos(angley),  0.0, 0.0], \
                          [0.0,          0.0,          1.0, 0.0], \
                          [0.0,          0.0,          0.0, 1.0]])
-        jointPose = np.dot(RotZ[0:2, 0:2], self.pos2d[0, 0][9:12].T).T
+
         # ctrJT = np.zeros(jointPose.shape)
         # for jt in range(3):
         #     ctrJT = (jointPose[jt,0]+jointPose[jt,1])/2
@@ -338,6 +338,8 @@ class Application(tk.Frame):
         # create the transform matrix from local to global coordinate
         self.RGBD[0].myPCA()
 
+
+
         '''
         The first image is process differently from the other since it does not have any previous value.
         '''
@@ -351,30 +353,30 @@ class Application(tk.Frame):
             
         # For TSDF output
         mf = cl.mem_flags
-        TSDF = []
-        TSDF.append(np.zeros((1,3),np.float32))
-        TSDFGPU = []
-        TSDFGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, TSDF[0].nbytes))
-        Weight = []
-        Weight.append(np.zeros((1,3),np.float32))
-        WeightGPU = []
-        WeightGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Weight[0].nbytes))
-        param = []
-        param.append(np.array([0.0 , 0.0, 0.0 , 0.0, 0.0, 0.0], dtype = np.float32))
+        # TSDF = []
+        # TSDF.append(np.zeros((1,3),np.float32))
+        # TSDFGPU = []
+        # TSDFGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, TSDF[0].nbytes))
+        # Weight = []
+        # Weight.append(np.zeros((1,3),np.float32))
+        # WeightGPU = []
+        # WeightGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Weight[0].nbytes))
+        # param = []
+        # param.append(np.array([0.0 , 0.0, 0.0 , 0.0, 0.0, 0.0], dtype = np.float32))
         X = []
         X.append(0)
         Y = []
         Y.append(0)
         Z = [] 
         Z.append(0)
-        VoxSize = 0.01
+        VoxSize = 0.005
 
-
-        TSDFManager =TSDFtk.TSDFManager((10,10,10), self.RGBD[0], self.GPUManager,TSDFGPU[0],WeightGPU[0],param[0])
+        TSDFManager = []
+        TSDFManager.append(TSDFtk.TSDFManager((10,10,10), self.RGBD[0], self.GPUManager))
 
         # For Marching cubes output
         MC = []
-        MC.append(My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager))
+        MC.append(My_MC.My_MarchingCube(TSDFManager[0].Size, TSDFManager[0].res, 0.0, self.GPUManager))
         Vertices = []
         Vertices.append(np.zeros((1,3),np.float32))
         Normales = []
@@ -417,7 +419,7 @@ class Application(tk.Frame):
             # elif bp==13:
             #     PoseBP[0:2, 3] = ctrJT[2]
            
-
+            '''
             # # TSDF  and Weight of the body part
             TSDF.append(np.zeros((X[bou],Y[bou],Z[bou]), dtype = np.int16))
             TSDFGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, TSDF[bou].nbytes))
@@ -426,15 +428,15 @@ class Application(tk.Frame):
 
             #rescaling factors
             param.append(np.array([X[bou]/2 , 1.0/VoxSize, Y[bou]/2 , 1.0/VoxSize, Z[bou]/2, 1.0/VoxSize], dtype = np.float32))
-
+        '''
             # TSDF Fusion of the body part
-            TSDFManager = TSDFtk.TSDFManager((X[bou],Y[bou],Z[bou]), self.RGBD[bp], self.GPUManager,TSDFGPU[bou],WeightGPU[bou],param[bou])
-            TSDFManager.FuseRGBD_GPU(self.RGBD[bp], PoseBP)
+            TSDFManager.append(TSDFtk.TSDFManager((X[bou],Y[bou],Z[bou]), self.RGBD[bp], self.GPUManager))
+            TSDFManager[bou].FuseRGBD_GPU(self.RGBD[bp], PoseBP)
 
             # Create Mesh
-            MC.append(My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager))
+            MC.append(My_MC.My_MarchingCube(TSDFManager[bou].Size, TSDFManager[bou].res, 0.0, self.GPUManager))
             # Mesh rendering
-            MC[bou].runGPU(TSDFManager.TSDFGPU)
+            MC[bou].runGPU(TSDFManager[bou].TSDFGPU)
             start_time3 = time.time()
             # save with the number of the body part
             bpStr = str(bp)
@@ -450,29 +452,26 @@ class Application(tk.Frame):
             nb_verticesGlo = nb_verticesGlo + MC[bou].nb_vertices[0]
             nb_facesGlo = nb_facesGlo +MC[bou].nb_faces[0]
 
-            # Rotation of about 30
-            if (bp ==1 or bp == 6 or bp==13) :
-                jtRGBD = RGBD.RGBD(path + '/Depth.tiff', path + '/RGB.tiff', self.intrinsic, fact)
-                jtRGBD.LoadMat(lImages, self.pos2d, self.connection, bdyIdx)
-                jtRGBD.ReadFromMat(self.Index+200)
-                jtRGBD.BilateralFilter(-1, 0.02, 3)
-                # segmenting the body
-                jtRGBD.Crop2Body()
-                jtRGBD.BodySegmentation()
-                jtRGBD.BodyLabelling()
-                # select the body part
-                jtRGBD.depth_image *= (jtRGBD.labels > 0)
-                jtRGBD.Vmap_optimize()
-                jtRGBD.NMap_optimize()
-                # create the transform matrix from local to global coordinate
-                jtRGBD.myPCA()
+            # # Rotation of about 30
+            # if (bp ==1 or bp == 6 or bp==13) :
+            #     # if bp == 13:
+            #     #     pos = 4 # should left
+            #     # elif bp == 6:
+            #     #     pos = 5 #elbow left
+            #     # elif bp == 1:
+            #     #     pos = 6  # wrist left
+            #     pos = 4
+            #     ctr = self.RGBD[0].Vtx[self.pos2d[0,0][pos,0],self.pos2d[0,0][pos,1]]
+            #     pt = np.array((ctr[0], ctr[1], ctr[2], 1.0))
+            #     ctr = np.dot(pt, Tg[bp].T)
+            #     RotZ[0, 3] = (ctr[0] - param[bp][0])/param[bp][1]
+            #     RotZ[1,3] = (ctr[1] - param[bp][2])/param[bp][3]
+            #     RotZ[2,3] = (ctr[2] - param[bp][4])/param[bp][5]
+            #     Tg[bp][:,0:3] = np.dot(RotZ, Tg[bp][:,0:3])
 
-                Tglo = jtRGBD.TransfoBB[bp]
-                Tg[bp] = Tglo.astype(np.float32)
 
-                # self.RGBD[0].coordsGbl[bp] = np.dot(RotZ[0:3,0:3], self.RGBD[0].coordsGbl[bp].T).T
-                # Tg[bp][:,0:3] = np.dot(RotZ, Tg[bp][:,0:3])
-                # Tg[bp][0:3, 3] = Tg[13][0:3, 3]
+            # # transform joints
+            # self.pos2d[0, 0][4:7] = np.dot(RotZ[0:2, 0:2], self.pos2d[0, 0][4:7].T).T
 
             #Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
             for i in range(4):
@@ -495,7 +494,7 @@ class Application(tk.Frame):
         elapsed_time = time.time() - start_time3
         print "SaveToPly: %f" % (elapsed_time)                     
 
-        """
+        #"""
         Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)
         TimeStart = time.time()
 
@@ -516,7 +515,7 @@ class Application(tk.Frame):
             '''
             # Current Depth Image (i.e: i+1)
             newRGBD = []
-            for bp in range(15):
+            for bp in range(nbBdyPart):
                 newRGBD.append(RGBD.RGBD(path + '/Depth.tiff', path + '/RGB.tiff', self.intrinsic, fact))
                 newRGBD[bp].LoadMat(lImages,self.pos2d,self.connection,bdyIdx )              
                 # Get new current image
@@ -564,13 +563,13 @@ class Application(tk.Frame):
                         PoseBP[i][j] = Tg_new[i][j]
     
                 # TSDF Fusion of the body part
-                TSDFManager = TSDFtk.TSDFManager((X[bp],Y[bp],Z[bp]), newRGBD[bp], self.GPUManager,TSDFGPU[bp],WeightGPU[bp],param[bp])
-                TSDFManager.FuseRGBD_GPU(newRGBD[bp], PoseBP)
+                #TSDFManager = TSDFtk.TSDFManager((X[bp],Y[bp],Z[bp]), newRGBD[bp], self.GPUManager,TSDFGPU[bp],WeightGPU[bp],param[bp])
+                TSDFManager[bp].FuseRGBD_GPU(newRGBD[bp], PoseBP)
 
                 # Create Mesh
-                MC[bp] = My_MC.My_MarchingCube(TSDFManager.Size, TSDFManager.res, 0.0, self.GPUManager)
+                MC[bp] = My_MC.My_MarchingCube(TSDFManager[bp].Size, TSDFManager[bp].res, 0.0, self.GPUManager)
                 # Mesh rendering
-                MC[bp].runGPU(TSDFManager.TSDFGPU)
+                MC[bp].runGPU(TSDFManager[bp].TSDFGPU)
 #==============================================================================
 #                 start_time3 = time.time()
 #                 # save with the number of the body part
@@ -631,7 +630,7 @@ class Application(tk.Frame):
         self.DrawSkeleton2D(self.Pose)
         #self.DrawCenters2D(self.Pose)
         #self.DrawSys2D(self.Pose)
-        self.DrawOBBox2D(self.Pose)
+        #self.DrawOBBox2D(self.Pose)
 
         #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)

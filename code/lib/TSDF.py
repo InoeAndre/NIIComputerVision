@@ -32,23 +32,26 @@ mf = cl.mem_flags
 class TSDFManager():
 
     # Constructor
-    def __init__(self, Size, Image, GPUManager,TSDFGPU,WeightGPU,param):
+    def __init__(self, Size, Image, GPUManager):
         self.Size = Size
-        self.TSDF = np.zeros(Size, dtype = np.int16)
-        self.Weight = np.zeros(Size, dtype = np.int16)
-        self.c_x = param[0]
-        self.c_y = param[2]
-        self.c_z = param[4]
-        self.dim_x = param[1]
-        self.dim_y = param[3]
-        self.dim_z = param[5]
+        self.c_x = Size[0]/2
+        self.c_y = Size[1]/2
+        self.c_z = Size[2]/2
+        VoxSize = 0.005
+        self.dim_x = 1.0/VoxSize
+        self.dim_y = 1.0/VoxSize
+        self.dim_z = 1.0/VoxSize
         self.res = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32)
         
         self.GPUManager = GPUManager
         self.Size_Volume = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = np.array([self.Size[0], self.Size[1], self.Size[2]], dtype = np.int32))
-        self.TSDFGPU = TSDFGPU
-        self.WeightGPU = WeightGPU
+
+        self.TSDF = np.zeros(self.Size, dtype=np.int16)
+        self.TSDFGPU =cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
+        self.Weight = np.zeros(self.Size, dtype=np.int16)
+        self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
+
         self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = self.res)
         self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
