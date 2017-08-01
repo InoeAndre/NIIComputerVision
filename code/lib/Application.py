@@ -287,7 +287,7 @@ class Application(tk.Frame):
         RotZ = np.array([[cos(angley), -sin(angley),  0.0, 0.0], \
                          [sin(angley),  cos(angley),  0.0, 0.0], \
                          [0.0,          0.0,          1.0, 0.0], \
-                         [0.0,          0.0,          0.0, 1.0]])
+                         [0.0,          0.0,          0.0, 1.0]],np.float32)
 
         # ctrJT = np.zeros(jointPose.shape)
         # for jt in range(3):
@@ -303,19 +303,7 @@ class Application(tk.Frame):
         
         
         self.Index = 0
-        nbImg = 10
-#==============================================================================
-#         #Loop for each image
-#         for idx in range(20):
-#             # Init for Local Transform and inverse Transform
-#             Tg = []
-#             Tg.append(Id4)
-#             # For Marching cubes output
-#             Vertices = []
-#             Vertices.append(np.zeros((1,3),np.float32))
-#             Normales = []
-#             Normales.append(np.zeros((1,3),np.float32))
-#==============================================================================
+        nunImg = 10
 
         # Former Depth Image (i.e: i)
         self.RGBD = []
@@ -331,14 +319,16 @@ class Application(tk.Frame):
             # select the body part
             if bp == 0:
                 self.RGBD[bp].depth_image *= (self.RGBD[bp].labels >0)
+            # elif bp == 9:
+            #     self.RGBD[bp].depth_image *= (self.RGBD[bp].labels == bp) + (self.RGBD[bp].labels == bp+1)
+            # elif bp == 10:
+            #     self.RGBD[bp].depth_image *= (self.RGBD[bp].labels == bp -1 ) + (self.RGBD[bp].labels == bp)
             else:
                 self.RGBD[bp].depth_image *= (self.RGBD[bp].labels == bp)
             self.RGBD[bp].Vmap_optimize()   
             self.RGBD[bp].NMap_optimize()        
         # create the transform matrix from local to global coordinate
         self.RGBD[0].myPCA()
-
-
 
         '''
         The first image is process differently from the other since it does not have any previous value.
@@ -352,17 +342,6 @@ class Application(tk.Frame):
             Tg.append(Tglo.astype(np.float32))
             
         # For TSDF output
-        mf = cl.mem_flags
-        # TSDF = []
-        # TSDF.append(np.zeros((1,3),np.float32))
-        # TSDFGPU = []
-        # TSDFGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, TSDF[0].nbytes))
-        # Weight = []
-        # Weight.append(np.zeros((1,3),np.float32))
-        # WeightGPU = []
-        # WeightGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Weight[0].nbytes))
-        # param = []
-        # param.append(np.array([0.0 , 0.0, 0.0 , 0.0, 0.0, 0.0], dtype = np.float32))
         X = []
         X.append(0)
         Y = []
@@ -371,22 +350,19 @@ class Application(tk.Frame):
         Z.append(0)
         VoxSize = 0.005
 
+        # List of TSDF
         TSDFManager = []
         TSDFManager.append(TSDFtk.TSDFManager((10,10,10), self.RGBD[0], self.GPUManager))
 
         # For Marching cubes output
         MC = []
         MC.append(My_MC.My_MarchingCube(TSDFManager[0].Size, TSDFManager[0].res, 0.0, self.GPUManager))
-        Vertices = []
-        Vertices.append(np.zeros((1,3),np.float32))
-        Normales = []
-        Normales.append(np.zeros((1,3),np.float32))
         # Sum of the number of vertices and faces of all body parts
         nb_verticesGlo = 0
         nb_facesGlo = 0
         # Number of body part +1 since the counting starts from 1
         up = 0
-        bpstart = 1 +up
+        bpstart = 1 + up
         nbBdyPart = self.RGBD[0].bdyPart.shape[0]+1#2 + up#
         #Initiate stitcher object 
         StitchBdy = Stitcher.Stitch(nbBdyPart)
@@ -412,23 +388,6 @@ class Application(tk.Frame):
                 for j in range(4):
                     PoseBP[i][j] = Tg[bp][i][j]
 
-            # if bp ==1 :
-            #     T_rot = np.dot(RotZ, Tg[bp])#PoseBP[0:2,3] = ctrJT[0]
-            # elif bp == 6:
-            #     PoseBP[0:2, 3] = ctrJT[1]
-            # elif bp==13:
-            #     PoseBP[0:2, 3] = ctrJT[2]
-           
-            '''
-            # # TSDF  and Weight of the body part
-            TSDF.append(np.zeros((X[bou],Y[bou],Z[bou]), dtype = np.int16))
-            TSDFGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, TSDF[bou].nbytes))
-            Weight.append(np.zeros((X[bou],Y[bou],Z[bou]), dtype = np.int16))
-            WeightGPU.append(cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Weight[bou].nbytes))
-
-            #rescaling factors
-            param.append(np.array([X[bou]/2 , 1.0/VoxSize, Y[bou]/2 , 1.0/VoxSize, Z[bou]/2, 1.0/VoxSize], dtype = np.float32))
-        '''
             # TSDF Fusion of the body part
             TSDFManager.append(TSDFtk.TSDFManager((X[bou],Y[bou],Z[bou]), self.RGBD[bp], self.GPUManager))
             TSDFManager[bou].FuseRGBD_GPU(self.RGBD[bp], PoseBP)
@@ -442,42 +401,60 @@ class Application(tk.Frame):
             bpStr = str(bp)
             MC[bou].SaveToPly("body"+bpStr+".ply")
             elapsed_time = time.time() - start_time3
-            #print "SaveBPToPly: %f" % (elapsed_time)      
-            
-            #Fill list of MC's Vert and Nmls
-            Vertices.append(MC[bou].Vertices)
-            Normales.append(MC[bou].Normales)
+            print "SaveBPToPly: %f" % (elapsed_time)
+
 
             # Update number of vertices and faces in the stitched mesh
             nb_verticesGlo = nb_verticesGlo + MC[bou].nb_vertices[0]
             nb_facesGlo = nb_facesGlo +MC[bou].nb_faces[0]
 
-            # # Rotation of about 30
-            # if (bp ==1 or bp == 6 or bp==13) :
-            #     # if bp == 13:
-            #     #     pos = 4 # should left
-            #     # elif bp == 6:
-            #     #     pos = 5 #elbow left
-            #     # elif bp == 1:
-            #     #     pos = 6  # wrist left
-            #     pos = 4
+            # # # Rotation of about 30
+            #
+            # if bp == 1 :
+            #     # # transform joints
+            #     print self.pos2d[0, 0][5:8]
+            #     ctr = self.pos2d[0, 0][4].astype(np.int)
+            #     rotat = RotZ[0:2, 0:2]
+            #     for rot in range(3):
+            #         pt = (self.pos2d[0, 0][5 + rot]).astype(np.int)- ctr
+            #         print pt
+            #         pt = np.dot(rotat[0:2, 0:2], pt.T).T
+            #         print pt
+            #         self.pos2d[0, 0][5+rot] = pt + ctr
+            #
+            #         #rotat[0:2, 2] = self.pos2d[0, 0][5 + rot] - self.pos2d[0, 0][4]
+            #         #pt[0:2] = self.pos2d[0, 0][rot+5]
+            #         #pt = np.dot(rotat[0:3, 0:3], pt.T).T
+            #         #self.pos2d[0, 0][rot+5] = pt[0:2]
+            #         print self.pos2d[0, 0][5+rot]
+            #
+            #
+            # if bp ==1 or bp == 2 or bp==12:
+            #     if bp == 12:
+            #         pos = 7 # should left
+            #     elif bp == 2:
+            #         pos = 5 #elbow left
+            #     elif bp == 1:
+            #         pos = 6  # wrist left
+            #
             #     ctr = self.RGBD[0].Vtx[self.pos2d[0,0][pos,0],self.pos2d[0,0][pos,1]]
-            #     pt = np.array((ctr[0], ctr[1], ctr[2], 1.0))
-            #     ctr = np.dot(pt, Tg[bp].T)
-            #     RotZ[0, 3] = (ctr[0] - param[bp][0])/param[bp][1]
-            #     RotZ[1,3] = (ctr[1] - param[bp][2])/param[bp][3]
-            #     RotZ[2,3] = (ctr[2] - param[bp][4])/param[bp][5]
+            #     z = self.RGBD[0].Vtx[self.pos2d[0,0][4,0],self.pos2d[0,0][4,1]]
+            #     #ctr[0] = (ctr[0] - X[bp]/2)*VoxSize
+            #     #ctr[1] = (ctr[1] - Y[bp]/2)*VoxSize
+            #     ctr[2] = z[2]# - Z[bp]/2)*VoxSize
+            #     #pt = np.array((ctr[0], ctr[1], ctr[2], 1.0))
+            #
+            #     #ctr = np.dot(pt, Tg[bp].T)
+            #     RotZ[0:3,3] = ctr[0:3]
+            #     print RotZ
             #     Tg[bp][:,0:3] = np.dot(RotZ, Tg[bp][:,0:3])
 
 
-            # # transform joints
-            # self.pos2d[0, 0][4:7] = np.dot(RotZ[0:2, 0:2], self.pos2d[0, 0][4:7].T).T
 
             #Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
             for i in range(4):
                 for j in range(4):
                     PoseBP[i][j] = Tg[bp][i][j]
-
             # Stitch all the body parts
             if bp == bpstart :
                 StitchBdy.StitchedVertices = StitchBdy.TransformVtx(MC[bou].Vertices,PoseBP,1)
@@ -494,21 +471,13 @@ class Application(tk.Frame):
         elapsed_time = time.time() - start_time3
         print "SaveToPly: %f" % (elapsed_time)                     
 
-        #"""
-        Tracker = TrackManager.Tracker(0.01, 0.5, 1, [10], 0.001)
+        """
+        Tracker = TrackManager.Tracker(0.001, 0.5, 1, [10], 0.001)
         TimeStart = time.time()
 
-        for imgk in range(self.Index+1,nbImg):
+        for imgk in range(self.Index+1,nunImg):
             #Time counting
             start = time.time()
-            '''
-            Reinitialize every list
-            '''
-            # For Marching cubes output
-            Vertices = []
-            Vertices.append(np.zeros((1,3),np.float32))
-            Normales = []
-            Normales.append(np.zeros((1,3),np.float32)) 
 
             '''
             New Image 
@@ -534,8 +503,17 @@ class Application(tk.Frame):
                 newRGBD[bp].Vmap_optimize()   
                 newRGBD[bp].NMap_optimize()        
             # create the transform matrix from local to global coordinate
-            #newRGBD[0].myPCA()
-            
+            newRGBD[0].myPCA()
+
+            print imgk
+            # update the local to global transform
+            # for bp in range(1, newRGBD[0].bdyPart.shape[0] + 1):
+            #     # Get the tranform matrix from the local coordinates system to the global system
+            #     print bp
+            #     print newRGBD[0].TransfoBB[bp]
+            #     print Tg[bp]
+            #     Tglo = newRGBD[0].TransfoBB[bp]
+            #     Tg[bp] = Tglo.astype(np.float32)
             
             # Transform the stitch body in the current image (alignment current image mesh) 
             # New pose estimation
@@ -544,7 +522,7 @@ class Application(tk.Frame):
                 for l in range(4):
                     T_Pose[k,l] = NewPose[k,l]
             print 'T_Pose'
-            print T_Pose 
+            print T_Pose
 
             
             # restart processing of each body part for the current image.
@@ -560,10 +538,9 @@ class Application(tk.Frame):
                 # Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
                 for i in range(4):
                     for j in range(4):
-                        PoseBP[i][j] = Tg_new[i][j]
+                        PoseBP[i][j] = Tg_new[i][j]#Tg[bp][i][j]#
     
                 # TSDF Fusion of the body part
-                #TSDFManager = TSDFtk.TSDFManager((X[bp],Y[bp],Z[bp]), newRGBD[bp], self.GPUManager,TSDFGPU[bp],WeightGPU[bp],param[bp])
                 TSDFManager[bp].FuseRGBD_GPU(newRGBD[bp], PoseBP)
 
                 # Create Mesh
@@ -578,10 +555,6 @@ class Application(tk.Frame):
 #                 elapsed_time = time.time() - start_time3
 #                 print "SaveBPToPly: %f" % (elapsed_time)      
 #==============================================================================
-                
-                #Fill list of MC's Vert and Nmls
-                Vertices.append(MC[bp].Vertices)
-                Normales.append(MC[bp].Normales)
     
                 # Update number of vertices and faces in the stitched mesh
                 nb_verticesGlo = nb_verticesGlo + MC[bp].nb_vertices[0]
@@ -598,11 +571,12 @@ class Application(tk.Frame):
             print "numero %d finished : %f" %(imgk,time_lapsed)
                     
 
-        # save with the number of the body part
-        start_time3 = time.time()
-        MC[0].SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,StitchBdy.StitchedVertices,StitchBdy.StitchedFaces)
-        elapsed_time = time.time() - start_time3
-        print "SaveToPly: %f" % (elapsed_time)  
+            # save with the number of the body part
+            start_time3 = time.time()
+            imgkStr = str(imgk)
+            MC[0].SaveToPlyExt("wholeBody"+imgkStr+".ply",nb_verticesGlo,nb_facesGlo,StitchBdy.StitchedVertices,StitchBdy.StitchedFaces)
+            elapsed_time = time.time() - start_time3
+            print "SaveToPly: %f" % (elapsed_time)
         
         TimeStart_Lapsed = time.time() - TimeStart
         print "total timw: %f" %(TimeStart_Lapsed)
@@ -618,7 +592,7 @@ class Application(tk.Frame):
             for i in range(4):
                 for j in range(4):
                     PoseBP[i][j] = Tg[bp][i][j]
-            rendering = self.RGBD[0].DrawMesh(rendering,Vertices[bou],Normales[bou],PoseBP, 1, self.color_tag)
+            rendering = self.RGBD[0].DrawMesh(rendering,MC[bou].Vertices,MC[bou].Normales,PoseBP, 1, self.color_tag)
 
         # 3D reconstruction of the whole image
         self.canvas = tk.Canvas(self, bg="black", height=self.Size[0], width=self.Size[1])

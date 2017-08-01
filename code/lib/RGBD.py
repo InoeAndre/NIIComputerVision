@@ -352,7 +352,7 @@ class RGBD():
         bw0 = bwmin*bwmax
         # Compare with thenoised binary image given by the kinect
         thresh2,tmp = cv2.threshold(self.Croppedbw,0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-        res = tmp * bw0        
+        res = tmp * bw0
         # Remove all stand alone object
         bw0 = ( self.RemoveBG(bw0)>0)
         return res
@@ -384,9 +384,9 @@ class RGBD():
         footLeft = ( self.segm.GetFoot( MidBdyImage,left)>0)
         #pdb.set_trace()
 
-        self.bdyPart = np.array( [handLeft, handRight,  footRight, footLeft, \
-                                  armRight[0], armLeft[0], head, legLeft[1], legRight[1],   \
-                                  legRight[0], legLeft[0], armRight[1],  armLeft[1], body]).astype(np.int)#]).astype(np.int)#
+        self.bdyPart = np.array( [ armLeft[0], armLeft[1], armRight[0], armRight[1], \
+                                   legRight[0], legRight[1], legLeft[0], legLeft[1], \
+                                   head, body, handRight, handLeft, footLeft,footRight ]).astype(np.int)#]).astype(np.int)#
         self.bdyColor = np.array( [np.array([0,0,255]), np.array([200,200,255]), np.array([0,255,0]), np.array([200,255,200]),\
                                    np.array([255,0,255]), np.array([255,180,255]), np.array([255,255,0]), np.array([255,255,180]),\
                                    np.array([255,0,0]), np.array([255,255,255]),np.array([0,100,0]),np.array([0,191,255]),\
@@ -568,7 +568,7 @@ class RGBD():
         draw the bounding boxes in 3D for each part of the human body
         '''     
         # Adding a space so that the bounding boxes are wider
-        wider = 0.005
+        wider = 5*0.005
         # extremes planes of the bodies
         minX = np.min(self.TVtxBB[i][:,0]) - wider
         maxX = np.max(self.TVtxBB[i][:,0]) + wider
