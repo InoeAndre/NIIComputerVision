@@ -174,80 +174,70 @@ class Stitch():
 
         # Compute the transform between the two skeleton : Tbb = A^-1 * B
 
+        # Compute A
+        A = self.GetCoordSyst(PosPrev,pos,RGBD,bp)
+        # Compute B
+        B = self.GetCoordSyst(PosCur, pos, RGBD, bp)
+        Tg = RGBD.TransfoBB[bp]
+        # Compute Tbb : skeleton tracking transfo
+        Tbb = np.dot(B,self.InvPose(A))#B#np.identity(4)#A#
 
+        print A
+        print Tg
+        print B
+        print Tbb
 
-        # compute the 3D centers point of the bounding boxes using the skeleton for B
+        return Tbb#B#
+
+    def GetCoordSyst(self, pos2d,jt,RGBD,bp):
+        '''
+        This function compute the coordinates system of a body part according to the camera pose
+        :param pos2d: camera pose
+        :param jt: junctions of the body parts
+        :param RGBD: Image
+        :param bp: number of body part
+        :return: Matrix containing the coordinates systems
+        '''
+        # compute the 3D centers point of the bounding boxes using the skeleton
         ctr = np.array([0.0, 0.0, 0.0], np.float)
-        z = RGBD.TransfoBB[bp][3,3]
+        Tg = RGBD.TransfoBB[bp]
+        z = Tg[3,3]
         if bp < 9:
-            Xm = (PosCur[pos[0], 0] + PosCur[pos[1], 0]) / 2
-            Ym = (PosCur[pos[0], 1] + PosCur[pos[1], 1]) / 2
+            Xm = (pos2d[jt[0], 0] + pos2d[jt[1], 0]) / 2
+            Ym = (pos2d[jt[0], 1] + pos2d[jt[1], 1]) / 2
+            # print pos
+            # print Xm
+            # print Ym
         else:
-            Xm = PosCur[pos[2], 0]
-            Ym = PosCur[pos[2], 1]
+            Xm = pos2d[jt[2], 0]
+            Ym = pos2d[jt[2], 1]
 
         ctr[0] = z * (Xm - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
         ctr[1] = z * (Ym - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
         ctr[2] = z
 
         # Compute B Transfo from camera to local system of current frame
-        pt = np.array([0.0, 0.0, 0.0], np.float)
-        pt[0] = z * (PosCur[pos[1], 0] - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
-        pt[1] = z * (PosCur[pos[1], 1] - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
-        pt[2] = z
-        axeX = (pt - ctr)/LA.norm(pt - ctr)
+        pt1 = np.array([0.0, 0.0, 0.0], np.float)
+        pt1[0] = z * (pos2d[jt[1], 0] - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
+        pt1[1] = z * (pos2d[jt[1], 1] - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
+        pt1[2] = z
+        pt2 = np.array([0.0, 0.0, 0.0], np.float)
+        pt2[0] = z * (pos2d[jt[0], 0] - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
+        pt2[1] = z * (pos2d[jt[0], 1] - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
+        pt2[2] = z
+        axeX = (pt1 - pt2)/LA.norm(pt1 - pt2)
         signX = np.sign(axeX)
         axeX = signX[1]*axeX
-        axeZ = np.array([0.0, 0.0, 1.0], np.float)
-        axeY = normalized_cross_prod(axeZ, axeX)
+        axeZ = np.array([0.0, 0.0, z], np.float)
+        axeY = normalized_cross_prod(axeX, axeZ)
 
-        # Bounding boxes tracking matrix for B
+        # Bounding boxes tracking matrix
         e1b = np.array( [axeX[0],axeX[1],axeX[2],0])
         e2b = np.array( [axeY[0],axeY[1],axeY[2],0])
         e3b = np.array( [axeZ[0],axeZ[1],axeZ[2],0])
         origine = np.array( [ctr[0],ctr[1],ctr[2],1])
-        B = np.stack( (e1b,e2b,e3b,origine),axis = 0 ).T
-
-        # # Compute A Transfo from camera to local system of previous frame
-        # # compute the 3D centers point of the bounding boxes using the skeleton for A
-        # ctr = np.array([0.0, 0.0, 0.0], np.float)
-        # z = RGBD.TransfoBB[bp][3,3]
-        # if bp < 9:
-        #     Xm = (PosPrev[pos[0], 0] + PosPrev[pos[1], 0]) / 2
-        #     Ym = (PosPrev[pos[0], 1] + PosPrev[pos[1], 1]) / 2
-        # else:
-        #     Xm = PosPrev[pos[2], 0]
-        #     Ym = PosPrev[pos[2], 1]
-        #
-        # ctr[0] = z * (Xm - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
-        # ctr[1] = z * (Ym - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
-        # ctr[2] = z
-        #
-        # # Compute A Transfo from camera to local system of current frame
-        # pt = np.array([0.0, 0.0, 0.0], np.float)
-        # pt[0] = z * (PosPrev[pos[1], 0] - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
-        # pt[1] = z * (PosPrev[pos[1], 1] - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
-        # pt[2] = z
-        # axeX = (pt - ctr)/LA.norm(pt - ctr)
-        # axeZ = np.array([0.0, 0.0, 1.0], np.float)
-        # axeY = normalized_cross_prod(axeZ, axeX)
-        #
-        # # Bounding boxes tracking matrix for B
-        # e1b = np.array( [axeX[0],axeX[1],axeX[2],0])
-        # e2b = np.array( [axeY[0],axeY[1],axeY[2],0])
-        # e3b = np.array( [axeZ[0],axeZ[1],axeZ[2],0])
-        # origine = np.array( [ctr[0],ctr[1],ctr[2],1])
-        # A = np.stack( (e1b,e2b,e3b,origine),axis = 0 ).T
-
-
-        # Compute Tbb : skeleton tracking transfo
-        Tbb =B# np.dot(self.InvPose(A),B)
-
-        #print A
-        print B
-        print Tbb
-
-        return Tbb
+        coord = np.stack( (e1b,e2b,e3b,origine),axis = 0 ).T
+        return coord
 
     def GetPos(self,bp):
         '''

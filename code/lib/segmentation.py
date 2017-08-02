@@ -540,7 +540,25 @@ class Segmentation(object):
         else :
             idx =7
         pos2D = self.pos2D
-        labeled, n = spm.label(binaryImage)
+
+        #create a sphere of radius 12 so that anything superior does not come in the feet label
+        handDist = 12# LA.norm( (pos2D[16]-pos2D[12])/1.5).astype(np.int16)
+        #since feet are on the same detph as the floor some processing are required before using cc
+        line = self.depthImage.shape[0]
+        col = self.depthImage.shape[1]
+        mask = np.ones([line,col,2])
+        mask = mask*pos2D[idx]
+        #create a matrix containing in each pixel its index
+        lineIdx = np.array([np.arange(line) for _ in range(col)]).reshape(col,line).transpose()
+        colIdx = np.array([np.arange(col) for _ in range(line)]).reshape(line,col)
+        ind = np.stack( (colIdx,lineIdx), axis = 2)
+        #compute the distance between the skeleton point of feet and each pixel
+        mask = np.sqrt(np.sum( (ind-mask)*(ind-mask),axis = 2))
+        mask = (mask < handDist)
+        mask = mask * binaryImage
+
+        # compute the body part
+        labeled, n = spm.label(mask)
         threshold = labeled[pos2D[idx,1],pos2D[idx,0]]
         labeled = (labeled==threshold)
         return labeled
@@ -554,14 +572,15 @@ class Segmentation(object):
         else :
             idx =15
         pos2D = self.pos2D
+
+        #create a sphere mask of radius 12 so that anything superior does not come in the feet label
         footDist = 12# LA.norm( (pos2D[16]-pos2D[12])/1.5).astype(np.int16)
-        
-        #since feet are on the same detph as the floor some processing are reauired before using cc
+        #since feet are on the same detph as the floor some processing are required before using cc
         line = self.depthImage.shape[0]
         col = self.depthImage.shape[1]
         mask = np.ones([line,col,2])
         mask = mask*pos2D[idx]
-        #create a matrix containing in each pixel its indices
+        #create a matrix containing in each pixel its index
         lineIdx = np.array([np.arange(line) for _ in range(col)]).reshape(col,line).transpose()
         colIdx = np.array([np.arange(col) for _ in range(line)]).reshape(line,col)
         ind = np.stack( (colIdx,lineIdx), axis = 2)
@@ -569,6 +588,8 @@ class Segmentation(object):
         mask = np.sqrt(np.sum( (ind-mask)*(ind-mask),axis = 2))
         mask = (mask < footDist)
         mask = mask * binaryImage
+
+        # compute the body part
         labeled, n = spm.label(mask)
         threshold = labeled[pos2D[idx,1],pos2D[idx,0]]
         labeled = (labeled==threshold)

@@ -350,12 +350,13 @@ class RGBD():
         bwmin = (self.CroppedBox > mini-0.01*max_value) 
         bwmax = (self.CroppedBox < maxi+0.01*max_value)
         bw0 = bwmin*bwmax
-        # Compare with thenoised binary image given by the kinect
+        # Compare with the noised binary image given by the kinect
         thresh2,tmp = cv2.threshold(self.Croppedbw,0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
         res = tmp * bw0
         # Remove all stand alone object
         bw0 = ( self.RemoveBG(bw0)>0)
-        return res
+
+        return bw0#res
 
     def BodySegmentation(self):
         '''this function calls the function in segmentation.py to process the segmentation of the body'''
@@ -363,8 +364,9 @@ class RGBD():
         self.segm = segm.Segmentation(self.CroppedBox,self.CroppedPos) 
         #segmentation of the whole body 
         imageWBG = (self.BdyThresh()>0)
+
         B = self.CroppedBox
-    
+
         right = 0
         left = 1
         armLeft = self.segm.armSeg(imageWBG,B,left)
@@ -377,11 +379,18 @@ class RGBD():
         tmp = armLeft[0]+armLeft[1]+armRight[0]+armRight[1]+legRight[0]+legRight[1]+legLeft[0]+legLeft[1]+head
         MidBdyImage =((imageWBG-(tmp>0))>0)
 
-        body = ( self.segm.GetBody( MidBdyImage)>0)
+        # cv2.imshow('trunk' , MidBdyImage.astype(np.float))
+        # cv2.waitKey(0)
+
+        #body = ( self.segm.GetBody( MidBdyImage)>0)
         handRight = ( self.segm.GetHand( MidBdyImage,right)>0)
         handLeft = ( self.segm.GetHand( MidBdyImage,left)>0)
         footRight = ( self.segm.GetFoot( MidBdyImage,right)>0)
         footLeft = ( self.segm.GetFoot( MidBdyImage,left)>0)
+
+        tmp2 = handRight+handLeft+footRight+footLeft
+        MidBdyImage2 =((MidBdyImage-(tmp2>0))>0)
+        body = ( self.segm.GetBody( MidBdyImage2)>0)
         #pdb.set_trace()
 
         self.bdyPart = np.array( [ armLeft[0], armLeft[1], armRight[0], armRight[1], \
@@ -532,7 +541,7 @@ class RGBD():
         self.mask.append([0.,0.,0.])
         for i in range(1,self.bdyPart.shape[0]+1):
             self.mask.append( (self.labels == i) )
-            
+            print i
             # compute center of 3D
             self.PtCloud.append(self.bdyPts3D_optimize(self.mask[i]))
             self.pca.append(PCA(n_components=3))
