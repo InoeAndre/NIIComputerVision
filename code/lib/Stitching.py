@@ -167,8 +167,8 @@ class Stitch():
         PosCur = pos2d[0,cur]
         PosPrev = pos2d[0,prev]
 
-        print prev
-        print cur
+        # print prev
+        # print cur
         # get the junctions of the current body parts
         pos = self.GetPos(bp)
 
@@ -182,9 +182,9 @@ class Stitch():
         # Compute Tbb : skeleton tracking transfo
         Tbb = np.dot(B,self.InvPose(A))#B#np.identity(4)#A#
 
-        print A
-        print Tg
-        print B
+        # print A
+        # print Tg
+        # print B
         print Tbb
 
         return Tbb#B#
@@ -201,7 +201,7 @@ class Stitch():
         # compute the 3D centers point of the bounding boxes using the skeleton
         ctr = np.array([0.0, 0.0, 0.0], np.float)
         Tg = RGBD.TransfoBB[bp]
-        z = Tg[3,3]
+        z = Tg[2,3]
         if bp < 9:
             Xm = (pos2d[jt[0], 0] + pos2d[jt[1], 0]) / 2
             Ym = (pos2d[jt[0], 1] + pos2d[jt[1], 1]) / 2
@@ -216,15 +216,17 @@ class Stitch():
         ctr[1] = z * (Ym - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
         ctr[2] = z
 
-        # Compute B Transfo from camera to local system of current frame
+        # Compute first junction points  of current frame
         pt1 = np.array([0.0, 0.0, 0.0], np.float)
         pt1[0] = z * (pos2d[jt[1], 0] - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
         pt1[1] = z * (pos2d[jt[1], 1] - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
-        pt1[2] = z
+        pt1[2] = RGBD.Vtx[pos2d[jt[0], 0],pos2d[jt[0], 1]][2]#z#
+        # Compute second junction points  of current frame
         pt2 = np.array([0.0, 0.0, 0.0], np.float)
         pt2[0] = z * (pos2d[jt[0], 0] - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
         pt2[1] = z * (pos2d[jt[0], 1] - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
-        pt2[2] = z
+        pt2[2] = RGBD.Vtx[pos2d[jt[1], 0],pos2d[jt[1], 1]][2]#z#
+        # Compute normalized axis of coordinates system
         axeX = (pt1 - pt2)/LA.norm(pt1 - pt2)
         signX = np.sign(axeX)
         axeX = signX[1]*axeX
@@ -258,17 +260,17 @@ class Stitch():
             pos1 = 9 # elbow left
             pos2 =  8 # shoulder left
         elif bp == 5:
+            pos1 = 17  #knee right
+            pos2 = 16 #hip right
+        elif bp == 6:
+            pos1 = 18  # ankle right
+            pos2 = 17 # knee right
+        elif bp == 7:
             pos1 = 13 # knee left
             pos2 = 12 # hip left
-        elif bp == 6:
+        elif bp == 8:
             pos1 = 14 # ankle left
             pos2 =  13 # knee left
-        elif bp == 7:
-            pos1 = 17  #knee right
-            pos2 =  16 #hip right
-        elif bp == 8:
-            pos1 = 18  # ankle right
-            pos2 =  17 # knee right
         elif bp == 9:
             pos1 = 3 # head
             pos2 = 2 # neck
