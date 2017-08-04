@@ -233,16 +233,6 @@ class Application(tk.Frame):
             pt1 = vertex[triangle[i][1]]
             pt2 = vertex[triangle[i][2]]
             self.canvas.create_polygon(pt0[0],pt0[1],pt1[0],pt1[1],pt2[0],pt2[1],outline = python_green, fill='yellow', width=1)
-
-
-    def CheckVerts2D(self,verts):
-        '''Change the indexes values that are outside the frame''' 
-        #make sure there are not false values
-        cdt_line = (verts[:,1] > -1) * (verts[:,1] < self.Size[0])
-        cdt_column = (verts[:,0] > -1) * (verts[:,0] < self.Size[1])
-        verts[:,0] = verts[:,0]*cdt_column
-        verts[:,1] = verts[:,1]*cdt_line
-        return verts     
        
     def InvPose(self,Pose):
         '''Compute the inverse transform of Pose''' 
@@ -281,17 +271,6 @@ class Application(tk.Frame):
         lImages = mat['DepthImg']
         self.pos2d = mat['Pos2D']
         bdyIdx = mat['BodyIndex']
-
-        # Rotate skeleton right arm
-        angley = 0.5  # pi * 2. * delta_x / float(self.Size[0])
-        RotZ = np.array([[cos(angley), -sin(angley),  0.0, 0.0], \
-                         [sin(angley),  cos(angley),  0.0, 0.0], \
-                         [0.0,          0.0,          1.0, 0.0], \
-                         [0.0,          0.0,          0.0, 1.0]],np.float32)
-
-        # ctrJT = np.zeros(jointPose.shape)
-        # for jt in range(3):
-        #     ctrJT = (jointPose[jt,0]+jointPose[jt,1])/2
 
 
         self.connectionMat = scipy.io.loadmat(path + '/SkeletonConnectionMap.mat')
@@ -408,49 +387,6 @@ class Application(tk.Frame):
             nb_verticesGlo = nb_verticesGlo + MC[bou].nb_vertices[0]
             nb_facesGlo = nb_facesGlo +MC[bou].nb_faces[0]
 
-            # # # Rotation of about 30
-            #
-            # if bp == 1 :
-            #     # # transform joints
-            #     print self.pos2d[0, 0][5:8]
-            #     ctr = self.pos2d[0, 0][4].astype(np.int)
-            #     rotat = RotZ[0:2, 0:2]
-            #     for rot in range(3):
-            #         pt = (self.pos2d[0, 0][5 + rot]).astype(np.int)- ctr
-            #         print pt
-            #         pt = np.dot(rotat[0:2, 0:2], pt.T).T
-            #         print pt
-            #         self.pos2d[0, 0][5+rot] = pt + ctr
-            #
-            #         #rotat[0:2, 2] = self.pos2d[0, 0][5 + rot] - self.pos2d[0, 0][4]
-            #         #pt[0:2] = self.pos2d[0, 0][rot+5]
-            #         #pt = np.dot(rotat[0:3, 0:3], pt.T).T
-            #         #self.pos2d[0, 0][rot+5] = pt[0:2]
-            #         print self.pos2d[0, 0][5+rot]
-            #
-            #
-            # if bp ==1 or bp == 2 or bp==12:
-            #     if bp == 12:
-            #         pos = 7 # should left
-            #     elif bp == 2:
-            #         pos = 5 #elbow left
-            #     elif bp == 1:
-            #         pos = 6  # wrist left
-            #
-            #     ctr = self.RGBD[0].Vtx[self.pos2d[0,0][pos,0],self.pos2d[0,0][pos,1]]
-            #     z = self.RGBD[0].Vtx[self.pos2d[0,0][4,0],self.pos2d[0,0][4,1]]
-            #     #ctr[0] = (ctr[0] - X[bp]/2)*VoxSize
-            #     #ctr[1] = (ctr[1] - Y[bp]/2)*VoxSize
-            #     ctr[2] = z[2]# - Z[bp]/2)*VoxSize
-            #     #pt = np.array((ctr[0], ctr[1], ctr[2], 1.0))
-            #
-            #     #ctr = np.dot(pt, Tg[bp].T)
-            #     RotZ[0:3,3] = ctr[0:3]
-            #     print RotZ
-            #     Tg[bp][:,0:3] = np.dot(RotZ, Tg[bp][:,0:3])
-
-
-
             #Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
             for i in range(4):
                 for j in range(4):
@@ -472,7 +408,7 @@ class Application(tk.Frame):
         print "SaveToPly: %f" % (elapsed_time)                     
 
         """
-        Tracker = TrackManager.Tracker(0.001, 0.5, 1, [10], 0.001)
+        Tracker = TrackManager.Tracker(0.001, 0.5, 1, [10])
         TimeStart = time.time()
 
         for imgk in range(self.Index+1,nunImg):

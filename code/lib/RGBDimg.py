@@ -13,6 +13,12 @@ from numpy import linalg as LA
 
 
 def normalized_cross_prod(a,b):
+    '''
+    compute the cross product of 2 vectors and normalized it
+    :param a: first 3 elements vector
+    :param b: second 3 elements vector
+    :return: the normalized cross product between 2 vector
+    '''
     res = np.zeros(3, dtype = "float")
     if (LA.norm(a) == 0.0 or LA.norm(b) == 0.0):
         return res
@@ -27,14 +33,23 @@ def normalized_cross_prod(a,b):
 
 
 def in_mat_zero2one(mat):
-    """This fonction replace in the matrix all the 0 to 1"""
+    '''
+    This fonction replace in the matrix all the 0 to 1
+    :param mat: input matrix containing 0
+    :return:  mat with 1 instead of 0
+    '''
     mat_tmp = (mat != 0.0)
     res = mat * mat_tmp + ~mat_tmp
     return res
 
 def division_by_norm(mat,norm):
-    """This fonction divide a n by m by p=3 matrix, point by point, by the norm made through the p dimension>
-    It ignores division that makes infinite values or overflow to replace it by the former mat values or by 0"""
+    '''
+    This fonction divide a n by m by p=3 matrix, point by point, by the norm made through the p dimension
+    It ignores division that makes infinite values or overflow to replace it by the former mat values or by 0
+    :param mat:
+    :param norm:
+    :return:
+    '''
     for i in range(3):
         with np.errstate(divide='ignore', invalid='ignore'):
             mat[:,:,i] = np.true_divide(mat[:,:,i],norm)

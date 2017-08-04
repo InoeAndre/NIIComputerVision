@@ -3,7 +3,7 @@
 """
 Created on Thu Mar  2 16:47:40 2017
 
-@author: diegothomas
+@author: diegothomas, inoeandre
 """
 
 import imp
@@ -24,6 +24,12 @@ def in_mat_zero2one(mat):
     return res
 
 def Exponential(qsi):
+    '''
+    This function transform a 6D vector into a 4*4 matrix using Lie's Algebra. It is used to compute the incrementale
+    transformation matrix in the tracking process.
+    :param qsi: 6D vector
+    :return: 4*4 incremental transfo matrix for camera pose estimation
+    '''
     theta = LA.norm(qsi[3:6])
     res = np.identity(4)
     
@@ -61,6 +67,11 @@ def Exponential(qsi):
     return res
 
 def Logarithm(Mat):
+    '''
+    Inverse of Exponential function. Used to create known transform matrix and test.
+    :param Mat: 4*4 transformation matrix
+    :return: a 6D vector containing rotation and translation parameters
+    '''
     trace = Mat[0,0]+Mat[1,1]+Mat[2,2]
     theta = acos((trace-1.0)/2.0)
     
@@ -102,35 +113,44 @@ def Logarithm(Mat):
 class Tracker():
 
     # Constructor
-    def __init__(self, thresh_dist, thresh_norm, lvl, max_iter, thresh_conv):
+    def __init__(self, thresh_dist, thresh_norm, lvl, max_iter):
         self.thresh_dist = thresh_dist
         self.thresh_norm = thresh_norm
         self.lvl = lvl
         self.max_iter = max_iter
-        self.thresh_conv = thresh_conv
         
         
     def InvPose(self,Pose):
-        '''Compute the inverse transform of Pose''' 
+        '''
+        Compute the inverse transform of Pose
+        :param Pose: 4*4 Matrix of the camera pose
+        :return: matrix containing the inverse transform of Pose
+        y = R*x + T
+        x = R^(-1)*y + R^(-1)*T
+        '''
         PoseInv = np.zeros(Pose.shape,Pose.dtype)
+        # Inverse rotation part R^(-1)
         PoseInv[0:3,0:3] = LA.inv(Pose[0:3,0:3])
+        # Inverse Translation part R^(-1)*T
         PoseInv[0:3,3] = -np.dot(PoseInv[0:3,0:3],Pose[0:3,3])
         PoseInv[3,3] = 1.0
         return PoseInv
-        
-    """
-    Function that estimate the relative rigid transformation between two input RGB-D images
-    """
+
     def RegisterRGBD(self, Image1, Image2):
-        
+        '''
+        Function that estimate the relative rigid transformation between two input RGB-D images
+        :param Image1: First RGBD images
+        :param Image2:  Second RGBD images
+        :return: Transform matrix between Image1 and Image2
+        '''
+
+        # Init
         res = np.identity(4)
-        
-        line_index = 0
-        column_index = 0
         pix = np.array([0., 0., 1.])
-        
         pt = np.array([0., 0., 0., 1.])
         nmle = np.array([0., 0., 0.])
+
+
         for l in range(1,self.lvl+1):
             for it in range(self.max_iter[l-1]):
                 nbMatches = 0
@@ -224,7 +244,12 @@ class Tracker():
         return res
                 
     def RegisterRGBD_optimize(self, Image1, Image2):
-        
+        '''
+        Optimize version of  RegisterRGBD
+        :param Image1: First RGBD images
+        :param Image2:  Second RGBD images
+        :return: Transform matrix between Image1 and Image2
+        '''
         res = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         
         
@@ -340,8 +365,15 @@ class Tracker():
 
 
             
-    def RegisterRGBDMesh(self, NewImage, MeshVtx, MeshNmls,Pose):            
-
+    def RegisterRGBDMesh(self, NewImage, MeshVtx, MeshNmls,Pose):
+        '''
+        Function that estimate the relative rigid transformation between an input RGB-D images and a mesh
+        :param NewImage: RGBD image
+        :param MeshVtx: list of vertices of the mesh
+        :param MeshNmls: list of normales of the mesh
+        :param Pose:  estimate of the pose of the current image
+        :return: Transform matrix between Image1 and the mesh (transform from the first frame to the current frame)
+        '''
         res = Pose
         
         line_index = 0
@@ -450,16 +482,27 @@ class Tracker():
     
     
     def RegisterRGBDMesh_optimize(self, NewImage, MeshVtx, MeshNmls,Pose):
-        print "MeshVtx.shape"
-        print MeshVtx.shape
+        '''
+        Optimize version with CPU  of RegisterRGBDMesh
+        :param NewImage: RGBD image
+        :param MeshVtx: list of vertices of the mesh
+        :param MeshNmls: list of normales of the mesh
+        :param Pose:  estimate of the pose of the current image
+        :return: Transform matrix between Image1 and the mesh (transform from the first frame to the current frame)
+        '''
         
-        # Initializing the res with the current Pose so that 
+        # Initializing the res with the current Pose so that mesh that are in a local coordinates can be
+        # transform in the current frame and thus enabling ICP.
         Size = MeshVtx.shape
         res = Pose
-        
+
+
         for l in range(1,self.lvl+1):
             for it in range(self.max_iter[l-1]):
+
+                # residual matrix
                 b = np.zeros(6, np.float32)
+                # Jacobian matrix
                 A = np.zeros((6,6), np.float32)
                 
                 # For each pixel find correspondinng point by projection
