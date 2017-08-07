@@ -1,6 +1,7 @@
 """
 7 August 2017
 @author: Inoe ANDRE
+All process within a body part
 """
 
 
@@ -22,7 +23,17 @@ General = imp.load_source('General', './lib/General.py')
 
 
 class BodyParts():
+    """
+    Body parts
+    """
     def __init__(self, GPUManager,RGBD,RGBD_BP, Tlg):
+        """
+        Init a body parts
+        :param GPUManager: GPU environment
+        :param RGBD: Image having all the body
+        :param RGBD_BP: Image containing just the body part
+        :param Tlg: Transform local to global for the concerned body parts
+        """
         self.GPUManager = GPUManager
         self.RGBD = RGBD
         self.Tlg =Tlg
@@ -31,6 +42,11 @@ class BodyParts():
 
 
     def Model3D_init(self,bp):
+        """
+        Create a 3D model of the body parts
+        :param bp: numero of the body part
+        :return:  none
+        """
 
         # need to put copy transform amtrix in PoseBP for GPU
         PoseBP = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)

@@ -1,43 +1,34 @@
-#
-#  Author Inoe ANDRE
+"""
+@Author Inoe ANDRE
+Cross module functions
+"""
 
-# File to handle program main loop
-import sys
-import cv2
-from math import cos, sin
 import numpy as np
 from numpy import linalg as LA
-from numpy.matlib import rand, zeros, ones, empty, eye
-import Tkinter as tk
-import tkMessageBox
-from tkFileDialog import askdirectory
-from PIL import Image, ImageTk
-import imp
-import scipy.io
-import time
-import pyopencl as cl
+
 
 
 
 def in_mat_zero2one(mat):
-    '''
-    This fonction replace in the matrix all the 0 to 1
+    """
+    Replace in the matrix all the 0 to 1
     :param mat: input matrix containing 0
     :return:  mat with 1 instead of 0
-    '''
+    """
     mat_tmp = (mat != 0.0)
     res = mat * mat_tmp + ~mat_tmp
     return res
 
 
-'''
-Compute the inverse transform of Pose
-:param Pose: 4*4 Matrix of the camera pose
-:return: matrix containing the inverse transform of Pose
-y = R*x + T
-x = R^(-1)*y + R^(-1)*T
-'''
+
 def InvPose(Pose):
+    """
+    Compute the inverse transform of Pose
+    :param Pose: 4*4 Matrix of the camera pose
+    :return: matrix containing the inverse transform of Pose
+    y = R*x + T
+    x = R^(-1)*y + R^(-1)*T
+    """
     PoseInv = np.zeros(Pose.shape, Pose.dtype)
     # Inverse rotation part R^(-1)
     PoseInv[0:3, 0:3] = LA.inv(Pose[0:3, 0:3])
@@ -48,7 +39,7 @@ def InvPose(Pose):
 
 def normalized_cross_prod(a, b):
     '''
-    compute the cross product of 2 vectors and normalized it
+    Compute the cross product of 2 vectors and normalized it
     :param a: first 3 elements vector
     :param b: second 3 elements vector
     :return: the normalized cross product between 2 vector
@@ -83,6 +74,12 @@ def division_by_norm(mat, norm):
 
 
 def normalized_cross_prod_optimize(a, b):
+    """
+    Compute the cross product of list of 2 vectors and normalized it
+    :param a: first 3 elements vector
+    :param b: second 3 elements vector
+    :return: the normalized cross product between 2 vector
+    """
     # res = np.zeros(a.Size, dtype = "float")
     norm_mat_a = np.sqrt(np.sum(a * a, axis=2))
     norm_mat_b = np.sqrt(np.sum(b * b, axis=2))

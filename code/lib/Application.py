@@ -1,24 +1,19 @@
+"""
+File to handle program main loop
+"""
+
 # File created by Diego Thomas the 21-11-2016
 # Second Author Inoe ANDRE
 
-# File to handle program main loop
-import sys
+#
 import cv2
 from math import cos,sin
 import numpy as np
-from numpy import linalg as LA
-from numpy.matlib import rand,zeros,ones,empty,eye
 import Tkinter as tk
-import tkMessageBox
-from tkFileDialog import askdirectory
 from PIL import Image, ImageTk
 import imp
 import scipy.io
 import time
-import pyopencl as cl
-
-
-
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 RGBDimg = imp.load_source('RGBDimg', './lib/RGBDimg.py')
@@ -32,8 +27,18 @@ General = imp.load_source('General', './lib/General.py')
 
 
 class Application(tk.Frame):
-    ## Function to handle keyboard inputs
+    """
+    Class to apply the segmented fusion
+    It also contains function to handle keyboard and mouse inputs
+    """
+
+
     def key(self, event):
+        """
+        Function to handle keyboard inputs
+        :param event: press a button on the keyboard
+        :return: none
+        """
         Transfo = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]])
         
         if (event.keysym == 'Escape'):
@@ -56,8 +61,7 @@ class Application(tk.Frame):
         if (event.keysym != 'Escape'):
             self.Pose = np.dot(self.Pose, Transfo)
             rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-            rendering = self.RGBD.Draw_optimize(rendering,self.Pose, self.w.get(), self.color_tag)
-            rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,self.Pose, 1, self.color_tag)
+            rendering = self.RGBD[0].Draw_optimize(rendering,self.Pose, self.w.get(), self.color_tag)
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
@@ -66,19 +70,34 @@ class Application(tk.Frame):
             #self.DrawOBBox2D(self.Pose)
 
 
-    ## Function to handle mouse press event
+
     def mouse_press(self, event):
+        """
+        Function to handle mouse press event, displacement related to the event
+        :param event: a click with the mouse
+        :return: none
+
+        """
         self.x_init = event.x
         self.y_init = event.y
-    
-    ## Function to handle mouse release events
+
     def mouse_release(self, event):
+        """
+        Function to handle mouse release events, displacement related to the event
+        :param event: a click with the mouse
+        :return: none
+        """
         x = event.x
         y = event.y
     
     
-    ## Function to handle mouse motion events
+
     def mouse_motion(self, event):
+        """
+        Function to handle mouse motion events. displacement related to the event
+        :param event: moving mouse when a button is pressed
+        :return: none
+        """
         if (event.y < 480):
             delta_x = event.x - self.x_init
             delta_y = event.y - self.y_init
@@ -106,11 +125,11 @@ class Application(tk.Frame):
 
             self.Pose = np.dot(self.Pose, RotX)
             rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-            rendering = self.RGBD2.Draw_optimize(rendering,self.Pose, self.w.get(), self.color_tag)
-            rendering = self.RGBD.DrawMesh(rendering, self.MC.Vertices,self.MC.Normals,self.Pose, 1, self.color_tag)
+            rendering = self.RGBD[0].Draw_optimize(rendering,self.Pose, self.w.get(), self.color_tag)
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+            self.DrawSkeleton2D(self.Pose)
             #self.DrawCenters2D(self.Pose)
             #self.DrawSys2D(self.Pose)
             #self.DrawOBBox2D(self.Pose)
@@ -119,6 +138,13 @@ class Application(tk.Frame):
         self.y_init = event.y
 
     def DrawPoint2D(self,point,radius,color):
+        """
+        Draw a point in the image
+        :param point: 2D coordinates
+        :param radius: size of the point
+        :param color: Color of the point
+        :return: none
+        """
         if point[0]>0 and point[1]>0:
             x1, y1 = (point[0] - radius), (point[1] - radius)
             x2, y2 = (point[0] + radius), (point[1] + radius)
@@ -128,8 +154,15 @@ class Application(tk.Frame):
         self.canvas.create_oval(x1, y1, x2, y2, fill=color)
 
 
-    def DrawColors2D(self,RGBD,img,Pose):
-        '''this function draw the color of each segmented part of the body'''
+    def DrawColors2D(self,RGBD,img):
+        """
+        Draw the color of each segmented part of the body
+        :param RGBD:
+        :param img:
+        :param Pose:
+        :return:
+        Adding an argument pose would enable to follow the transformation
+        """
         newImg = img.copy()
         Txy = RGBD.transCrop
         label = RGBD.labels
@@ -145,7 +178,12 @@ class Application(tk.Frame):
 
                       
     def DrawSkeleton2D(self,Pose):
-        '''this function draw the Skeleton of a human and make connections between each part'''
+        """
+        Sraw the Skeleton of a human and make connections between each part
+        :param Pose:
+        :return:
+                Adding an argument pose would enable to follow the transformation
+        """
         pos = self.pos2d[0][self.Index]
         for i in range(np.size(self.connection,0)): 
             pt1 = (pos[self.connection[i,0]-1,0],pos[self.connection[i,0]-1,1])
@@ -202,6 +240,14 @@ class Application(tk.Frame):
     
     ## Constructor function
     def __init__(self, path,  GPUManager, master=None):
+        """
+        Main function of the project
+        :param path: path to search data
+        :param GPUManager: GPU environment
+        :param master: none
+        """
+
+        # Init
         self.root = master
         self.path = path
         self.GPUManager = GPUManager
@@ -212,6 +258,7 @@ class Application(tk.Frame):
         self.pack()
         
         self.color_tag = 1
+        # Calibration matrix
         calib_file = open(self.path + '/Calib.txt', 'r')
         calib_data = calib_file.readlines()
         self.Size = [int(calib_data[0]), int(calib_data[1])]
@@ -236,27 +283,28 @@ class Application(tk.Frame):
         PoseBP = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         Id4 = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         
-        
+        # numero of images in the sequence. Start and End
         self.Index = 0
         nunImg = 2
 
         # Former Depth Image (i.e: i)
         self.RGBD = []
+        # for each body compute the corresponding segmented image
         for bp in range(15):
+            # add an RGBD Object in the list
             self.RGBD.append(RGBD.RGBD(path + '/Depth.tiff', path + '/RGB.tiff', self.intrinsic, fact))
+            # load data in the RGBD Object
             self.RGBD[bp].LoadMat(lImages,self.pos2d,self.connection,bdyIdx )
             self.RGBD[bp].ReadFromMat(self.Index)
+            # process depth image
             self.RGBD[bp].BilateralFilter(-1, 0.02, 3)
+            # segmenting the body
             if bp == 0:
-                # segmenting the body
                 self.RGBD[bp].RGBDSegmentation()
                 self.RGBD[bp].depth_image *= (self.RGBD[bp].labels >0)
-            # elif bp == 9:
-            #     self.RGBD[bp].depth_image *= (self.RGBD[bp].labels == bp) + (self.RGBD[bp].labels == bp+1)
-            # elif bp == 10:
-            #     self.RGBD[bp].depth_image *= (self.RGBD[bp].labels == bp -1 ) + (self.RGBD[bp].labels == bp)
             else:
                 self.RGBD[bp].depth_image *= (self.RGBD[0].labels == bp)
+            # Compute vertex map and normal map
             self.RGBD[bp].Vmap_optimize()   
             self.RGBD[bp].NMap_optimize()
 
@@ -266,7 +314,7 @@ class Application(tk.Frame):
         '''
         The first image is process differently from the other since it does not have any previous value.
         '''
-        # Init for Local to global Transform
+        # Stock all Local to global Transform
         Tg = []
         Tg.append(Id4)
         for bp in range(1,self.RGBD[0].bdyPart.shape[0]+1):
@@ -277,16 +325,18 @@ class Application(tk.Frame):
         # Sum of the number of vertices and faces of all body parts
         nb_verticesGlo = 0
         nb_facesGlo = 0
-        # Number of body part +1 since the counting starts from 1
+        # Number of body part (+1 since the counting starts from 1)
         bpstart = 1
         nbBdyPart = self.RGBD[0].bdyPart.shape[0]+1
-        #Initiate stitcher object 
+        #Initialize stitcher object. It stitches the body parts
         StitchBdy = Stitcher.Stitch(nbBdyPart)
+        # Initialize Body parts
         Parts = []
         Parts.append(BdyPrt.BodyParts(self.GPUManager,self.RGBD[0],self.RGBD[0], Tg[0]))
         # Creating mesh of each body part
         for bp in range(bpstart,nbBdyPart):
             Parts.append(BdyPrt.BodyParts(self.GPUManager, self.RGBD[0], self.RGBD[bp], Tg[bp]))
+            # Compute the 3D Model (TSDF + MC)
             Parts[bp].Model3D_init(bp)
 
             # Update number of vertices and faces in the stitched mesh
@@ -297,7 +347,7 @@ class Application(tk.Frame):
             for i in range(4):
                 for j in range(4):
                     PoseBP[i][j] = Tg[bp][i][j]
-            # Stitch all the body parts
+            # Concatenate all the body parts for stitching purpose
             if bp == bpstart :
                 StitchBdy.StitchedVertices = StitchBdy.TransformVtx(Parts[bp].MC.Vertices,PoseBP,1)
                 StitchBdy.StitchedNormales = StitchBdy.TransformNmls(Parts[bp].MC.Normales,PoseBP,1)
@@ -305,16 +355,12 @@ class Application(tk.Frame):
             else:
                 StitchBdy.NaiveStitch(Parts[bp].MC.Vertices,Parts[bp].MC.Normales,Parts[bp].MC.Faces,PoseBP)
 
-
-
         # save with the number of the body part
-        #bpStr = str(idx)   #"+bpStr+"      
-        start_time3 = time.time()
         Parts[1].MC.SaveToPlyExt("wholeBody.ply",nb_verticesGlo,nb_facesGlo,StitchBdy.StitchedVertices,StitchBdy.StitchedFaces)
-        elapsed_time = time.time() - start_time3
-        print "SaveToPly: %f" % (elapsed_time)                     
+
 
         #"""
+        # initialize tracker for camera pose
         Tracker = TrackManager.Tracker(0.001, 0.5, 1, [10])
         TimeStart = time.time()
 
@@ -334,14 +380,13 @@ class Application(tk.Frame):
                 # Get new current image
                 newRGBD[bp].ReadFromMat(imgk) 
                 newRGBD[bp].BilateralFilter(-1, 0.02, 3)
+                # segmenting the body/select the body part
                 if bp == 0:
-                    # segmenting the body
                     newRGBD[bp].RGBDSegmentation()
-                    # select the body part
                     newRGBD[bp].depth_image *= (newRGBD[bp].labels > 0) 
                 else:
                     newRGBD[bp].depth_image *= (newRGBD[0].labels == bp)
-
+                # Vertex and Normal map
                 newRGBD[bp].Vmap_optimize()   
                 newRGBD[bp].NMap_optimize()        
             # create the transform matrix from local to global coordinate
@@ -356,8 +401,6 @@ class Application(tk.Frame):
                 for l in range(4):
                     T_Pose[k,l] = NewPose[k,l]
 
-            
-            # restart processing of each body part for the current image.
             # Sum of the number of vertices and faces of all body parts
             nb_verticesGlo = 0
             nb_facesGlo = 0
@@ -408,9 +451,8 @@ class Application(tk.Frame):
 
         # projection in 2d space to draw it
         rendering =np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
-        # projection of the current image/ Overlay
-        #rendering = self.RGBD.Draw_optimize(rendering,Id4, 1, self.color_tag)
 
+        # Projection for each body parts done separately
         for bp in range(bpstart,nbBdyPart):
             bou = bp - bpstart + 1
             for i in range(4):

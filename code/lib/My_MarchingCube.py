@@ -73,10 +73,11 @@ class My_MarchingCube():
 
 
 
-    ''' 
-    Function to record the created mesh into a .ply file
-    '''
+
     def SaveToPly(self, name, save = 0):
+        '''
+        Function to record the created mesh into a .ply file
+        '''
         if save != 0:
             start_time3 = time.time()
         path = './meshes/'
@@ -108,10 +109,11 @@ class My_MarchingCube():
             elapsed_time = time.time() - start_time3
             print "SaveToPly: %f" % (elapsed_time)
                     
-    '''
-        Function to record an external created mesh into a .ply file 
-    '''
+
     def SaveToPlyExt(self, name,nb_vertices,nb_faces,Vertices,Faces,save = 0):
+        '''
+            Function to record an external created mesh into a .ply file
+        '''
         if save != 0:
             start_time3 = time.time()
         path = './meshes/'
@@ -144,11 +146,11 @@ class My_MarchingCube():
             print "SaveToPly: %f" % (elapsed_time)
         
                     
-    '''
-        Function to draw the mesh using tkinter
-    '''
+
     def DrawMesh(self, Pose, intrinsic, Size, canvas):
-        
+        '''
+            Function to draw the mesh using tkinter
+        '''
         #Draw all faces
         pix = np.array([0., 0., 1.])
         pt = np.array([0., 0., 0., 1.])
@@ -174,10 +176,11 @@ class My_MarchingCube():
                 canvas.create_polygon(*poly, fill='white')
                     
                 
-    '''
-        Function to draw the vertices of the mesh using tkinter
-    '''
+
     def DrawPoints(self, Pose, intrinsic, Size,background,s=1):
+        '''
+            Function to draw the vertices of the mesh using tkinter
+        '''
         #result = np.zeros((Size[0], Size[1], 3), dtype = np.uint8)
         result = background.astype(np.uint8)
         
@@ -203,20 +206,22 @@ class My_MarchingCube():
         return result
                     
 
-    '''
-        Function to compute the normals of the mesh 
-    '''
+
     def TransformList(self, Pose):
+        '''
+            Function to transform normals and vertices of the mesh
+        '''
         stack_pt = np.ones(np.size(self.Vertices,0), dtype = np.float32)
         pt = np.stack((self.Vertices[:,0],self.Vertices[:,1],self.Vertices[:,2], stack_pt),axis =1)
         self.Vertices = np.dot(Pose,pt.T).T[:, 0:3]
         self.Normales = np.dot(Pose[0:3,0:3],self.Normales.T).T                      
                     
-    '''
-        Function to compute the normals of the mesh 
-    '''
+
     def ComputeMCNmls(self):
-        
+        '''
+            Function to compute the normals of the mesh
+            NOT USED. (MergeVtx does the job)
+        '''
         # instanciation
         nb_faces = self.nb_faces[0]
         vectsFaces = np.zeros((2,nb_faces, 3), dtype = np.float)
@@ -239,14 +244,16 @@ class My_MarchingCube():
         norm_nmlsSum = np.sqrt(np.sum(self.Normals*self.Normals,axis=1))
         norm_nmlsSum = General.in_mat_zero2one(norm_nmlsSum)
         # normalize the mean of the norm
-        self.Normals = division_by_norm(self.Normals,norm_nmlsSum)
+        self.Normals = General.division_by_norm(self.Normals,norm_nmlsSum)
 
 
-    '''
-    Non optimized version for understanding
-    THIS FUNCTION IS NOT USED
-    '''
+
     def ComputeMCNmls_slow(self):
+        '''
+        Non optimized version for understanding
+        THIS FUNCTION IS NOT USED
+        '''
+
         # instanciation
         nb_faces = self.nb_faces[0]
         vectsFaces = np.zeros((2, 3), dtype = np.int32)
@@ -271,11 +278,12 @@ class My_MarchingCube():
             self.Normals[v] = self.Normals[v]/norm_nmlsSum
 
 
-    '''
-    This function avoid having duplicate in the lists of vertexes or normales
-    THIS METHOD HAVE A GPU VERSION BUT THE GPU HAVE NOT ENOUGH MEMORY TO RUN IT
-    '''
+
     def MergeVtx(self):
+        '''
+        This function avoid having duplicate in the lists of vertexes or normales
+        THIS METHOD HAVE A GPU VERSION BUT THE GPU HAVE NOT ENOUGH MEMORY TO RUN IT
+        '''
         VtxArray_x = np.zeros(self.Size)
         VtxArray_y = np.zeros(self.Size)
         VtxArray_z = np.zeros(self.Size)
@@ -346,12 +354,13 @@ class My_MarchingCube():
         
 
         
-    '''
-        Function to convert the list of normales and vertexes of the marching cubes' algorithm into
-        424*512*3 matrix.
-        This function is made just to test with the RegisterRGBD function if the data from the mesh are corrects.
-    '''        
-    def MC2RGBD(self,RGBD,Vtx,Nmls,Pose, s, color = 0) :   
+
+    def MC2RGBD(self,RGBD,Vtx,Nmls,Pose, s, color = 0) :
+        '''
+            Function to convert the list of normales and vertexes of the marching cubes' algorithm into
+            424*512*3 matrix.
+            This function is made just to test with the RegisterRGBD function if the data from the mesh are corrects.
+        '''
         result = np.zeros((RGBD.Size[0], RGBD.Size[1], 3), dtype = np.uint8)#
         stack_pix = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
         stack_pt = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
