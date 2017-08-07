@@ -15,55 +15,8 @@ from sklearn.decomposition import PCA
 
 
 segm = imp.load_source('segmentation', './lib/segmentation.py')
+General = imp.load_source('General', './lib/General.py')
 
-def normalized_cross_prod(a,b):
-    res = np.zeros(3, dtype = "float")
-    if (LA.norm(a) == 0.0 or LA.norm(b) == 0.0):
-        return res
-    a = a/LA.norm(a)
-    b = b/LA.norm(b)
-    res[0] = a[1]*b[2] - a[2]*b[1]
-    res[1] = -a[0]*b[2] + a[2]*b[0]
-    res[2] = a[0]*b[1] - a[1]*b[0]
-    if (LA.norm(res) > 0.0):
-        res = res/LA.norm(res)
-    return res
-
-
-def in_mat_zero2one(mat):
-    """This fonction replace in the matrix all the 0 to 1"""
-    mat_tmp = (mat != 0.0)
-    res = mat * mat_tmp + ~mat_tmp
-    return res
-
-def division_by_norm(mat,norm):
-    """This fonction divide a n by m by p=3 matrix, point by point, by the norm made through the p dimension>
-    It ignores division that makes infinite values or overflow to replace it by the former mat values or by 0"""
-    for i in range(3):
-        with np.errstate(divide='ignore', invalid='ignore'):
-            mat[:,:,i] = np.true_divide(mat[:,:,i],norm)
-            mat[:,:,i][mat[:,:,i] == np.inf] = 0
-            mat[:,:,i] = np.nan_to_num(mat[:,:,i])
-    return mat
-                
-def normalized_cross_prod_optimize(a,b):
-    #res = np.zeros(a.Size, dtype = "float")
-    norm_mat_a = np.sqrt(np.sum(a*a,axis=2))
-    norm_mat_b = np.sqrt(np.sum(b*b,axis=2))
-    #changing every 0 to 1 in the matrix so that the division does not generate nan or infinite values
-    norm_mat_a = in_mat_zero2one(norm_mat_a)
-    norm_mat_b = in_mat_zero2one(norm_mat_b)
-    # compute a/ norm_mat_a
-    a = division_by_norm(a,norm_mat_a)
-    b = division_by_norm(b,norm_mat_b)
-    #compute cross product with matrix
-    res = np.cross(a,b)
-    #compute the norm of res using the same method for a and b 
-    norm_mat_res = np.sqrt(np.sum(res*res,axis=2))
-    norm_mat_res = in_mat_zero2one(norm_mat_res)
-    #norm division
-    res = division_by_norm(res,norm_mat_res)
-    return res
 
 #Nurbs class to handle NURBS curves (Non-uniform rational B-spline)
 class RGBD():
@@ -146,10 +99,10 @@ class RGBD():
         self.Nmls = np.zeros(self.Size, np.float32)
         for i in range(1,self.Size[0]-1):
             for j in range(1, self.Size[1]-1):
-                nmle1 = normalized_cross_prod(self.Vtx[i+1, j]-self.Vtx[i, j], self.Vtx[i, j+1]-self.Vtx[i, j])
-                nmle2 = normalized_cross_prod(self.Vtx[i, j+1]-self.Vtx[i, j], self.Vtx[i-1, j]-self.Vtx[i, j])
-                nmle3 = normalized_cross_prod(self.Vtx[i-1, j]-self.Vtx[i, j], self.Vtx[i, j-1]-self.Vtx[i, j])
-                nmle4 = normalized_cross_prod(self.Vtx[i, j-1]-self.Vtx[i, j], self.Vtx[i+1, j]-self.Vtx[i, j])
+                nmle1 = General.normalized_cross_prod(self.Vtx[i+1, j]-self.Vtx[i, j], self.Vtx[i, j+1]-self.Vtx[i, j])
+                nmle2 = General.normalized_cross_prod(self.Vtx[i, j+1]-self.Vtx[i, j], self.Vtx[i-1, j]-self.Vtx[i, j])
+                nmle3 = General.normalized_cross_prod(self.Vtx[i-1, j]-self.Vtx[i, j], self.Vtx[i, j-1]-self.Vtx[i, j])
+                nmle4 = General.normalized_cross_prod(self.Vtx[i, j-1]-self.Vtx[i, j], self.Vtx[i+1, j]-self.Vtx[i, j])
                 nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
                 if (LA.norm(nmle) > 0.0):
                     nmle = nmle/LA.norm(nmle)
@@ -157,19 +110,19 @@ class RGBD():
                 
     def NMap_optimize(self):
         self.Nmls = np.zeros(self.Size, np.float32)        
-        nmle1 = normalized_cross_prod_optimize(self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+        nmle1 = General.normalized_cross_prod_optimize(self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[1:self.Size[0]-1][:,2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])        
-        nmle2 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+        nmle2 = General.normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[0:self.Size[0]-2][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
-        nmle3 = normalized_cross_prod_optimize(self.Vtx[0:self.Size[0]-2][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+        nmle3 = General.normalized_cross_prod_optimize(self.Vtx[0:self.Size[0]-2][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[1:self.Size[0]-1][:,0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
-        nmle4 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+        nmle4 = General.normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
         nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
         norm_mat_nmle = np.sqrt(np.sum(nmle*nmle,axis=2))
-        norm_mat_nmle = in_mat_zero2one(norm_mat_nmle)
+        norm_mat_nmle = General.in_mat_zero2one(norm_mat_nmle)
         #norm division 
-        nmle = division_by_norm(nmle,norm_mat_nmle)
+        nmle = General.division_by_norm(nmle,norm_mat_nmle)
         self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
         return self.Nmls
 
@@ -218,7 +171,7 @@ class RGBD():
         nmle[ ::s, ::s,:] = np.dot(Pose[0:3,0:3],self.Nmls[ ::s, ::s,:].transpose(0,2,1)).transpose(1,2,0)
         #if (pt[2] != 0.0):
         lpt = np.dsplit(pt,4)
-        lpt[2] = in_mat_zero2one(lpt[2])
+        lpt[2] = General.in_mat_zero2one(lpt[2])
         # if in 1D pix[0] = pt[0]/pt[2]
         pix[ ::s, ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(self.Vtx[ ::s, ::s,:],0), np.size(self.Vtx[ ::s, ::s,:],1))
         # if in 1D pix[1] = pt[1]/pt[2]
@@ -257,7 +210,7 @@ class RGBD():
 
         # projection in 2D space
         lpt = np.split(pt,4,axis=1)
-        lpt[2] = in_mat_zero2one(lpt[2])
+        lpt[2] = General.in_mat_zero2one(lpt[2])
         pix[ ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
         pix[ ::s,1] = (lpt[1]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
         pix = np.dot(pix,self.intrinsic.T)
@@ -448,8 +401,14 @@ class RGBD():
             overlap = np.where(self.labels > (i+1) )
             self.labels[overlap] = i+1
 
-    
-###################################################################
+    def RGBDSegmentation(self):
+        self.Crop2Body()
+        self.BodySegmentation()
+        self.BodyLabelling()
+
+
+
+    ###################################################################
 ################### Bounding boxes Function #######################
 ##################################################################             
 
@@ -465,16 +424,6 @@ class RGBD():
         e1 = evecs[0]
         e2 = evecs[1]
         e3 = evecs[2]
-#==============================================================================
-#         print "e1,e2,e3"
-#         print e1
-#         print e2
-#         print e3
-#         scalProd = sum(e1*e2)
-#         scalProd1 = sum(e1*e3)
-#         scalProd2 = sum(e2*e3)
-#         print "scalProd : %f %f %f" % (scalProd,scalProd1,scalProd2)
-#==============================================================================
         e1b = np.array( [e1[0],e1[1],e1[2],0])
         e2b = np.array( [e2[0],e2[1],e2[2],0])
         e3b = np.array( [e3[0],e3[1],e3[2],0])
@@ -512,12 +461,11 @@ class RGBD():
         x_res = x[~(x==0)]
         y_res = y[~(y==0)]
         z_res = z[~(z==0)]
-        
+
         res = np.dstack((x_res,y_res,z_res)).reshape(nbPts,3)
 
         #elapsed_time3 = time.time() - start_time2
         #print "making pointcloud process time: %f" % (elapsed_time3)    
-        
 
         return res
     
@@ -533,11 +481,6 @@ class RGBD():
         # list of transformed Vtx of each bounding boxes
         self.TVtxBB = []
         self.TVtxBB.append([0.,0.,0.])
-#==============================================================================
-#         # list of transformed Vtx of each bounding boxes
-#         self.TNmlsBB = []
-#         self.TNmlsBB.append([0.,0.,0.])        
-#==============================================================================
         # list of coordinates sys with center
         self.TransfoBB = []
         self.TransfoBB.append([0.,0.,0.])
@@ -555,7 +498,6 @@ class RGBD():
         self.mask.append([0.,0.,0.])
         for i in range(1,self.bdyPart.shape[0]+1):
             self.mask.append( (self.labels == i) )
-            print i
             # compute center of 3D
             self.PtCloud.append(self.bdyPts3D_optimize(self.mask[i]))
             self.pca.append(PCA(n_components=3))
@@ -568,19 +510,6 @@ class RGBD():
             
             self.vects3D.append(self.pca[i].components_)
             self.TVtxBB.append( self.pca[i].transform(self.PtCloud[i]))
-            
-#==============================================================================
-#             xNml = self.Nmls[:,:,0]*self.mask[i]
-#             yNml = self.Nmls[:,:,1]*self.mask[i]
-#             zNml = self.Nmls[:,:,2]*self.mask[i]
-#             
-#             x_resNml = xNml[~(xNml==0)]
-#             y_resNml = yNml[~(yNml==0)]
-#             z_resNml = zNml[~(zNml==0)]
-#             
-#             resNmls = np.dstack((x_resNml,y_resNml,z_resNml)).reshape(x_resNml.shape[0],3)
-#             self.TNmlsBB.append( resNmls)#self.pca[i].transform(resNmls))
-#==============================================================================
         
             self.FindCoord3D(i)
             self.SetTransfoMat3D(self.pca[i].components_,i)  
@@ -591,7 +520,8 @@ class RGBD():
         draw the bounding boxes in 3D for each part of the human body
         '''     
         # Adding a space so that the bounding boxes are wider
-        wider = 5*0.005
+        VoxSize = 0.005
+        wider = 5*VoxSize
         # extremes planes of the bodies
         minX = np.min(self.TVtxBB[i][:,0]) - wider
         maxX = np.max(self.TVtxBB[i][:,0]) + wider
@@ -608,8 +538,7 @@ class RGBD():
         xYmZ = np.array([minX,maxY,maxZ])
         XymZ = np.array([maxX,minY,maxZ])
         XYmZ = np.array([maxX,maxY,maxZ])           
-        #print "xymz"
-        #print xymz
+
         # New coordinates and new images
         self.coordsL.append( np.array([xymz,xYmz,XYmz,Xymz,xymZ,xYmZ,XYmZ,XymZ]) )
         #print "coordsL[%d]" %(i)
@@ -657,7 +586,7 @@ class RGBD():
         drawVects = np.zeros([len(vects3D),2])
         pt[:,0:3] = vects3D
         pt = np.dot(pt,Pose.T)
-        pt[:,2] = in_mat_zero2one(pt[:,2])
+        pt[:,2] = General.in_mat_zero2one(pt[:,2])
         pix[:,0] = pt[:,0]/pt[:,2]
         pix[:,1] = pt[:,1]/pt[:,2]
         pix = np.dot( pix,self.intrinsic.T)
@@ -669,7 +598,9 @@ class RGBD():
 
             
     def GetNewSys(self, Pose,ctr2D,nbPix, s=1) : 
-        ''' compute the coordinates of the points that will create the coordinates system '''
+        '''
+        compute the coordinates of the points that will create the coordinates system
+        '''
         self.drawNewSys = []
         maxDepth = max(0.0001, np.max(self.Vtx[:,:,2]))
 
@@ -688,6 +619,7 @@ class RGBD():
     def Cvt2RGBA(self,im_im):
         '''
         convert an RGB image in RGBA to put all zeros as transparent
+        THIS FUNCTION IS NOT USED IN THE PROJECT
         '''
         img = im_im.convert("RGBA")
         datas = img.getdata()     

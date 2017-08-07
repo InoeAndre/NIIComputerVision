@@ -15,17 +15,14 @@ from array import array
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
 KernelsOpenCL = imp.load_source('KernelsOpenCL', 'lib/KernelsOpenCL.py')
+General = imp.load_source('General', './lib/General.py')
+
 
 def sign(x):
     if (x < 0):
         return -1.0
     return 1.0
 
-def in_mat_zero2one(mat):
-    """This fonction replace in the matrix all the 0 to 1"""
-    mat_tmp = (mat != 0.0)
-    res = mat * mat_tmp + ~mat_tmp
-    return res
 
 mf = cl.mem_flags
 
@@ -67,11 +64,6 @@ class TSDFManager():
 
     # Fuse on the GPU
     def FuseRGBD_GPU(self, Image, Pose):
-        Transform = np.zeros(Pose.shape,Pose.dtype)
-        Transform[0:3,0:3] = LA.inv(Pose[0:3,0:3])
-        Transform[0:3,3] = -np.dot(Transform[0:3,0:3],Pose[0:3,3])
-        Transform[3,3] = 1.0
-        #Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
 
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
@@ -92,21 +84,10 @@ class TSDFManager():
 
     # Fuse on the GPU
     def FuseRGBD_GPUViz(self, Image, Pose, CldPtGPU,radius):
-        Transform = np.zeros(Pose.shape,Pose.dtype)
-        Transform[0:3,0:3] = LA.inv(Pose[0:3,0:3])
-        Transform[0:3,3] = -np.dot(Transform[0:3,0:3],Pose[0:3,3])
-        Transform[3,3] = 1.0
-        #Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
-        
-        #radiusGPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, 8)
         
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
-        #cl.enqueue_write_buffer(self.GPUManager.queue, radiusGPU, np.float64(radius))
-#==============================================================================
-#         self.Pixels = np.zeros((self.Size[0]*self.Size[1]*self.Size[2],2),np.int16)
-#         self.PixelsGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Pixels.nbytes)
-#==============================================================================
+
         print "Pose"
         print Pose
         print "self.Size"
@@ -120,8 +101,7 @@ class TSDFManager():
     
         
         ptClouds =  np.zeros((self.Size[0]*self.Size[1]*self.Size[2],3),np.float32)
-        cl.enqueue_read_buffer(self.GPUManager.queue, CldPtGPU, ptClouds).wait()  
-        #cl.enqueue_read_buffer(self.GPUManager.queue, self.PixelsGPU, self.Pixels).wait()  
+        cl.enqueue_read_buffer(self.GPUManager.queue, CldPtGPU, ptClouds).wait()
         return ptClouds
 
        
@@ -336,7 +316,7 @@ class TSDFManager():
                     
             #if (pt[2] != 0.0):
             lpt = np.dsplit(pt,4)
-            lpt[2] = in_mat_zero2one(lpt[2])
+            lpt[2] = General.in_mat_zero2one(lpt[2])
             
             # if in 1D pix[0] = pt[0]/pt[2]
             pix[ ::s, ::s,0] = (lpt[0]/lpt[2]).reshape((self.Size[0], self.Size[1]))

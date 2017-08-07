@@ -10,71 +10,10 @@ Created on Fri Jun 09 18:27:26 2017
 import cv2
 import numpy as np
 from numpy import linalg as LA
+import imp
 
+General = imp.load_source('General', './lib/General.py')
 
-def normalized_cross_prod(a,b):
-    '''
-    compute the cross product of 2 vectors and normalized it
-    :param a: first 3 elements vector
-    :param b: second 3 elements vector
-    :return: the normalized cross product between 2 vector
-    '''
-    res = np.zeros(3, dtype = "float")
-    if (LA.norm(a) == 0.0 or LA.norm(b) == 0.0):
-        return res
-    a = a/LA.norm(a)
-    b = b/LA.norm(b)
-    res[0] = a[1]*b[2] - a[2]*b[1]
-    res[1] = -a[0]*b[2] + a[2]*b[0]
-    res[2] = a[0]*b[1] - a[1]*b[0]
-    if (LA.norm(res) > 0.0):
-        res = res/LA.norm(res)
-    return res
-
-
-def in_mat_zero2one(mat):
-    '''
-    This fonction replace in the matrix all the 0 to 1
-    :param mat: input matrix containing 0
-    :return:  mat with 1 instead of 0
-    '''
-    mat_tmp = (mat != 0.0)
-    res = mat * mat_tmp + ~mat_tmp
-    return res
-
-def division_by_norm(mat,norm):
-    '''
-    This fonction divide a n by m by p=3 matrix, point by point, by the norm made through the p dimension
-    It ignores division that makes infinite values or overflow to replace it by the former mat values or by 0
-    :param mat:
-    :param norm:
-    :return:
-    '''
-    for i in range(3):
-        with np.errstate(divide='ignore', invalid='ignore'):
-            mat[:,:,i] = np.true_divide(mat[:,:,i],norm)
-            mat[:,:,i][mat[:,:,i] == np.inf] = 0
-            mat[:,:,i] = np.nan_to_num(mat[:,:,i])
-    return mat
-                
-def normalized_cross_prod_optimize(a,b):
-    #res = np.zeros(a.Size, dtype = "float")
-    norm_mat_a = np.sqrt(np.sum(a*a,axis=2))
-    norm_mat_b = np.sqrt(np.sum(b*b,axis=2))
-    #changing every 0 to 1 in the matrix so that the division does not generate nan or infinite values
-    norm_mat_a = in_mat_zero2one(norm_mat_a)
-    norm_mat_b = in_mat_zero2one(norm_mat_b)
-    # compute a/ norm_mat_a
-    a = division_by_norm(a,norm_mat_a)
-    b = division_by_norm(b,norm_mat_b)
-    #compute cross product with matrix
-    res = np.cross(a,b)
-    #compute the norm of res using the same method for a and b 
-    norm_mat_res = np.sqrt(np.sum(res*res,axis=2))
-    norm_mat_res = in_mat_zero2one(norm_mat_res)
-    #norm division
-    res = division_by_norm(res,norm_mat_res)
-    return res
 
 #Nurbs class to handle NURBS curves (Non-uniform rational B-spline)
 class RGBD():
@@ -106,19 +45,19 @@ class RGBD():
     # Create the normales image from the vertex image   
     def NMap_optimize(self):
         self.Nmls = np.zeros(self.Size, np.float32)        
-        nmle1 = normalized_cross_prod_optimize(self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+        nmle1 = General.normalized_cross_prod_optimize(self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[1:self.Size[0]-1][:,2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])        
-        nmle2 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+        nmle2 = General.normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[0:self.Size[0]-2][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
-        nmle3 = normalized_cross_prod_optimize(self.Vtx[0:self.Size[0]-2][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+        nmle3 = General.normalized_cross_prod_optimize(self.Vtx[0:self.Size[0]-2][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[1:self.Size[0]-1][:,0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
-        nmle4 = normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
+        nmle4 = General.normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
         nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
         norm_mat_nmle = np.sqrt(np.sum(nmle*nmle,axis=2))
-        norm_mat_nmle = in_mat_zero2one(norm_mat_nmle)
+        norm_mat_nmle = General.in_mat_zero2one(norm_mat_nmle)
         #norm division 
-        nmle = division_by_norm(nmle,norm_mat_nmle)
+        nmle = General.division_by_norm(nmle,norm_mat_nmle)
         self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
         return self.Nmls
 
@@ -134,7 +73,7 @@ class RGBD():
         nmle[ ::s, ::s,:] = np.dot(Pose[0:3,0:3],self.Nmls[ ::s, ::s,:].transpose(0,2,1)).transpose(1,2,0)
         #if (pt[2] != 0.0):
         lpt = np.dsplit(pt,4)
-        lpt[2] = in_mat_zero2one(lpt[2])
+        lpt[2] = General.in_mat_zero2one(lpt[2])
         # if in 1D pix[0] = pt[0]/pt[2]
         pix[ ::s, ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(self.Vtx[ ::s, ::s,:],0), np.size(self.Vtx[ ::s, ::s,:],1))
         # if in 1D pix[1] = pt[1]/pt[2]
@@ -173,7 +112,7 @@ class RGBD():
 
         # projection in 2D space
         lpt = np.split(pt,4,axis=1)
-        lpt[2] = in_mat_zero2one(lpt[2])
+        lpt[2] = General.in_mat_zero2one(lpt[2])
         pix[ ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
         pix[ ::s,1] = (lpt[1]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
         pix = np.dot(pix,self.intrinsic.T)

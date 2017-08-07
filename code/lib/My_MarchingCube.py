@@ -11,49 +11,13 @@ import imp
 import numpy as np
 import pyopencl as cl
 import math
-
+import time
 PI = math.pi
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
 KernelsOpenCL = imp.load_source('MarchingCubes_KernelOpenCL', './lib/MarchingCubes_KernelOpenCL.py')
+General = imp.load_source('General', './lib/General.py')
 
 mf = cl.mem_flags
-
-def in_mat_zero2one(mat):
-    """This fonction replace in the matrix all the 0 to 1"""
-    mat_tmp = (mat != 0.0)
-    res = mat * mat_tmp + ~mat_tmp
-    return res
-
-def division_by_norm(mat,norm):
-    """This fonction divide a n by m=3 matrix, point by point, by the norm made through the p dimension>
-    It ignores division that makes infinite values or overflow to replace it by the former mat values or by 0"""
-    for i in range(3):
-        with np.errstate(divide='ignore', invalid='ignore'):
-            mat[:,i] = np.true_divide(mat[:,i],norm)
-            mat[:,i][mat[:,i] == np.inf] = 0
-            mat[:,i] = np.nan_to_num(mat[:,i])
-    return mat
-                
-def normalized_cross_prod_optimize(a,b, axs =1):
-    #res = np.zeros(a.Size, dtype = "float")
-    norm_mat_a = np.sqrt(np.sum(a*a,axis=axs))
-    norm_mat_b = np.sqrt(np.sum(b*b,axis=axs))
-    #changing every 0 to 1 in the matrix so that the division does not generate nan or infinite values
-    norm_mat_a = in_mat_zero2one(norm_mat_a)
-    norm_mat_b = in_mat_zero2one(norm_mat_b)
-    # compute a/ norm_mat_a
-    a = division_by_norm(a,norm_mat_a)
-    b = division_by_norm(b,norm_mat_b)
-    #compute cross product with matrix
-    res = np.cross(a,b)
-    #compute the norm of res using the same method for a and b 
-    norm_mat_res = np.sqrt(np.sum(res*res,axis=axs))
-    norm_mat_res = in_mat_zero2one(norm_mat_res)
-    #norm division
-    res = division_by_norm(res,norm_mat_res)
-    return res
-
-
 
 class My_MarchingCube():
     
@@ -61,8 +25,6 @@ class My_MarchingCube():
         self.Size = Size
         self.res = Res
         self.iso = Iso
-        #self.Faces = np.zeros((self.Size[0]*self.Size[1]*self.Size[2], 3), dtype = np.int32)
-        #self.Vertices = np.zeros((3*self.Size[0]*self.Size[1]*self.Size[2], 3), dtype = np.float32)
         self.nb_faces = np.array([0], dtype = np.int32)
         
         self.GPUManager = GPUManager
@@ -82,9 +44,6 @@ class My_MarchingCube():
         self.ParamGPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = self.res)
         
-        #self.FacesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Faces.nbytes)
-        #self.VerticesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Vertices.nbytes)
-        
         
     def runGPU(self, VolGPU):
         
@@ -99,27 +58,29 @@ class My_MarchingCube():
         
         self.Faces = np.zeros((self.nb_faces[0], 3), dtype = np.int32)
         self.Vertices = np.zeros((3*self.nb_faces[0], 3), dtype = np.float32)
-        #self.Normals = np.zeros((3*self.nb_faces[0], 3), dtype = np.float32)
         
         self.FacesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Faces.nbytes)
         self.VerticesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Vertices.nbytes)
-        #self.NormalsGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Normals.nbytes)
+
         
         self.GPUManager.programs['MarchingCubes'].MarchingCubes(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
                                 VolGPU, self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.ParamGPU, self.Size_Volume).wait()
         
         cl.enqueue_read_buffer(self.GPUManager.queue, self.VerticesGPU, self.Vertices).wait()
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FacesGPU, self.Faces).wait()
-        #cl.enqueue_read_buffer(self.GPUManager.queue, self.NormalsGPU, self.Normals).wait()
+
         self.MergeVtx()
 
 
 
+    ''' 
+    Function to record the created mesh into a .ply file
     '''
-        Function to record the created mesh into a .ply file
-    '''
-    def SaveToPly(self, name):
-        f = open(name, 'wb')    
+    def SaveToPly(self, name, save = 0):
+        if save != 0:
+            start_time3 = time.time()
+        path = './meshes/'
+        f = open(path+name, 'wb')
         
         # Write headers
         f.write("ply\n")
@@ -142,12 +103,19 @@ class My_MarchingCube():
             f.write("3 %d %d %d \n" %(self.Faces[i,0], self.Faces[i,1], self.Faces[i,2])) 
                      
         f.close()
+
+        if save != 0:
+            elapsed_time = time.time() - start_time3
+            print "SaveToPly: %f" % (elapsed_time)
                     
     '''
-        Function to record the created mesh into a .ply file
+        Function to record an external created mesh into a .ply file 
     '''
-    def SaveToPlyExt(self, name,nb_vertices,nb_faces,Vertices,Faces):
-        f = open(name, 'wb')    
+    def SaveToPlyExt(self, name,nb_vertices,nb_faces,Vertices,Faces,save = 0):
+        if save != 0:
+            start_time3 = time.time()
+        path = './meshes/'
+        f = open(path+name, 'wb')
         
         # Write headers
         f.write("ply\n")
@@ -171,6 +139,9 @@ class My_MarchingCube():
                      
         f.close()
 
+        if save != 0:
+            elapsed_time = time.time() - start_time3
+            print "SaveToPly: %f" % (elapsed_time)
         
                     
     '''
@@ -266,39 +237,43 @@ class My_MarchingCube():
         
         # compute the norm of nmlsSum
         norm_nmlsSum = np.sqrt(np.sum(self.Normals*self.Normals,axis=1))
-        norm_nmlsSum = in_mat_zero2one(norm_nmlsSum)
+        norm_nmlsSum = General.in_mat_zero2one(norm_nmlsSum)
         # normalize the mean of the norm
         self.Normals = division_by_norm(self.Normals,norm_nmlsSum)
 
 
-        '''
-        Non optimized version for understanding
+    '''
+    Non optimized version for understanding
+    THIS FUNCTION IS NOT USED
+    '''
+    def ComputeMCNmls_slow(self):
         # instanciation
         nb_faces = self.nb_faces[0]
         vectsFaces = np.zeros((2, 3), dtype = np.int32)
-        
+
         for f in range(nb_faces):
             # vectors of triangles
             vectsFaces[0,:] = self.Vertices[self.Faces[f,1]]-self.Vertices[self.Faces[f,0]]
             vectsFaces[1,:] = self.Vertices[self.Faces[f,2]]-self.Vertices[self.Faces[f,0]]
-    
+
             # compute each face's normal
             facesNmls = np.cross(vectsFaces[1,:],vectsFaces[0,:])
             for s in range(3):
                 # sum of normals
                 self.Normals[self.Faces[f,s]] += facesNmls
-               
+
         for v in range(self.Normals.shape[0]):
             # compute the norm of normals
             norm_nmlsSum = np.sqrt(np.sum(self.Normals[v]*self.Normals[v]))
             if norm_nmlsSum == 0:
-                continue;
+                continue
             # normalize the normals
             self.Normals[v] = self.Normals[v]/norm_nmlsSum
-        '''
+
 
     '''
     This function avoid having duplicate in the lists of vertexes or normales
+    THIS METHOD HAVE A GPU VERSION BUT THE GPU HAVE NOT ENOUGH MEMORY TO RUN IT
     '''
     def MergeVtx(self):
         VtxArray_x = np.zeros(self.Size)
@@ -391,7 +366,7 @@ class My_MarchingCube():
 
         # projection in 2D space
         lpt = np.split(pt,4,axis=1)
-        lpt[2] = in_mat_zero2one(lpt[2])
+        lpt[2] = General.in_mat_zero2one(lpt[2])
         pix[ ::s,0] = (lpt[0]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
         pix[ ::s,1] = (lpt[1]/lpt[2]).reshape(np.size(Vtx[ ::s,:],0))
         pix = np.dot(pix,RGBD.intrinsic.T)
@@ -403,14 +378,14 @@ class My_MarchingCube():
         cdt_line = (line_index > -1) * (line_index < RGBD.Size[0])
         line_index = line_index*cdt_line
         column_index = column_index*cdt_column
-#==============================================================================
-#         print "max line_index : %d" %(np.max(line_index))
-#         print "max column_index : %d" %(np.max(column_index))
-#         print "argmax line_index : %d" %(np.argmax(line_index))
-#         print "argmax column_index : %d" %(np.argmax(column_index))
-#         print "line_index24 : %d" %(line_index[24])
-#         print "column_index24 : %d" %(column_index[24])
-#==============================================================================
+
+        # print "max line_index : %d" %(np.max(line_index))
+        # print "max column_index : %d" %(np.max(column_index))
+        # print "argmax line_index : %d" %(np.argmax(line_index))
+        # print "argmax column_index : %d" %(np.argmax(column_index))
+        # print "line_index24 : %d" %(line_index[24])
+        # print "column_index24 : %d" %(column_index[24])
+
         if (color == 1):
             result[line_index[:], column_index[:]]= np.dstack((RGBD.color_image[ ::s, ::s,2], \
                                                                     RGBD.color_image[ ::s, ::s,1]*cdt_line, \

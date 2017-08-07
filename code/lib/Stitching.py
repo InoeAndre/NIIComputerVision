@@ -9,21 +9,10 @@ import numpy as np
 import math
 from math import cos, sin
 from numpy import linalg as LA
+import imp
 PI = math.pi
 
-def normalized_cross_prod(a,b):
-    res = np.zeros(3, dtype = "float")
-    if (LA.norm(a) == 0.0 or LA.norm(b) == 0.0):
-        return res
-    a = a/LA.norm(a)
-    b = b/LA.norm(b)
-    res[0] = a[1]*b[2] - a[2]*b[1]
-    res[1] = -a[0]*b[2] + a[2]*b[0]
-    res[2] = a[0]*b[1] - a[1]*b[0]
-    if (LA.norm(res) > 0.0):
-        res = res/LA.norm(res)
-    return res
-
+General = imp.load_source('General', './lib/General.py')
 
 class Stitch():
     
@@ -32,14 +21,6 @@ class Stitch():
         self.StitchedVertices = 0
         self.StitchedFaces = 0
 
-    def InvPose(self, Pose):
-        '''Compute the inverse transform of Pose'''
-        PoseInv = np.zeros(Pose.shape, Pose.dtype)
-        PoseInv[0:3, 0:3] = LA.inv(Pose[0:3, 0:3])
-        PoseInv[0:3, 3] = -np.dot(PoseInv[0:3, 0:3], Pose[0:3, 3])
-        PoseInv[3, 3] = 1.0
-        return PoseInv
-        
     def NaiveStitch(self, PartVtx,PartNmls,PartFaces,PoseBP):
         '''
         This function will just add the vertices and faces of each body parts 
@@ -86,6 +67,7 @@ class Stitch():
         pos2d : position in 2D of the junctions
         RGBD : an RGBD object containing the image
         Tg : local to global transform
+        TEST FUNCTION : TURN THE LEFT ARM OF THE SEGMENTED BODY.
         """
 
         # Rotate skeleton right arm
@@ -98,10 +80,7 @@ class Stitch():
         ctr = pos2d[4].astype(np.int)
         rotAxe = Tg[7][0:3, 3]
         ctr3D = Tg[bp][0:3, 3]
-        # z = rotAxe[2]
-        # ctr3D[0] = z * (ctr[0] - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
-        # ctr3D[1] = z * (ctr[1] - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
-        # ctr3D[1] = z
+
         # # Rotation of about 30
         if bp == 1 :
             # # transform joints
@@ -112,14 +91,12 @@ class Stitch():
                 pt = np.dot(rotat[0:2, 0:2], pt.T).T
                 pos2d[5+rot] = pt + ctr
 
-
-
         if bp ==1 or bp == 2 or bp==12:
             if bp == 12:
                 #pos = 4 # should left
                 pos = 7  # hand left
-                Xm = pos2d[pos,0]#(pos2d[pos,0] + pos2d[pos-2,0])/2
-                Ym = pos2d[pos,1]#(pos2d[pos,1] + pos2d[pos-2,1])/2
+                Xm = pos2d[pos,0]
+                Ym = pos2d[pos,1]
             elif bp == 2:
                 pos = 5 #elbow left
                 Xm = (pos2d[pos,0] + pos2d[pos-1,0])/2
@@ -153,7 +130,6 @@ class Stitch():
 
 
 
-
     def GetBBTransfo(self, pos2d,cur,prev,RGBD,bp):
         """
         Transform Pose matrix to move the model body parts according to the position of the skeleton
@@ -180,7 +156,7 @@ class Stitch():
         B = self.GetCoordSyst(PosCur, pos, RGBD, bp)
         Tg = RGBD.TransfoBB[bp]
         # Compute Tbb : skeleton tracking transfo
-        Tbb = np.dot(B,self.InvPose(A))#B#np.identity(4)#A#
+        Tbb = np.dot(B,General.InvPose(A))#B#np.identity(4)#A#
 
         # print A
         # print Tg
@@ -231,7 +207,7 @@ class Stitch():
         signX = np.sign(axeX)
         axeX = signX[1]*axeX
         axeZ = np.array([0.0, 0.0, z], np.float)
-        axeY = normalized_cross_prod(axeX, axeZ)
+        axeY = General.normalized_cross_prod(axeX, axeZ)
 
         # Bounding boxes tracking matrix
         e1b = np.array( [axeX[0],axeX[1],axeX[2],0])

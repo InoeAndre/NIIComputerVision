@@ -15,21 +15,17 @@ import pandas
 import warnings
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
+General = imp.load_source('General', './lib/General.py')
 
 
-def in_mat_zero2one(mat):
-    """This fonction replace in the matrix all the 0 to 1"""
-    mat_tmp = (mat != 0.0)
-    res = mat * mat_tmp + ~mat_tmp
-    return res
 
+'''
+This function transform a 6D vector into a 4*4 matrix using Lie's Algebra. It is used to compute the incrementale
+transformation matrix in the tracking process.
+:param qsi: 6D vector
+:return: 4*4 incremental transfo matrix for camera pose estimation
+'''
 def Exponential(qsi):
-    '''
-    This function transform a 6D vector into a 4*4 matrix using Lie's Algebra. It is used to compute the incrementale
-    transformation matrix in the tracking process.
-    :param qsi: 6D vector
-    :return: 4*4 incremental transfo matrix for camera pose estimation
-    '''
     theta = LA.norm(qsi[3:6])
     res = np.identity(4)
     
@@ -66,12 +62,12 @@ def Exponential(qsi):
         
     return res
 
+'''
+Inverse of Exponential function. Used to create known transform matrix and test.
+:param Mat: 4*4 transformation matrix
+:return: a 6D vector containing rotation and translation parameters
+'''
 def Logarithm(Mat):
-    '''
-    Inverse of Exponential function. Used to create known transform matrix and test.
-    :param Mat: 4*4 transformation matrix
-    :return: a 6D vector containing rotation and translation parameters
-    '''
     trace = Mat[0,0]+Mat[1,1]+Mat[2,2]
     theta = acos((trace-1.0)/2.0)
     
@@ -109,7 +105,13 @@ def Logarithm(Mat):
     
     return qsi
     
-
+'''
+Compute the inverse transform of Pose
+:param Pose: 4*4 Matrix of the camera pose
+:return: matrix containing the inverse transform of Pose
+y = R*x + T
+x = R^(-1)*y + R^(-1)*T
+'''
 class Tracker():
 
     # Constructor
@@ -119,22 +121,7 @@ class Tracker():
         self.lvl = lvl
         self.max_iter = max_iter
         
-        
-    def InvPose(self,Pose):
-        '''
-        Compute the inverse transform of Pose
-        :param Pose: 4*4 Matrix of the camera pose
-        :return: matrix containing the inverse transform of Pose
-        y = R*x + T
-        x = R^(-1)*y + R^(-1)*T
-        '''
-        PoseInv = np.zeros(Pose.shape,Pose.dtype)
-        # Inverse rotation part R^(-1)
-        PoseInv[0:3,0:3] = LA.inv(Pose[0:3,0:3])
-        # Inverse Translation part R^(-1)*T
-        PoseInv[0:3,3] = -np.dot(PoseInv[0:3,0:3],Pose[0:3,3])
-        PoseInv[3,3] = 1.0
-        return PoseInv
+
 
     def RegisterRGBD(self, Image1, Image2):
         '''
@@ -281,7 +268,7 @@ class Tracker():
                 nmle[ ::l, ::l,:] = np.dot(res[0:3,0:3],Image1.Nmls[ ::l, ::l,:].transpose(0,2,1)).transpose(1,2,0)
                 #if (pt[2] != 0.0):
                 lpt = np.dsplit(pt,4)               
-                lpt[2] = in_mat_zero2one(lpt[2])               
+                lpt[2] = General.in_mat_zero2one(lpt[2])
                 
                 # if in 1D pix[0] = pt[0]/pt[2]
                 pix[ ::l, ::l,0] = (lpt[0]/lpt[2]).reshape(np.size(Image1.Vtx[ ::l, ::l,:],0), np.size(Image1.Vtx[ ::l, ::l,:],1))
@@ -355,7 +342,7 @@ class Tracker():
            
                 delta_qsi = -LA.tensorsolve(A, b)
                 delta_transfo = Exponential(delta_qsi)
-                delta_transfo = self.InvPose(delta_transfo)             
+                delta_transfo = General.InvPose(delta_transfo)
                 res = np.dot(delta_transfo, res)
                 print "delta_transfo"
                 print delta_transfo                    
@@ -471,7 +458,7 @@ class Tracker():
         
         
                 delta_qsi = -LA.tensorsolve(A, b)
-                delta_transfo = self.InvPose(Exponential(delta_qsi))
+                delta_transfo = General.InvPose(Exponential(delta_qsi))
                 
                 res = np.dot(delta_transfo, res)
                 
@@ -519,7 +506,7 @@ class Tracker():
                 nmle[ ::l,:] = np.dot(res[0:3,0:3],MeshNmls[ ::l,:].T).T
 
                 lpt = np.split(pt,4,axis=1)
-                lpt[2] = in_mat_zero2one(lpt[2])
+                lpt[2] = General.in_mat_zero2one(lpt[2])
                 
                 # if in 1D pix[0] = pt[0]/pt[2]
                 pix[ ::l,0] = (lpt[0]/lpt[2]).reshape(np.size(MeshVtx[ ::l,:],0))
@@ -540,35 +527,27 @@ class Tracker():
                 diff_Vtx = diff_Vtx*diff_Vtx
                 norm_diff_Vtx = diff_Vtx.sum(axis=1)
                 mask_vtx =  (norm_diff_Vtx < self.thresh_dist)
-                print "mask_vtx"
-                print sum(mask_vtx)  
-                print "norm_diff_Vtx : max, min , median"
-                print "max : %f; min : %f; median : %f; var :  %f " % (np.max(norm_diff_Vtx),np.min(norm_diff_Vtx) ,np.median(norm_diff_Vtx),np.var(norm_diff_Vtx) )
+                # print "mask_vtx"
+                # print sum(mask_vtx)
+                # print "norm_diff_Vtx : max, min , median"
+                # print "max : %f; min : %f; median : %f; var :  %f " % (np.max(norm_diff_Vtx),np.min(norm_diff_Vtx) ,np.median(norm_diff_Vtx),np.var(norm_diff_Vtx) )
                 
                 diff_Nmle = NewImage.Nmls[line_index[:], column_index[:]] - nmle 
                 diff_Nmle = diff_Nmle*diff_Nmle
                 norm_diff_Nmle = diff_Nmle.sum(axis=1)
-                print "norm_diff_Nmle : max, min , median"
-                print "max : %f; min : %f; median : %f; var :  %f " % (np.max(norm_diff_Nmle),np.min(norm_diff_Nmle) ,np.median(norm_diff_Nmle),np.var(norm_diff_Nmle) )                
-                
+                # print "norm_diff_Nmle : max, min , median"
+                # print "max : %f; min : %f; median : %f; var :  %f " % (np.max(norm_diff_Nmle),np.min(norm_diff_Nmle) ,np.median(norm_diff_Nmle),np.var(norm_diff_Nmle) )
                 
                 mask_nmls =  (norm_diff_Nmle < self.thresh_norm)
-                print "mask_nmls"
-                print sum(mask_nmls)     
+                # print "mask_nmls"
+                # print sum(mask_nmls)
                 
                 Norme_Nmle = nmle*nmle
                 norm_Norme_Nmle = Norme_Nmle.sum(axis=1)
-                
-                
+
                 mask_pt =  (pt[:,2] > 0.0)
-                print "mask_pt"
-                print sum(mask_pt)  
-                
-                print "cdt_column"
-                print sum( (cdt_column==0))  
-                
-                print "cdt_line"
-                print sum( (cdt_line==0))  
+                # print "mask_pt"
+                # print sum(mask_pt)
                 
                 mask = cdt_line*cdt_column * mask_pt * (norm_Norme_Nmle > 0.0) * mask_vtx * mask_nmls
                 print "final correspondence"
@@ -600,7 +579,7 @@ class Tracker():
                     break
            
                 delta_qsi = -LA.tensorsolve(A, b)
-                delta_transfo = self.InvPose(Exponential(delta_qsi))
+                delta_transfo = General.InvPose(Exponential(delta_qsi))
                 
                 res = np.dot(delta_transfo, res)
                 print "delta_transfo"
@@ -610,7 +589,4 @@ class Tracker():
 
         
         return res        
-
-
-
 
