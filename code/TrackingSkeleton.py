@@ -19,7 +19,6 @@ import pyopencl as cl
 
 libPath = "/Users/nii-user/inoe/NIIComputerVision/code"
 RGBD_ = imp.load_source('RGBD', libPath+'/lib/RGBD.py')
-RGBDimg = imp.load_source('RGBDimg',libPath+ '/lib/RGBDimg.py')
 TrackManager = imp.load_source('TrackManager', libPath+'/lib/tracking.py')
 TSDFtk = imp.load_source('TSDFtk', libPath+'/lib/TSDF.py')
 GPU = imp.load_source('GPUManager',libPath +'/lib/GPUManager.py')
@@ -439,7 +438,7 @@ for imgk in range(Index+1, nunImg):
         TgPrev.append(Tglo.astype(np.float32))
 
     time_lapsed = time.time() - start
-    print "numero %d finished : %f" % (imgk, time_lapsed)
+    print "number %d finished : %f" % (imgk, time_lapsed)
 
     # save with the number of the body part
     start_time3 = time.time()

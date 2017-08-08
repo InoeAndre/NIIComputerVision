@@ -272,6 +272,8 @@ class Application(tk.Frame):
 
         fact = 1000.0
 
+        TimeStart = time.time()
+
         #load data
         mat = scipy.io.loadmat(path + '/String4b.mat')
         lImages = mat['DepthImg']
@@ -364,7 +366,7 @@ class Application(tk.Frame):
         #"""
         # initialize tracker for camera pose
         Tracker = TrackManager.Tracker(0.001, 0.5, 1, [10])
-        TimeStart = time.time()
+
 
         for imgk in range(self.Index+1,nunImg):
             #Time counting
@@ -448,7 +450,7 @@ class Application(tk.Frame):
 
         
         TimeStart_Lapsed = time.time() - TimeStart
-        print "total timw: %f" %(TimeStart_Lapsed)
+        print "total time: %f" %(TimeStart_Lapsed)
         #"""
 
         # projection in 2d space to draw it
