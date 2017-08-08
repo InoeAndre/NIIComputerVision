@@ -147,7 +147,7 @@ __constant int ConfigCount[128] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3,
 3, 2, 3, 3, 4, 3, 4, 4, 3, 3, 4, 4, 3, 4, 3, 3, 2, 2, 3, 3, 4, 3, 4, 2, 3, 3, 4, 4, 3, 4, 3, 3, 2, 3, 4, 4, 3, 4, 3, 3, 2, 4, 3, 
 3, 2, 3, 2, 2, 1 };
 
-__kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global int *IndexVal, __global float * Vertices, __global int *Faces,  __constant float *Param, __constant int *Dim) {
+__kernel void MarchingCubes(__global short int *TSDF, __global int *Offset, __global int *IndexVal, __global float * Vertices, __global int *Faces,  __constant float *Param, __constant int *Dim) {
 
         int x = get_global_id(0); /*height*/
         int y = get_global_id(1); /*width*/
@@ -160,6 +160,9 @@ __kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global
              {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}};
         
         float vals[8] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f};
+        
+
+
         
         // get the 8  current summits
         s[0][0] = ((float)(x) - Param[0])/Param[1];
@@ -183,7 +186,8 @@ __kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global
         int id;
         bool reverse = false;
         int max_z = Dim[2]-1;
-        for (int z = 0; z < max_z; z++) { /*depth*/
+        int z = 0;
+        for (z = 0; z < max_z; z++) { /*depth*/
             id = z + Dim[0]*y + Dim[0]*Dim[1]*x;
             
             // get the index value corresponding to the implicit function
@@ -198,16 +202,28 @@ __kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global
                 index = -index;
             }
             
+            //convert TSDF to float
+            float convVal = 32767.0f;
+            float tsdf0 = (float)(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x])/convVal;
+            float tsdf1 = (float)(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*(x+1)])/convVal;
+            float tsdf2 = (float)(TSDF[z + Dim[0]*(y+1) + Dim[0]*Dim[1]*(x+1)])/convVal;
+            float tsdf3 = (float)(TSDF[z + Dim[0]*(y+1) + Dim[0]*Dim[1]*x])/convVal;
+            float tsdf4 = (float)(TSDF[z+1 + Dim[0]*y + Dim[0]*Dim[1]*x])/convVal;
+            float tsdf5 = (float)(TSDF[z+1 + Dim[0]*y + Dim[0]*Dim[1]*(x+1)])/convVal;
+            float tsdf6 = (float)(TSDF[z+1 + Dim[0]*(y+1) + Dim[0]*Dim[1]*(x+1)])/convVal;
+            float tsdf7 = (float)(TSDF[z+1 + Dim[0]*(y+1) + Dim[0]*Dim[1]*x])/convVal;
+            
+            
             // get the values of the implicit function at the summits
             // [val_0 ... val_7]
-            vals[0] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*x]));
-            vals[1] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*y + Dim[0]*Dim[1]*(x+1)]));
-            vals[2] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*(y+1) + Dim[0]*Dim[1]*(x+1)]));
-            vals[3] = 1.0f/(0.00001f + fabs(TSDF[z + Dim[0]*(y+1) + Dim[0]*Dim[1]*x]));
-            vals[4] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*y + Dim[0]*Dim[1]*x]));
-            vals[5] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*y + Dim[0]*Dim[1]*(x+1)]));
-            vals[6] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*(y+1) + Dim[0]*Dim[1]*(x+1)]));
-            vals[7] = 1.0f/(0.00001f + fabs(TSDF[z+1 + Dim[0]*(y+1) + Dim[0]*Dim[1]*x]));
+            vals[0] = 1.0f/(0.00001f + fabs(tsdf0));
+            vals[1] = 1.0f/(0.00001f + fabs(tsdf1));
+            vals[2] = 1.0f/(0.00001f + fabs(tsdf2));
+            vals[3] = 1.0f/(0.00001f + fabs(tsdf3));
+            vals[4] = 1.0f/(0.00001f + fabs(tsdf4));
+            vals[5] = 1.0f/(0.00001f + fabs(tsdf5));
+            vals[6] = 1.0f/(0.00001f + fabs(tsdf6));
+            vals[7] = 1.0f/(0.00001f + fabs(tsdf7));
         
             // get the 8  current summits
             s[0][2] = ((float)(z) - Param[4])/Param[5];
@@ -222,7 +238,7 @@ __kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global
             int nb_faces = ConfigCount[index];
             int offset = Offset[id];
             
-            
+            //Compute the position on the edge
             v[0][0] = (vals[0]*s[0][0] + vals[1]*s[1][0])/(vals[0]+vals[1]); v[0][1] = (vals[0]*s[0][1] + vals[1]*s[1][1])/(vals[0]+vals[1]);
             v[1][0] = (vals[1]*s[1][0] + vals[2]*s[2][0])/(vals[1]+vals[2]); v[1][1] = (vals[1]*s[1][1] + vals[2]*s[2][1])/(vals[1]+vals[2]);
             v[2][0] = (vals[2]*s[2][0] + vals[3]*s[3][0])/(vals[2]+vals[3]); v[2][1] = (vals[2]*s[2][1] + vals[3]*s[3][1])/(vals[2]+vals[3]); 
@@ -250,7 +266,8 @@ __kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global
             v[11][2] = (vals[4]*s[4][2] + vals[7]*s[7][2])/(vals[4]+vals[7]);
             
             // add new faces in the list
-            for (int f = 0; f < nb_faces; f++) {
+            int f = 0;
+            for ( f = 0; f < nb_faces; f++) {
                     if (reverse) {
                         Faces[3*(offset+f)] = 3*(offset+f)+2;
                         Faces[3*(offset+f) +1] = 3*(offset+f)+1;
@@ -273,18 +290,9 @@ __kernel void MarchingCubes(__global float *TSDF, __global int *Offset, __global
                     Vertices[9*(offset+f)+7] = v[Config[index][f][2]][1];
                     Vertices[9*(offset+f)+8] = v[Config[index][f][2]][2];
                     
-                    /*Normals[9*(offset+f)] = v[Config[index][f][0]][0];
-                    Normals[9*(offset+f)+1] = v[Config[index][f][0]][1];
-                    Normals[9*(offset+f)+2] = v[Config[index][f][0]][2];
-                    
-                    Normals[9*(offset+f)+3] = v[Config[index][f][1]][0];
-                    Normals[9*(offset+f)+4] = v[Config[index][f][1]][1];
-                    Normals[9*(offset+f)+5] = v[Config[index][f][1]][2];
-                    
-                    Normals[9*(offset+f)+6] = v[Config[index][f][2]][0];
-                    Normals[9*(offset+f)+7] = v[Config[index][f][2]][1];
-                    Normals[9*(offset+f)+8] = v[Config[index][f][2]][2];*/
+                   
             }
+               
         }
 }
 """
@@ -298,7 +306,7 @@ __constant int ConfigCount[128] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3,
 3, 2, 3, 3, 4, 3, 4, 4, 3, 3, 4, 4, 3, 4, 3, 3, 2, 2, 3, 3, 4, 3, 4, 2, 3, 3, 4, 4, 3, 4, 3, 3, 2, 3, 4, 4, 3, 4, 3, 3, 2, 4, 3, 
 3, 2, 3, 2, 2, 1 };
 
-__kernel void MarchingCubesIndexing(__global float *TSDF, __global int *Offset, __global int *IndexVal, __constant int *Dim, const float iso, __global int *faces_counter) {
+__kernel void MarchingCubesIndexing(__global short int *TSDF, __global int *Offset, __global int *IndexVal, __constant int *Dim, const float iso, __global int *faces_counter) {
 
         int x = get_global_id(0); /*height*/
         int y = get_global_id(1); /*width*/
@@ -311,7 +319,8 @@ __kernel void MarchingCubesIndexing(__global float *TSDF, __global int *Offset, 
         int id;
         int max_z = Dim[2]-1;
         bool stop;
-        for (int z = 0; z <max_z; z++) { /*depth*/
+        int z = 0;
+        for (z = 0; z <max_z; z++) { /*depth*/
             id = z + Dim[0]*y + Dim[0]*Dim[1]*x;
         
             // get the 8  current summits
@@ -327,8 +336,9 @@ __kernel void MarchingCubesIndexing(__global float *TSDF, __global int *Offset, 
             // get the values of the implicit function at the summits
             // [val_0 ... val_7]
             stop = false;
-            for (int k=0; k < 8; k++) {
-                vals[k] = TSDF[s[k][2] + Dim[0]*s[k][1] + Dim[0]*Dim[1]*s[k][0]];
+            int k=0;
+            for ( k=0; k < 8; k++) {
+                vals[k] = (float)( TSDF[s[k][2] + Dim[0]*s[k][1] + Dim[0]*Dim[1]*s[k][0]] )/32767.0f;
                 if (fabs(vals[k]) >= 1.0f) {
                     IndexVal[id] = 0;
                     stop = true;
@@ -363,9 +373,153 @@ __kernel void MarchingCubesIndexing(__global float *TSDF, __global int *Offset, 
             if (index == 0)
                 continue;
                 
-            Offset[id] = atomic_add(faces_counter, ConfigCount[index]);
+            Offset[id] = atomic_add( faces_counter, ConfigCount[index]);
         }
         
+        
+}
+"""
+Kernel_InitArray = """
+
+
+__kernel void InitArray(__global int *Array_x, __global int *Array_y, __global int *Array_z, __global int *Weights,
+                       __global int *Normale_x, __global int *Normale_y, __global int *Normale_z,
+                       __global float * Vertices, __constant float *Param, __constant int *Dim, __global int *vertex_counter, const int nb_faces) {
+
+        int x = get_global_id(0);
+        int y = get_global_id(1); 
+        int work_size = get_global_size(1);
+        
+        int face_indx = x*work_size + y;
+        
+        if (face_indx > nb_faces-1)
+            return;
+        
+        float4 pt;
+        int indx;
+        int coord_i, coord_j, coord_k;
+        for (int k = 0; k < 3; k++) {
+            pt.x = Vertices[9*face_indx+3*k ];
+            pt.y = Vertices[9*face_indx+3*k+1];
+            pt.z = Vertices[9*face_indx+3*k+2];
+            
+            coord_i = max(0, min(Dim[0]-1,(int)(round(pt.x*Param[1]+Param[0]))));
+            coord_j = max(0, min(Dim[1]-1,(int)(round(pt.y*Param[3]+Param[2]))));
+            coord_k = max(0, min(Dim[2]-1,(int)(round(pt.z*Param[5]+Param[4]))));
+            
+            indx = coord_i*Dim[2]*Dim[1] + coord_j*Dim[2] + coord_k;
+            atomic_xchg(&Array_x[indx], 0);
+            atomic_xchg(&Array_y[indx], 0);
+            atomic_xchg(&Array_z[indx], 0);
+            atomic_xchg(&Normale_x[indx], 0);
+            atomic_xchg(&Normale_y[indx], 0);
+            atomic_xchg(&Normale_z[indx], 0);
+            atomic_xchg(&Weights[indx], 0);
+        }
+        
+}
+"""
+
+Kernel_MergeVtx = """
+
+__kernel void MergeVtx(__global int *Array_x, __global int *Array_y, __global int *Array_z, __global int *Weights,
+                       __global int *Normale_x, __global int *Normale_y, __global int *Normale_z,
+                       __global int *VtxInd, __global float * Vertices, __global int *Faces,  __constant float *Param, 
+                       __constant int *Dim, __global int *vertex_counter, const int nb_faces) {
+
+        int x = get_global_id(0);
+        int y = get_global_id(1); 
+        int work_size = get_global_size(1);
+        
+        int face_indx = x*work_size + y;
+        
+        if (face_indx > nb_faces-1)
+            return;
+        
+        float4 pt[3];
+        int indx[3];
+        int flag;
+        int counter;
+        int coord_i, coord_j, coord_k;
+        for (int k = 0; k < 3; k++) {
+            pt[k].x = Vertices[3*Faces[3*face_indx+k]];
+            pt[k].y = Vertices[3*Faces[3*face_indx+k]+1];
+            pt[k].z = Vertices[3*Faces[3*face_indx+k]+2];
+            
+            coord_i = max(0, min(Dim[0]-1,(int)(round(pt[k].x*Param[1]+Param[0]))));
+            coord_j = max(0, min(Dim[1]-1,(int)(round(pt[k].y*Param[3]+Param[2]))));
+            coord_k = max(0, min(Dim[2]-1,(int)(round(pt[k].z*Param[5]+Param[4]))));
+            
+            indx[k] = coord_i*Dim[2]*Dim[1] + coord_j*Dim[2] + coord_k;
+                
+            atomic_add(&Array_x[indx[k]], (int)(round(pt[k].x*100000.0f)));
+            atomic_add(&Array_y[indx[k]], (int)(round(pt[k].y*100000.0f)));
+            atomic_add(&Array_z[indx[k]], (int)(round(pt[k].z*100000.0f)));
+            flag = atomic_inc(&Weights[indx[k]]);
+            Faces[3*face_indx+k] = indx[k];
+            
+            if (flag == 0) {
+                counter = atomic_inc(vertex_counter);
+                atomic_xchg(&VtxInd[indx[k]], counter);
+            }
+        }
+            
+        float4 v1 = (float4)(pt[1].x-pt[0].x, pt[1].y-pt[0].y, pt[1].z-pt[0].z, 1.0f);
+        float4 v2 = (float4)(pt[2].x-pt[0].x, pt[2].y-pt[0].y, pt[2].z-pt[0].z, 1.0f);
+        float4 nmle = (float4)(v1.y*v2.z - v1.z*v2.y,
+                             -v1.x*v2.z + v1.z*v2.x,
+                             v1.x*v2.y - v1.y*v2.x, 1.0f);
+        for (int k = 0; k < 3; k++) {
+            atomic_add(&Normale_x[indx[k]], (int)(round(nmle.x*100000.0f)));
+            atomic_add(&Normale_y[indx[k]], (int)(round(nmle.y*100000.0f)));
+            atomic_add(&Normale_z[indx[k]], (int)(round(nmle.z*100000.0f)));
+        }
+        
+        
+        
+}
+"""
+
+Kernel_SimplifyMesh = """
+
+__kernel void SimplifyMesh(__global int *Array_x, __global int *Array_y, __global int *Array_z, __global int *Weights,
+                       __global int *Normale_x, __global int *Normale_y, __global int *Normale_z,
+                       __global int *VtxInd, __global float * Vertices, __global float * Normales, __global int *Faces,
+                       __constant int *Dim, const int nb_faces) {
+
+        int x = get_global_id(0); /*height*/
+        int y = get_global_id(1); /*width*/
+        int work_size = get_global_size(1);
+        
+        int face_indx = x*work_size + y;
+        
+        if (face_indx > nb_faces-1)
+            return;
+            
+        int id;
+        int id_v;
+        float mag;
+        for (int k = 0; k < 3; k++) {
+            id = Faces[3*face_indx+k];
+            id_v = VtxInd[id];
+            
+            Vertices[3*id_v] = ((float)(Array_x[id])/100000.0f) / (float)(Weights[id]);
+            Vertices[3*id_v+1] = ((float)(Array_y[id])/100000.0f) / (float)(Weights[id]);
+            Vertices[3*id_v+2] = ((float)(Array_z[id])/100000.0f) / (float)(Weights[id]);
+            
+            mag = sqrt( (((float)(Normale_x[id]))/100000.0f)*(((float)(Normale_x[id]))/100000.0f) + 
+                        (((float)(Normale_y[id]))/100000.0f)*(((float)(Normale_y[id]))/100000.0f) +
+                        (((float)(Normale_z[id]))/100000.0f)*(((float)(Normale_z[id]))/100000.0f));
+    
+            if (mag == 0.0f) 
+                mag = 1.0f;
+            Normales[3*id_v] = (((float)(Normale_x[id]))/100000.0f) / mag;
+            Normales[3*id_v+1] = (((float)(Normale_y[id]))/100000.0f) / mag;
+            Normales[3*id_v+2] = (((float)(Normale_z[id]))/100000.0f) / mag;
+            
+    
+            Faces[3*face_indx + k] = id_v;
+        }
         
 }
 """

@@ -1,13 +1,19 @@
-# File created by Diego Thomas the 21-11-2016
+"""
+File created by Diego Thomas the 21-11-2016
 
-# File to handle the menu main loop
+File to handle the menu main loop
+"""
+
+
 import cv2
 import Tkinter as tk
 from PIL import ImageTk
 from tkFileDialog import askdirectory
 
-## Class to handle menu GUI
 class Menu(tk.Frame):
+    """
+    Class to handle menu GUI
+    """
     def key(self, event):
         if (event.keysym == 'Escape'):
             self.root.destroy()

@@ -10,82 +10,96 @@ import imp
 import numpy as np
 from numpy import linalg as LA
 import pyopencl as cl
+from array import array
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
+KernelsOpenCL = imp.load_source('KernelsOpenCL', 'lib/KernelsOpenCL.py')
+General = imp.load_source('General', './lib/General.py')
+
 
 def sign(x):
     if (x < 0):
         return -1.0
     return 1.0
 
-def in_mat_zero2one(mat):
-    """This fonction replace in the matrix all the 0 to 1"""
-    mat_tmp = (mat != 0.0)
-    res = mat * mat_tmp + ~mat_tmp
-    return res
 
 mf = cl.mem_flags
 
 class TSDFManager():
-    
-    # Constructor
+    """
+    Manager Truncated Signed Distance Function.
+    """
+
     def __init__(self, Size, Image, GPUManager):
+        """
+        Constructor
+        :param Size: dimension of each axis of the volume
+        :param Image: RGBD image to compare
+        :param GPUManager: GPU environment for GPU computation
+        """
+        #dimensions
         self.Size = Size
-        self.TSDF = np.zeros(self.Size, dtype = np.float32)
-        self.c_x = self.Size[0]/2
-        self.c_y = self.Size[1]/2
-        self.c_z = -0.1
-        self.dim_x = self.Size[0]/5.0
-        self.dim_y = self.Size[1]/5.0
-        self.dim_z = self.Size[2]/5.0
+        self.c_x = Size[0]/2
+        self.c_y = Size[1]/2
+        self.c_z = Size[2]/2
+        # resolution
+        VoxSize = 0.005
+        self.dim_x = 1.0/VoxSize
+        self.dim_y = 1.0/VoxSize
+        self.dim_z = 1.0/VoxSize
+        # put dimensions and resolution in one vector
         self.res = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32)
         
         self.GPUManager = GPUManager
         self.Size_Volume = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = np.array([self.Size[0], self.Size[1], self.Size[2]], dtype = np.int32))
-        self.TSDFGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
+
+        self.TSDF = np.zeros(self.Size, dtype=np.int16)
+        self.TSDFGPU =cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.TSDF.nbytes)
+        self.Weight = np.zeros(self.Size, dtype=np.int16)
+        self.WeightGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Weight.nbytes)
+
         self.Param = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = self.res)
-        
-        #fmt = cl.ImageFormat(cl.channel_order.RGB, cl.channel_type.FLOAT)
-        #self.VMapGPU = cl.Image(self.GPUManager.context, mf.READ_ONLY, fmt, shape = (Image.Size[1], Image.Size[0]))
-        #cl.enqueue_copy(self.GPUManager.queue, self.VMapGPU, Image.Vtx, origin = (0,0), region = (Image.Size[1], Image.Size[0]))
+        self.Pose = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         self.DepthGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, Image.depth_image.nbytes)
         self.Calib_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf = Image.intrinsic)
-        self.Pose_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, 64)
-        
-    
+        self.Pose_GPU = cl.Buffer(self.GPUManager.context, mf.READ_ONLY, self.Pose.nbytes)
+
+
+
 #######
 ##GPU code
 #####
 
     # Fuse on the GPU
     def FuseRGBD_GPU(self, Image, Pose):
-        Transform = LA.inv(Pose) # Attention l'inverse de la matrice n'est pas l'inverse de la transformation !!
-        
-        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Transform)
+        """
+        Update the TSDF volume with Image
+        :param Image: RGBD image to update to its surfaces
+        :param Pose: transform from the first camera pose to the last camera pose
+        :return: none
+        """
+        # initialize buffers
+        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
-        
+
+        # fuse data of the RGBD imnage with the TSDF volume 3D model
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-                                np.int32(Image.Size[0]), np.int32(Image.Size[1]))
-        
-        #cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
-        
-    # Reay tracing on the GPU
-    def RayTracing_GPU(self, Image, Pose):
-        result = np.zeros((Image.Size[0], Image.Size[1]), np.float32)
-        cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, result)
-        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
-        
-        self.GPUManager.programs['RayTracing'].RayTracing(self.GPUManager.queue, (Image.Size[0], Image.Size[1]), None, \
-                                self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-                                np.int32(Image.Size[0]), np.int32(Image.Size[1]))
-        
-        cl.enqueue_read_buffer(self.GPUManager.queue, self.DepthGPU, result).wait()
-        
-        return result
+                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU)
+
+        # update CPU array. Read the buffer to write in the CPU array.
+        cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
+        '''
+        # TEST if TSDF contains NaN
+        TSDFNaN = np.count_nonzero(np.isnan(self.TSDF))
+        print "TSDFNaN : %d" %(TSDFNaN)
+        '''
+        cl.enqueue_read_buffer(self.GPUManager.queue, self.WeightGPU, self.Weight).wait()  
+
+
     
 #####
 #End GPU code
@@ -93,47 +107,113 @@ class TSDFManager():
     
     # Fuse a new RGBD image into the TSDF volume
     def FuseRGBD(self, Image, Pose, s = 1):
-        Transform = LA.inv(Pose)
-        
-        nu = 0.1
+        """
+        Fuse data of 3D TSDF model with RGBD image CPU
+        :param Image: RGBD image to update to its surfaces
+        :param Pose: transform from the first camera pose to the last camera pose
+        :param s:  subsampling factor
+        :return: none
+        NOT USED FUNCTIONS
+        """
+        print self.c_x
+        print self.dim_x
+        print self.c_y
+        print self.dim_y
+        print self.c_z
+        print self.dim_z
+
+        # init
+        Transform = Pose
+        convVal = 32767.0
+        nu = 0.05
         line_index = 0
         column_index = 0
+        nb_vert = 0
+        nb_miss = 0
         pix = np.array([0., 0., 1.])
         pt = np.array([0., 0., 0., 1.])
         for x in range(self.Size[0]/s): # line index (i.e. vertical y axis)
+            # put the middle of the volume in the middle of the image for axis x
             pt[0] = (x-self.c_x)/self.dim_x
             print x
+            #print pt[0]
             for y in range(self.Size[1]/s):
+                # put the middle of the volume in the middle of the image for axis y
                 pt[1] = (y-self.c_y)/self.dim_y
+                # Transofrm in current camera pose
+                x_T =  Transform[0,0]*pt[0] + Transform[0,1]*pt[1] + Transform[0,3]
+                y_T =  Transform[1,0]*pt[0] + Transform[1,1]*pt[1] + Transform[1,3]
+                z_T =  Transform[2,0]*pt[0] + Transform[2,1]*pt[1] + Transform[2,3] 
+                #print Transform
+                #print pt
                 for z in range(self.Size[2]/s):
+                    nb_vert +=1
                     # Project each voxel into  the Image
                     pt[2] = (z-self.c_z)/self.dim_z
-                    pt = np.dot(Transform, pt)
-                    
+                    pt_Tx = x_T + Transform[0,2]*pt[2] 
+                    pt_Ty = y_T + Transform[1,2]*pt[2]
+                    pt_Tz = z_T + Transform[2,2]*pt[2]
+
                     # Project onto Image
-                    pix[0] = pt[0]/pt[2]
-                    pix[1] = pt[1]/pt[2]
+                    pix[0] = pt_Tx/pt_Tz
+                    pix[1] = pt_Ty/pt_Tz
                     pix = np.dot(Image.intrinsic, pix)
+                    #print pix
                     column_index = int(round(pix[0]))
                     line_index = int(round(pix[1]))
-                    
+
+                    # check if the pix is in the frame
                     if (column_index < 0 or column_index > Image.Size[1]-1 or line_index < 0 or line_index > Image.Size[0]-1):
-                        continue
-                        
-                    depth = Image.Vtx[line_index][column_index][2]
+                        #print "column_index : %d , line_index : %d" %(column_index,line_index)
+                        nb_miss +=1
+                        if self.Weight[x][y][z]==0 : 
+                            self.TSDF[x][y][z] = int(convVal)
+                            continue
+
+                    # get corresponding depth
+                    depth = Image.depth_image[line_index][column_index]
+
+                    # Check depth value
+                    if depth == 0 :
+                        nb_miss +=1
+                        if self.Weight[x][y][z]==0 :
+                            self.TSDF[x][y][z] = int(convVal)
+                            continue
+                   
+                    # compute distance between voxel and surface
+                    dist = -(pt_Tz - depth)/nu
+                    dist = min(1.0, max(-1.0, dist))
                     
-                    # Listing 2
-                    dist = pt[2] - depth
-                    if (dist > 0):
-                        self.TSDF[x][y][z] = min(1.0, dist/nu)
+                    if (dist > 1.0):
+                        self.TSDF[x][y][z] = 1.0
+                        print "x %d, y %d, z %d" %(x,y,z)
                     else:
-                        self.TSDF[x][y][z] = max(-1.0, dist/nu)
-                        
+                        self.TSDF[x][y][z] = max(-1.0, dist)
+
+                    #running average
+                    prev_tsdf = float(self.TSDF[x][y][z])/convVal
+                    prev_weight = float(self.Weight[x][y][z])
+                    
+                    self.TSDF[x][y][z] =  int(round(((prev_tsdf*prev_weight+dist)/(prev_weight+1.0))*convVal))
+                    if (dist < 1.0 and dist > -1.0):
+                        self.Weight[x][y][z] = min(1000, self.Weight[x][y][z]+1)
+        print "nb vert : %d, nb miss : %d" % (nb_vert,nb_miss)
+        cl.enqueue_copy(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
+
+                
     # Fuse a new RGBD image into the TSDF volume
     def FuseRGBD_optimized(self, Image, Pose, s = 1):
-        Transform = LA.inv(Pose)
+        """
+        Fuse data of 3D TSDF model with RGBD image CPU optimize
+        :param Image: RGBD image to update to its surfaces
+        :param Pose: transform from the first camera pose to the last camera pose
+        :param s:  subsampling factor
+        :return: none
+        NOT USED FUNCTIONS
+        """
+        Transform = Pose#LA.inv(Pose)
         
-        nu = 0.1
+        nu = 0.05
         
         column_index_ref = np.array([np.array(range(self.Size[1])) for _ in range(self.Size[0])]) # x coordinates
         column_index_ref = (column_index_ref - self.c_x)/self.dim_x
@@ -160,7 +240,7 @@ class TSDFManager():
                     
             #if (pt[2] != 0.0):
             lpt = np.dsplit(pt,4)
-            lpt[2] = in_mat_zero2one(lpt[2])
+            lpt[2] = General.in_mat_zero2one(lpt[2])
             
             # if in 1D pix[0] = pt[0]/pt[2]
             pix[ ::s, ::s,0] = (lpt[0]/lpt[2]).reshape((self.Size[0], self.Size[1]))
@@ -184,49 +264,5 @@ class TSDFManager():
             diff_Vtx = diff_Vtx[:,:]*empty_mat[line_index[:][:], column_index[:][:]] - ~empty_mat[line_index[:][:], column_index[:][:]]
             
             self.TSDF[:,:,z] = diff_Vtx/nu
-            
+        # running average is missing in the function
     
-    def RayTracing(self, Image, Pose):
-        result = np.zeros((Image.Size[0], Image.Size[1]), np.float32)
-        
-        for i in range(Image.Size[0]):
-            for j in range(Image.Size[1]):
-                # Shoot a ray for the current pixel
-                x = (j - Image.intrinsic[0,2])/Image.intrinsic[0,0]
-                y = (i - Image.intrinsic[1,2])/Image.intrinsic[1,1]
-                tmp = np.array([x, y, 1.0, 1.0])
-                tmp = np.dot(Pose, tmp)
-                ray = tmp[0:3]
-                ray = ray / LA.norm(ray)
-                
-                nu = 0.1
-                pt = 0.5*ray
-                voxel = np.round(np.array([pt[0]*self.dim_x + self.c_x, pt[1]*self.dim_y + self.c_y, pt[2]*self.dim_z + self.c_z])).astype(int)
-                if (voxel[0] < 0 or voxel[0] > self.Size[0]-1 or voxel[1] < 0 or voxel[1] > self.Size[1]-1 or voxel[2] < 0 or voxel[2] > self.Size[2]-1):
-                    break
-                prev_TSDF = self.TSDF[voxel[0],voxel[1],voxel[2]]
-                pt = pt + nu*ray
-                
-                while (LA.norm(pt) < 5.0 and prev_TSDF < 0.0):
-                    voxel = np.round(np.array([pt[0]*self.dim_x + self.c_x, pt[1]*self.dim_y + self.c_y, pt[2]*self.dim_z + self.c_z])).astype(int)
-                    if (voxel[0] < 0 or voxel[0] > self.Size[0]-1 or voxel[1] < 0 or voxel[1] > self.Size[1]-1 or voxel[2] < 0 or voxel[2] > self.Size[2]-1):
-                        break
-                    new_TSDF = self.TSDF[voxel[0],voxel[1],voxel[2]]
-                        
-                    if (sign(prev_TSDF*new_TSDF) == -1.0 and prev_TSDF > -1.0):
-                        result[i,j] = ((1.0-np.abs(prev_TSDF))*LA.norm(pt - nu*ray) + (1.0-new_TSDF)*LA.norm(pt)) / (2.0 - (np.abs(prev_TSDF) + new_TSDF))
-                        break
-                    
-                    if (new_TSDF > -1.0 and new_TSDF < 0.0):
-                        nu = 0.01
-                        
-                    prev_TSDF = new_TSDF
-                    pt = pt + nu*ray
-        
-        return result
-        
-        
-        
-                        
-                        
-                    
