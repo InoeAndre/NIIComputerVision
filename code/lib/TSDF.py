@@ -27,17 +27,28 @@ def sign(x):
 mf = cl.mem_flags
 
 class TSDFManager():
+    """
+    Manager Truncated Signed Distance Function.
+    """
 
-    # Constructor
     def __init__(self, Size, Image, GPUManager):
+        """
+        Constructor
+        :param Size: dimension of each axis of the volume
+        :param Image: RGBD image to compare
+        :param GPUManager: GPU environment for GPU computation
+        """
+        #dimensions
         self.Size = Size
         self.c_x = Size[0]/2
         self.c_y = Size[1]/2
         self.c_z = Size[2]/2
+        # resolution
         VoxSize = 0.005
         self.dim_x = 1.0/VoxSize
         self.dim_y = 1.0/VoxSize
         self.dim_z = 1.0/VoxSize
+        # put dimensions and resolution in one vector
         self.res = np.array([self.c_x, self.dim_x, self.c_y, self.dim_y, self.c_z, self.dim_z], dtype = np.float32)
         
         self.GPUManager = GPUManager
@@ -64,14 +75,22 @@ class TSDFManager():
 
     # Fuse on the GPU
     def FuseRGBD_GPU(self, Image, Pose):
-
+        """
+        Update the TSDF volume with Image
+        :param Image: RGBD image to update to its surfaces
+        :param Pose: transform from the first camera pose to the last camera pose
+        :return: none
+        """
+        # initialize buffers
         cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
         cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
-        
+
+        # fuse data of the RGBD imnage with the TSDF volume 3D model
         self.GPUManager.programs['FuseTSDF'].FuseTSDF(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
                                 self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
                                 np.int32(Image.Size[0]), np.int32(Image.Size[1]),self.WeightGPU)
-    
+
+        # update CPU array. Read the buffer to write in the CPU array.
         cl.enqueue_read_buffer(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
         '''
         # TEST if TSDF contains NaN
@@ -88,13 +107,23 @@ class TSDFManager():
     
     # Fuse a new RGBD image into the TSDF volume
     def FuseRGBD(self, Image, Pose, s = 1):
+        """
+        Fuse data of 3D TSDF model with RGBD image CPU
+        :param Image: RGBD image to update to its surfaces
+        :param Pose: transform from the first camera pose to the last camera pose
+        :param s:  subsampling factor
+        :return: none
+        NOT USED FUNCTIONS
+        """
         print self.c_x
         print self.dim_x
         print self.c_y
         print self.dim_y
         print self.c_z
         print self.dim_z
-        Transform = Pose#LA.inv(Pose)
+
+        # init
+        Transform = Pose
         convVal = 32767.0
         nu = 0.05
         line_index = 0
@@ -104,11 +133,14 @@ class TSDFManager():
         pix = np.array([0., 0., 1.])
         pt = np.array([0., 0., 0., 1.])
         for x in range(self.Size[0]/s): # line index (i.e. vertical y axis)
+            # put the middle of the volume in the middle of the image for axis x
             pt[0] = (x-self.c_x)/self.dim_x
             print x
             #print pt[0]
             for y in range(self.Size[1]/s):
+                # put the middle of the volume in the middle of the image for axis y
                 pt[1] = (y-self.c_y)/self.dim_y
+                # Transofrm in current camera pose
                 x_T =  Transform[0,0]*pt[0] + Transform[0,1]*pt[1] + Transform[0,3]
                 y_T =  Transform[1,0]*pt[0] + Transform[1,1]*pt[1] + Transform[1,3]
                 z_T =  Transform[2,0]*pt[0] + Transform[2,1]*pt[1] + Transform[2,3] 
@@ -129,24 +161,26 @@ class TSDFManager():
                     #print pix
                     column_index = int(round(pix[0]))
                     line_index = int(round(pix[1]))
-                    
+
+                    # check if the pix is in the frame
                     if (column_index < 0 or column_index > Image.Size[1]-1 or line_index < 0 or line_index > Image.Size[0]-1):
                         #print "column_index : %d , line_index : %d" %(column_index,line_index)
                         nb_miss +=1
                         if self.Weight[x][y][z]==0 : 
                             self.TSDF[x][y][z] = int(convVal)
                             continue
-                        
+
+                    # get corresponding depth
                     depth = Image.depth_image[line_index][column_index]
 
-                    
+                    # Check depth value
                     if depth == 0 :
                         nb_miss +=1
                         if self.Weight[x][y][z]==0 :
                             self.TSDF[x][y][z] = int(convVal)
                             continue
                    
-                    # Listing 2
+                    # compute distance between voxel and surface
                     dist = -(pt_Tz - depth)/nu
                     dist = min(1.0, max(-1.0, dist))
                     
@@ -156,6 +190,7 @@ class TSDFManager():
                     else:
                         self.TSDF[x][y][z] = max(-1.0, dist)
 
+                    #running average
                     prev_tsdf = float(self.TSDF[x][y][z])/convVal
                     prev_weight = float(self.Weight[x][y][z])
                     
@@ -168,6 +203,14 @@ class TSDFManager():
                 
     # Fuse a new RGBD image into the TSDF volume
     def FuseRGBD_optimized(self, Image, Pose, s = 1):
+        """
+        Fuse data of 3D TSDF model with RGBD image CPU optimize
+        :param Image: RGBD image to update to its surfaces
+        :param Pose: transform from the first camera pose to the last camera pose
+        :param s:  subsampling factor
+        :return: none
+        NOT USED FUNCTIONS
+        """
         Transform = Pose#LA.inv(Pose)
         
         nu = 0.05
@@ -221,5 +264,5 @@ class TSDFManager():
             diff_Vtx = diff_Vtx[:,:]*empty_mat[line_index[:][:], column_index[:][:]] - ~empty_mat[line_index[:][:], column_index[:][:]]
             
             self.TSDF[:,:,z] = diff_Vtx/nu
-            
+        # running average is missing in the function
     

@@ -19,13 +19,14 @@ General = imp.load_source('General', './lib/General.py')
 
 
 
-'''
-This function transform a 6D vector into a 4*4 matrix using Lie's Algebra. It is used to compute the incrementale
-transformation matrix in the tracking process.
-:param qsi: 6D vector
-:return: 4*4 incremental transfo matrix for camera pose estimation
-'''
+
 def Exponential(qsi):
+    '''
+    This function transform a 6D vector into a 4*4 matrix using Lie's Algebra. It is used to compute the incrementale
+    transformation matrix in the tracking process.
+    :param qsi: 6D vector
+    :return: 4*4 incremental transfo matrix for camera pose estimation
+    '''
     theta = LA.norm(qsi[3:6])
     res = np.identity(4)
     
@@ -62,12 +63,13 @@ def Exponential(qsi):
         
     return res
 
-'''
-Inverse of Exponential function. Used to create known transform matrix and test.
-:param Mat: 4*4 transformation matrix
-:return: a 6D vector containing rotation and translation parameters
-'''
+
 def Logarithm(Mat):
+    '''
+    Inverse of Exponential function. Used to create known transform matrix and test.
+    :param Mat: 4*4 transformation matrix
+    :return: a 6D vector containing rotation and translation parameters
+    '''
     trace = Mat[0,0]+Mat[1,1]+Mat[2,2]
     theta = acos((trace-1.0)/2.0)
     
@@ -105,17 +107,20 @@ def Logarithm(Mat):
     
     return qsi
     
-'''
-Compute the inverse transform of Pose
-:param Pose: 4*4 Matrix of the camera pose
-:return: matrix containing the inverse transform of Pose
-y = R*x + T
-x = R^(-1)*y + R^(-1)*T
-'''
-class Tracker():
 
-    # Constructor
+class Tracker():
+    """
+    Tracking camera pose class
+    """
+
     def __init__(self, thresh_dist, thresh_norm, lvl, max_iter):
+        """
+        Constructor
+        :param thresh_dist: threshold for distance between vertices
+        :param thresh_norm: threshold for distance between normales
+        :param lvl:
+        :param max_iter: maximum number of iteration
+        """
         self.thresh_dist = thresh_dist
         self.thresh_norm = thresh_norm
         self.lvl = lvl
@@ -188,24 +193,28 @@ class Tracker():
                             continue
                             
                         w = 1.0
-                        # Complete Jacobian matrix
+                        # Compute partial derivate for each point
                         row[0] = w*nmle[0]
                         row[1] = w*nmle[1]
                         row[2] = w*nmle[2]
                         row[3] = w*(-match_vtx[2]*nmle[1] + match_vtx[1]*nmle[2])
                         row[4] = w*(match_vtx[2]*nmle[0] - match_vtx[0]*nmle[2])
                         row[5] = w*(-match_vtx[1]*nmle[0] + match_vtx[0]*nmle[1])
+                        #current residual
                         row[6] = w*(nmle[0]*(match_vtx[0] - pt[0]) + nmle[1]*(match_vtx[1] - pt[1]) + nmle[2]*(match_vtx[2] - pt[2]))
                                     
                         nbMatches+=1
-                            
+
+                        # upper part triangular matrix computation
                         shift = 0
                         for k in range(6):
                             for k2 in range(k,7):
                                 Mat[shift] = Mat[shift] + row[k]*row[k2]
                                 shift+=1
                
-                print ("nbMatches: ", nbMatches)             
+                print ("nbMatches: ", nbMatches)
+
+                # fill up the matrix A.transpose * A and A.transpose * b (A jacobian matrix)
                 shift = 0
                 for k in range(6):
                     for k2 in range(k,7):
@@ -221,10 +230,12 @@ class Tracker():
                     print "determinant null"
                     break
         
-        
+                #resolve system
                 delta_qsi = -LA.tensorsolve(A, b)
+                # compute the 4*4 matrix transform
                 delta_transfo = LA.inv(Exponential(delta_qsi))
-                
+
+                # update result
                 res = np.dot(delta_transfo, res)
                 
                 print res
@@ -262,19 +273,21 @@ class Tracker():
                 pt = np.dstack((Image1.Vtx[ ::l, ::l, :],stack_pt))
                 pt = np.dot(res,pt.transpose(0,2,1)).transpose(1,2,0)
               
-            
-
+                # transform normales
                 nmle = np.zeros((Image1.Size[0], Image1.Size[1],Image1.Size[2]), dtype = np.float32)
                 nmle[ ::l, ::l,:] = np.dot(res[0:3,0:3],Image1.Nmls[ ::l, ::l,:].transpose(0,2,1)).transpose(1,2,0)
+
+                #Project in 2d space
                 #if (pt[2] != 0.0):
                 lpt = np.dsplit(pt,4)               
                 lpt[2] = General.in_mat_zero2one(lpt[2])
-                
                 # if in 1D pix[0] = pt[0]/pt[2]
                 pix[ ::l, ::l,0] = (lpt[0]/lpt[2]).reshape(np.size(Image1.Vtx[ ::l, ::l,:],0), np.size(Image1.Vtx[ ::l, ::l,:],1))
                 # if in 1D pix[1] = pt[1]/pt[2]
                 pix[ ::l, ::l,1] = (lpt[1]/lpt[2]).reshape(np.size(Image1.Vtx[ ::l, ::l,:],0), np.size(Image1.Vtx[ ::l, ::l,:],1))
                 pix = np.dot(Image1.intrinsic,pix[0:Image1.Size[0],0:Image1.Size[1]].transpose(0,2,1)).transpose(1,2,0)
+
+                #checking values are in the frame
                 column_index = (np.round(pix[:,:,0])).astype(int)
                 line_index = (np.round(pix[:,:,1])).astype(int)                
                 # create matrix that have 0 when the conditions are not verified and 1 otherwise
@@ -282,7 +295,8 @@ class Tracker():
                 cdt_line = (line_index > -1) * (line_index < Image2.Size[0])
                 line_index = line_index*cdt_line
                 column_index = column_index*cdt_column
-                  
+
+                # Compute distance betwn matches and btwn normals
                 diff_Vtx = Image2.Vtx[line_index[:][:], column_index[:][:]] - pt[:,:,0:3]
                 diff_Vtx = diff_Vtx*diff_Vtx
                 norm_diff_Vtx = diff_Vtx.sum(axis=2)
@@ -301,21 +315,24 @@ class Tracker():
                 norm_Norme_Nmle = Norme_Nmle.sum(axis=2)
                 
                 mask_pt =  (pt[:,:,2] > 0.0)
-                print "mask_pt"
-                print sum(sum(mask_pt)  )
-                
-                print "cdt_column"
-                print sum(sum( (cdt_column==0))  )
-                
-                print "cdt_line"
-                print sum(sum( (cdt_line==0)) )
-                
+
+                # Display
+                # print "mask_pt"
+                # print sum(sum(mask_pt)  )
+                #
+                # print "cdt_column"
+                # print sum(sum( (cdt_column==0))  )
+                #
+                # print "cdt_line"
+                # print sum(sum( (cdt_line==0)) )
+
+                # mask for considering only good value in the linear system
                 mask = cdt_line*cdt_column * (pt[:,:,2] > 0.0) * (norm_Norme_Nmle > 0.0) * (norm_diff_Vtx < self.thresh_dist) * (norm_diff_Nmle < self.thresh_norm)
                 print "final correspondence"
                 print sum(sum(mask))
                 
 
-                
+                # partial derivate
                 w = 1.0
                 Buffer[Indexes_ref[:][:]] = np.dstack((w*mask[:,:]*nmle[ :, :,0], \
                       w*mask[:,:]*nmle[ :, :,1], \
@@ -323,13 +340,15 @@ class Tracker():
                       w*mask[:,:]*(-Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,2]*nmle[:,:,1] + Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,1]*nmle[:,:,2]), \
                       w*mask[:,:]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,2]*nmle[:,:,0] - Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,0]*nmle[:,:,2]), \
                       w*mask[:,:]*(-Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,1]*nmle[:,:,0] + Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,0]*nmle[:,:,1]) ))
-                
+                #residual
                 Buffer_B[Indexes_ref[:][:]] = np.dstack(w*mask[:,:]*(nmle[:,:,0]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,0] - pt[:,:,0])\
                                                                     + nmle[:,:,1]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,1] - pt[:,:,1])\
                                                                     + nmle[:,:,2]*(Image2.Vtx[line_index[:][:], column_index[:][:]][:,:,2] - pt[:,:,2])) ).transpose()
-                   
-                
+
+                # Solving sum(A.t * A) = sum(A.t * b) ref newcombe kinect fusion
+                # fisrt part of the linear equation
                 A = np.dot(Buffer.transpose(), Buffer)
+                #second part of the linear equation
                 b = np.dot(Buffer.transpose(), Buffer_B).reshape(6)
                 
                 sign,logdet = LA.slogdet(A)
@@ -339,8 +358,10 @@ class Tracker():
                     print det
                     warnings.warn("this is a warning message")
                     break
-           
+
+                # solve equation
                 delta_qsi = -LA.tensorsolve(A, b)
+                # compute 4*4 matrix
                 delta_transfo = Exponential(delta_qsi)
                 delta_transfo = General.InvPose(delta_transfo)
                 res = np.dot(delta_transfo, res)
@@ -405,42 +426,43 @@ class Tracker():
 
                     distance = LA.norm(pt[0:3] - match_vtx)
                     if (distance > self.thresh_dist):
-#==============================================================================
-#                         print "no Vtx correspondance"
-#                         print distance
-#==============================================================================
+                        # print "no Vtx correspondance"
+                        # print distance
                         continue
                     match_nmle = NewImage.Nmls[line_index, column_index]
 
                     distance = LA.norm(nmle - match_nmle)
                     if (distance > self.thresh_norm):
-#==============================================================================
-#                         print "no Nmls correspondance"
-#                         print distance
-#==============================================================================
+
+                        # print "no Nmls correspondance"
+                        # print distance
+
                         continue
                         
                     w = 1.0
-                    # Complete Jacobian matrix
+                    # partial derivate
                     row[0] = w*nmle[0]
                     row[1] = w*nmle[1]
                     row[2] = w*nmle[2]
                     row[3] = w*(-match_vtx[2]*nmle[1] + match_vtx[1]*nmle[2])
                     row[4] = w*(match_vtx[2]*nmle[0] - match_vtx[0]*nmle[2])
                     row[5] = w*(-match_vtx[1]*nmle[0] + match_vtx[0]*nmle[1])
+                    # residual
                     row[6] = w*( nmle[0]*(match_vtx[0] - pt[0])\
                                + nmle[1]*(match_vtx[1] - pt[1])\
                                + nmle[2]*(match_vtx[2] - pt[2]))
                                 
                     nbMatches+=1
-                        
+                    # upper part triangular matrix computation
                     shift = 0
                     for k in range(6):
                         for k2 in range(k,7):
                             Mat[shift] = Mat[shift] + row[k]*row[k2]
                             shift+=1
                
-                print ("nbMatches: ", nbMatches)             
+                print ("nbMatches: ", nbMatches)
+
+                # fill up the matrix A.transpose * A and A.transpose * b (A jacobian matrix)
                 shift = 0
                 for k in range(6):
                     for k2 in range(k,7):
@@ -456,8 +478,9 @@ class Tracker():
                     print "determinant null"
                     break
         
-        
+                #solve linear equation
                 delta_qsi = -LA.tensorsolve(A, b)
+                #compute 4*4 matrix
                 delta_transfo = General.InvPose(Exponential(delta_qsi))
                 
                 res = np.dot(delta_transfo, res)
@@ -501,10 +524,13 @@ class Tracker():
                 pix = np.stack((pix[:,0],pix[:,1],stack_pix), axis = 1)
                 pt = np.stack((MeshVtx[ ::l, 0],MeshVtx[ ::l, 1],MeshVtx[ ::l, 2],stack_pt),axis = 1)
 
+                # transform closer vertices to camera pose
                 pt = np.dot(res,pt.T).T
+                # transform closer normales to camera pose
                 nmle = np.zeros((Size[0], Size[1]), dtype = np.float32)
                 nmle[ ::l,:] = np.dot(res[0:3,0:3],MeshNmls[ ::l,:].T).T
 
+                # Projection in 2D space
                 lpt = np.split(pt,4,axis=1)
                 lpt[2] = General.in_mat_zero2one(lpt[2])
                 
@@ -522,7 +548,8 @@ class Tracker():
                 cdt_line = (line_index > -1) * (line_index < NewImage.Size[0])
                 line_index = line_index*cdt_line
                 column_index = column_index*cdt_column
-                
+
+                # compute vtx and nmls differences
                 diff_Vtx =  NewImage.Vtx[line_index[:], column_index[:]] - pt[:,0:3] 
                 diff_Vtx = diff_Vtx*diff_Vtx
                 norm_diff_Vtx = diff_Vtx.sum(axis=1)
@@ -548,12 +575,13 @@ class Tracker():
                 mask_pt =  (pt[:,2] > 0.0)
                 # print "mask_pt"
                 # print sum(mask_pt)
-                
+
+                #checking mask
                 mask = cdt_line*cdt_column * mask_pt * (norm_Norme_Nmle > 0.0) * mask_vtx * mask_nmls
                 print "final correspondence"
                 print sum(mask)
 
-                
+                # partial derivate
                 w = 1.0
                 Buffer[:] = np.stack((w*mask[:]*nmle[ :,0], \
                       w*mask[:]*nmle[ :, 1], \
@@ -561,11 +589,13 @@ class Tracker():
                       w*mask[:]*(NewImage.Vtx[line_index[:], column_index[:]][:,1]*nmle[:,2] - NewImage.Vtx[line_index[:], column_index[:]][:,2]*nmle[:,1]), \
                       w*mask[:]*(- NewImage.Vtx[line_index[:], column_index[:]][:,0]*nmle[:,2] + NewImage.Vtx[line_index[:], column_index[:]][:,2]*nmle[:,0] ), \
                       w*mask[:]*(NewImage.Vtx[line_index[:], column_index[:]][:,0]*nmle[:,1] - NewImage.Vtx[line_index[:], column_index[:]][:,1]*nmle[:,0]) ) , axis = 1)
-                
+                # residual
                 Buffer_B[:] = ((w*mask[:]*(nmle[:,0]*(NewImage.Vtx[line_index[:], column_index[:]][:,0] - pt[:,0])\
                                                       + nmle[:,1]*(NewImage.Vtx[line_index[:], column_index[:]][:,1] - pt[:,1])\
                                                       + nmle[:,2]*(NewImage.Vtx[line_index[:], column_index[:]][:,2] - pt[:,2])) ).transpose()).reshape(Buffer_B[:].shape)
-  
+
+                # Solving sum(A.t * A) = sum(A.t * b) ref newcombe kinect fusion
+                # fisrt part of the linear equation
                 A = np.dot(Buffer.transpose(), Buffer)
                 b = np.dot(Buffer.transpose(), Buffer_B).reshape(6)
 
@@ -577,8 +607,10 @@ class Tracker():
                     print det
                     warnings.warn("this is a warning message")
                     break
-           
+
+                # solve equation
                 delta_qsi = -LA.tensorsolve(A, b)
+                # compute 4*4 matrix
                 delta_transfo = General.InvPose(Exponential(delta_qsi))
                 
                 res = np.dot(delta_transfo, res)

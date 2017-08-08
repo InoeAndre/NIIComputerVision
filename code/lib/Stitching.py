@@ -15,25 +15,39 @@ PI = math.pi
 General = imp.load_source('General', './lib/General.py')
 
 class Stitch():
-    
+    """
+    All method that concern linking or aligning body parts together are in Stitch
+    """
     def __init__(self, number_bodyPart):
+        """
+        Constructor
+        :param number_bodyPart: number of body parts
+        """
         self.nb_bp = number_bodyPart
         self.StitchedVertices = 0
         self.StitchedFaces = 0
 
     def NaiveStitch(self, PartVtx,PartNmls,PartFaces,PoseBP):
-        '''
-        This function will just add the vertices and faces of each body parts 
+        """
+        Add the vertices and faces of each body parts
         together after transforming them in the global coordinates system
-        '''
+        :param PartVtx: List of vertices for a body parts
+        :param PartNmls: List of normales for a body parts
+        :param PartFaces:  List of faces for a body parts
+        :param PoseBP: local to global transform
+        :return: none
+        """
         #Initialize values from the list of
         ConcatVtx = self.StitchedVertices
         ConcatFaces = self.StitchedFaces
         ConcatNmls = self.StitchedNormales
+
         # tranform the vertices in the global coordinates system
         PartVertices = self.TransformVtx(PartVtx,PoseBP,1)
         PartNormales = self.TransformNmls(PartNmls,PoseBP,1)
         PartFacets = PartFaces + np.max(ConcatFaces)+1
+
+        # concatenation
         self.StitchedVertices = np.concatenate((ConcatVtx,PartVertices))
         self.StitchedNormales = np.concatenate((ConcatNmls,PartNormales))
         self.StitchedFaces = np.concatenate((ConcatFaces,PartFacets))
@@ -44,6 +58,10 @@ class Stitch():
         """
         Transform the vertices in a system to another system.
         Here it will be mostly used to transform from local system to global coordiantes system
+        :param Vtx: List of vertices
+        :param Pose:  local to global transform
+        :param s: subsampling factor
+        :return: list of transformed vertices
         """
         stack_pt = np.ones(np.size(Vtx,0), dtype = np.float32)
         pt = np.stack( (Vtx[ ::s,0],Vtx[ ::s,1],Vtx[ ::s,2],stack_pt),axis =1 )
@@ -54,6 +72,10 @@ class Stitch():
         """
         Transform the normales in a system to another system.
         Here it will be mostly used to transform from local system to global coordiantes system
+        :param Nmls:  List of normales
+        :param Pose: local to global transform
+        :param s: subsampling factor
+        :return: list of transformed normales
         """
         nmle = np.zeros((Nmls.shape[0], Nmls.shape[1]), dtype = np.float32)
         nmle[ ::s,:] = np.dot(Nmls[ ::s,:],Pose[0:3,0:3].T)
@@ -63,10 +85,10 @@ class Stitch():
         """
         Transform Pose matrix to move the model of the right arm
         For now just a rotation in the z axis
-        bp : number of the body parts
-        pos2d : position in 2D of the junctions
-        RGBD : an RGBD object containing the image
-        Tg : local to global transform
+        :param bp : number of the body parts
+        :param pos2d : position in 2D of the junctions
+        :param RGBD : an RGBD object containing the image
+        :param Tg : local to global transform
         TEST FUNCTION : TURN THE LEFT ARM OF THE SEGMENTED BODY.
         """
 
@@ -134,11 +156,12 @@ class Stitch():
         """
         Transform Pose matrix to move the model body parts according to the position of the skeleton
         For now just a rotation in the z axis
-        bp : number of the body parts
-        pos2d : position in 2D of the junctions
-        cur : index for the current frame
-        prev : index for the previous frame
-        RGBD : an RGBD object containing the image
+        :param bp : number of the body parts
+        :param pos2d : position in 2D of the junctions
+        :param cur : index for the current frame
+        :param prev : index for the previous frame
+        :param RGBD : an RGBD object containing the image
+        :return The transform between two skeleton
         """
         PosCur = pos2d[0,cur]
         PosPrev = pos2d[0,prev]
@@ -188,6 +211,7 @@ class Stitch():
             Xm = pos2d[jt[2], 0]
             Ym = pos2d[jt[2], 1]
 
+        # compute the center of the coordinates system
         ctr[0] = z * (Xm - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
         ctr[1] = z * (Ym - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
         ctr[2] = z
@@ -219,7 +243,9 @@ class Stitch():
 
     def GetPos(self,bp):
         '''
-        :param bp:
+        According to the body parts, get the correct index of junctions
+        mid is used to get the center while pos1 and pos2 give extremes junctions of the body parts
+        :param bp: number of the body part
         :return: return the junctions corresponding to the body parts
         '''
         mid = 0
