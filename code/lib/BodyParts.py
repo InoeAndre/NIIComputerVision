@@ -13,7 +13,6 @@ import time
 
 PI = math.pi
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
-RGBDimg = imp.load_source('RGBDimg', './lib/RGBDimg.py')
 TrackManager = imp.load_source('TrackManager', './lib/tracking.py')
 TSDFtk = imp.load_source('TSDFtk', './lib/TSDF.py')
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
@@ -44,7 +43,7 @@ class BodyParts():
     def Model3D_init(self,bp):
         """
         Create a 3D model of the body parts
-        :param bp: numero of the body part
+        :param bp: number of the body part
         :return:  none
         """
 

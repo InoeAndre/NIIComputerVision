@@ -16,7 +16,6 @@ import scipy.io
 import time
 
 RGBD = imp.load_source('RGBD', './lib/RGBD.py')
-RGBDimg = imp.load_source('RGBDimg', './lib/RGBDimg.py')
 TrackManager = imp.load_source('TrackManager', './lib/tracking.py')
 TSDFtk = imp.load_source('TSDFtk', './lib/TSDF.py')
 GPU = imp.load_source('GPUManager', './lib/GPUManager.py')
@@ -202,29 +201,32 @@ class Application(tk.Frame):
             self.DrawPoint2D(c,2,"yellow")
 
     def DrawSys2D(self,Pose):
-        '''this function draw the sys of oriented coordinates system for each body part''' 
+        '''this function draw the sys of oriented coordinates system for each body part'''
+        # Compute the coordinates system of each body parts
         self.RGBD.GetNewSys(Pose,self.ctr2D,10)
+        # Draw it
         for i in range(1,len(self.ctr2D)):
+            # Get points to draw the coordinate system
             c = self.ctr2D[i]
-            #print 'c'
-            #print c
             pt0 = self.RGBD.drawNewSys[i-1][0]
             pt1 = self.RGBD.drawNewSys[i-1][1]
-            pt2 = self.RGBD.drawNewSys[i-1][2]    
+            pt2 = self.RGBD.drawNewSys[i-1][2]
+            # Draw the line of the coordinate system
             self.canvas.create_line(pt0[0],pt0[1],c[0],c[1],fill="gray",width = 2)
             self.canvas.create_line(pt1[0],pt1[1],c[0],c[1],fill="gray",width = 2)
             self.canvas.create_line(pt2[0],pt2[1],c[0],c[1],fill="gray",width = 2)
 
     def DrawOBBox2D(self,Pose):
-        '''Draw in the canvas the oriented bounding boxes for each body part''' 
+        '''
+        Draw in the canvas the Oriented Bounding Boxes (OBB) for each body part
+        '''
         self.OBBcoords2D = []  
         self.OBBcoords2D.append([0.,0.,0.])
         # for each body part
         for i in range(1,len(self.RGBD[0].coordsGbl)):
+            # Get corners of OBB
             self.OBBcoords2D.append(self.RGBD[0].GetProjPts2D_optimize(self.RGBD[0].coordsGbl[i],Pose))
             pt = self.OBBcoords2D[i]
-            #print 'self.OBBcoords2D[]'
-            #print pt.shape
             # create lines of the boxes
             for j in range(3):
                 self.canvas.create_line(pt[j][0],pt[j][1],pt[j+1][0],pt[j+1][1],fill="red",width =2)
@@ -283,7 +285,7 @@ class Application(tk.Frame):
         PoseBP = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         Id4 = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.], [0., 0., 0., 1.]], dtype = np.float32)
         
-        # numero of images in the sequence. Start and End
+        # number of images in the sequence. Start and End
         self.Index = 0
         nunImg = 2
 
@@ -437,7 +439,7 @@ class Application(tk.Frame):
                 else:
                     StitchBdy.NaiveStitch(Parts[bp].MC.Vertices,Parts[bp].MC.Normales,Parts[bp].MC.Faces,PoseBP)
             time_lapsed = time.time() - start
-            print "numero %d finished : %f" %(imgk,time_lapsed)
+            print "number %d finished : %f" %(imgk,time_lapsed)
                     
 
             # save with the number of the body part

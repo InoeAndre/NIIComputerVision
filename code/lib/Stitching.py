@@ -63,7 +63,7 @@ class Stitch():
         """
         Transform Pose matrix to move the model of the right arm
         For now just a rotation in the z axis
-        bp : numero of the body parts
+        bp : number of the body parts
         pos2d : position in 2D of the junctions
         RGBD : an RGBD object containing the image
         Tg : local to global transform
@@ -134,7 +134,7 @@ class Stitch():
         """
         Transform Pose matrix to move the model body parts according to the position of the skeleton
         For now just a rotation in the z axis
-        bp : numero of the body parts
+        bp : number of the body parts
         pos2d : position in 2D of the junctions
         cur : index for the current frame
         prev : index for the previous frame

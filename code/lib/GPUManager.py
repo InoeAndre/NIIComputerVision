@@ -14,17 +14,37 @@ KernelsOpenCL = imp.load_source('KernelsOpenCL', './lib/KernelsOpenCL.py')
 
     
 class GPUManager():
-    # Constructor
+    """
+    GPUManager is the class that initialized GPU envirenment and functions
+
+    Work-item: the basic unit of work on an OpenCL device
+    Kernel: the code for a work-item (basically a C function)
+    Program: Collection of kernels and other functions (analogous to a dynamic library)
+    Context: The environment within which workitems execute; includes devices and their memories and command queues
+    Command Queue: A queue used by the Host application to submit work to a Device (e.g., kernel execution instances)
+                    Namely, it is control work order.
+       – Work is queued in-order, one queue per device
+       – Work can be executed in-order or out-of-order
+    Platform: The host plus a collection of devices managed by the OpenCL framework that allow an application to share resources and execute kernels on devices in the platform.
+    """
+
     def __init__(self):
+        """
+        Constructor
+        """
         self.platform = cl.get_platforms()[0]
         self.devices = self.platform.get_devices()
+        # select the device you want to work with
         self.context = cl.Context([self.devices[0]])
         #self.context = cl.Context([self.devices[1]])
         self.queue = cl.CommandQueue(self.context)
         self.programs = {}
-        
-    #Print info
+
     def print_device_info(self):
+        """
+        Display information on selected devices
+        :return:  none
+        """
         print ('\n' + '=' * 60 + '\nOpenCL Platforms and Devices')
         print('=' * 60)
         print('Platform - Name: ' + self.platform.name)
@@ -45,9 +65,12 @@ class GPUManager():
             print('   Device - Max Work Group Size:  {0:.0f}' .format(device.max_work_group_size))
         print('\n')
         
-        
-    #Load kernels
+
     def load_kernels(self):
+        """
+        Load programs with its kernels
+        :return: none
+        """
         self.programs['FuseTSDF'] = cl.Program(self.context, KernelsOpenCL.Kernel_FuseTSDF).build()
         self.programs['Test'] = cl.Program(self.context, KernelsOpenCL.Kernel_Test).build()
-        self.programs['RayTracing'] = cl.Program(self.context, KernelsOpenCL.Kernel_RayTracing).build()
+

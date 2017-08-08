@@ -238,7 +238,7 @@ __kernel void MarchingCubes(__global short int *TSDF, __global int *Offset, __gl
             int nb_faces = ConfigCount[index];
             int offset = Offset[id];
             
-            
+            //Compute the position on the edge
             v[0][0] = (vals[0]*s[0][0] + vals[1]*s[1][0])/(vals[0]+vals[1]); v[0][1] = (vals[0]*s[0][1] + vals[1]*s[1][1])/(vals[0]+vals[1]);
             v[1][0] = (vals[1]*s[1][0] + vals[2]*s[2][0])/(vals[1]+vals[2]); v[1][1] = (vals[1]*s[1][1] + vals[2]*s[2][1])/(vals[1]+vals[2]);
             v[2][0] = (vals[2]*s[2][0] + vals[3]*s[3][0])/(vals[2]+vals[3]); v[2][1] = (vals[2]*s[2][1] + vals[3]*s[3][1])/(vals[2]+vals[3]); 
@@ -291,96 +291,7 @@ __kernel void MarchingCubes(__global short int *TSDF, __global int *Offset, __gl
                     Vertices[9*(offset+f)+8] = v[Config[index][f][2]][2];
                     
                    
-                    
-                    
-                    // Compute normals of Vertexes fir smooth shading
-                    /*Normals[9*(offset+f)] = v[Config[index][f][0]][0];
-                    Normals[9*(offset+f)+1] = v[Config[index][f][0]][1];
-                    Normals[9*(offset+f)+2] = v[Config[index][f][0]][2];
-                    
-                    Normals[9*(offset+f)+3] = v[Config[index][f][1]][0];
-                    Normals[9*(offset+f)+4] = v[Config[index][f][1]][1];
-                    Normals[9*(offset+f)+5] = v[Config[index][f][1]][2];
-                    
-                    Normals[9*(offset+f)+6] = v[Config[index][f][2]][0];
-                    Normals[9*(offset+f)+7] = v[Config[index][f][2]][1];
-                    Normals[9*(offset+f)+8] = v[Config[index][f][2]][2];*/
             }
-              
-            /*  
-             float vect[2][3] = {{0.0f,0.0f, 0.0f}, {0.0f,0.0f, 0.0f}};
-             
-             float NmlsFaces[3] =  {0.0f,0.0f, 0.0f};
-                            
-             float norm = 0.0f;
-             float sumAdjNorm[3] = {0.0f,0.0f, 0.0f};
-             for ( f = 0; f < nb_faces; f++) {
-                    // Compute vectors of faces
-                    // faces f of the vertex, vectors 0
-                    vect[0][0] = Vertices[Faces[3*(offset+f) +6]]  - Vertices[Faces[3*(offset+f)]];
-                    vect[0][1] = Vertices[Faces[3*(offset+f) +7]] - Vertices[Faces[3*(offset+f) +1]];
-                    vect[0][2] = Vertices[Faces[3*(offset+f) +8]] - Vertices[Faces[3*(offset+f) +2]];
-    
-                    // faces f of the vertex, vectors 1
-                    vect[1][0] = Vertices[Faces[3*(offset+f) +3]]  - Vertices[Faces[3*(offset+f)]];
-                    vect[1][1] = Vertices[Faces[3*(offset+f) +4]] - Vertices[Faces[3*(offset+f) +1]];
-                    vect[1][2] = Vertices[Faces[3*(offset+f) +5]] - Vertices[Faces[3*(offset+f) +2]];                
-                        
-                    // Compute normalized normal of the face f
-                    NmlsFaces[0] = vect[0][1]*vect[1][2] - vect[0][2]*vect[1][1];
-                    NmlsFaces[1] = vect[0][2]*vect[1][0] - vect[0][0]*vect[1][2];
-                    NmlsFaces[2] = vect[0][1]*vect[1][2] - vect[0][2]*vect[1][1];                    
-                    
-                    // accumulate normals
-                    Normals[9*(offset+f)] += NmlsFaces[0];
-                    Normals[9*(offset+f)+1] += NmlsFaces[1];
-                    Normals[9*(offset+f)+2] += NmlsFaces[2];
-                    
-                    Normals[9*(offset+f)+3] += NmlsFaces[0];
-                    Normals[9*(offset+f)+4] += NmlsFaces[1];
-                    Normals[9*(offset+f)+5] += NmlsFaces[2];
-                    
-                    Normals[9*(offset+f)+6] += NmlsFaces[0];
-                    Normals[9*(offset+f)+7] += NmlsFaces[1];
-                    Normals[9*(offset+f)+8] += NmlsFaces[2];     
-                    
-                    
-                }  
-             // normalize the normals of the vertexes.
-             float norm0 = 0.0f;
-             float norm1 = 0.0f;
-             float norm2 = 0.0f;
-             for ( f = 0; f < nb_faces; f++) {
-                    // Compute normals of Vertexes for smooth shading
-                    
-                    norm0 = sqrt(Normals[9*(offset+f)]*Normals[9*(offset+f)] +
-                                Normals[9*(offset+f)+1]*Normals[9*(offset+f)+1] + 
-                                Normals[9*(offset+f)+2]*Normals[9*(offset+f)+2] );
-
-                    norm1 = sqrt(Normals[9*(offset+f)+3]*Normals[9*(offset+f)+3] +
-                                Normals[9*(offset+f)+4]*Normals[9*(offset+f)+4] + 
-                                Normals[9*(offset+f)+5]*Normals[9*(offset+f)+5] );
-
-                    norm2 = sqrt(Normals[9*(offset+f)+6]*Normals[9*(offset+f)+6] +
-                                Normals[9*(offset+f)+7]*Normals[9*(offset+f)+7] + 
-                                Normals[9*(offset+f)+8]*Normals[9*(offset+f)+8] );                    
-                    
-                   
-                    
-                    Normals[9*(offset+f)] = Normals[9*(offset+f)]/norm0;
-                    Normals[9*(offset+f)+1] = Normals[9*(offset+f)+1]/norm0;
-                    Normals[9*(offset+f)+2] = Normals[9*(offset+f)+2]/norm0;
-
-                    Normals[9*(offset+f)+3] = Normals[9*(offset+f)+3]/norm1;
-                    Normals[9*(offset+f)+4] = Normals[9*(offset+f)+4]/norm1;
-                    Normals[9*(offset+f)+5]=  Normals[9*(offset+f)+5]/norm1;
-                    
-                    Normals[9*(offset+f)+6] = Normals[9*(offset+f)+6]/norm2;
-                    Normals[9*(offset+f)+7] = Normals[9*(offset+f)+7]/norm2;
-                    Normals[9*(offset+f)+8]=  Normals[9*(offset+f)+8]/norm2;                    
-                    }
-                   
-                   */
                
         }
 }

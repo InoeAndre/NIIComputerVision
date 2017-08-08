@@ -22,20 +22,29 @@ mf = cl.mem_flags
 class My_MarchingCube():
     
     def __init__(self, Size, Res, Iso, GPUManager):
+        """
+        Constructor
+        :param Size: Size of the volume
+        :param Res: resolution parameters
+        :param Iso: isosurface to render
+        :param GPUManager: GPU environment
+        """
         self.Size = Size
         self.res = Res
         self.iso = Iso
         self.nb_faces = np.array([0], dtype = np.int32)
         
         self.GPUManager = GPUManager
-        
+
+        # Create the programs
         self.GPUManager.programs['MarchingCubesIndexing'] = cl.Program(self.GPUManager.context, KernelsOpenCL.Kernel_MarchingCubeIndexing).build()
         self.GPUManager.programs['MarchingCubes'] = cl.Program(self.GPUManager.context, KernelsOpenCL.Kernel_MarchingCube).build()
         
-        
+        # Convert 3D volume into 1D array voume for GPU computation
         self.Size_Volume = cl.Buffer(self.GPUManager.context, mf.READ_ONLY | mf.COPY_HOST_PTR, \
                                hostbuf = np.array([self.Size[0], self.Size[1], self.Size[2]], dtype = np.int32))
-        
+
+        # Allocate arrays for GPU
         tmp = np.zeros(self.Size, dtype = np.int32)
         self.OffsetGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, tmp.nbytes)
         self.IndexGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, tmp.nbytes)
@@ -46,39 +55,54 @@ class My_MarchingCube():
         
         
     def runGPU(self, VolGPU):
-        
+        """
+        First find all the edges that are crossed by the surface
+        Second compute face and vertices according to the edges
+        Third merge duplicate (need to be optimize)
+        :param VolGPU: Volume given by the TSDF
+        :return: none
+        """
         self.nb_faces[0] = 0
+        # Create Buffer for the number of faces
         cl.enqueue_write_buffer(self.GPUManager.queue, self.FaceCounterGPU, self.nb_faces).wait()
+        # Run indexing edges algorithm
         self.GPUManager.programs['MarchingCubesIndexing'].MarchingCubesIndexing(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
                                 VolGPU, self.OffsetGPU, self.IndexGPU, self.Size_Volume, np.int32(self.iso), self.FaceCounterGPU).wait()
         
-        
+        # read buffer to know number of faces
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FaceCounterGPU, self.nb_faces).wait()
         print "nb Faces: ", self.nb_faces[0]
-        
+
+        # Memory allocations
         self.Faces = np.zeros((self.nb_faces[0], 3), dtype = np.int32)
         self.Vertices = np.zeros((3*self.nb_faces[0], 3), dtype = np.float32)
-        
+        # Write numpy array into  buffer array
         self.FacesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Faces.nbytes)
         self.VerticesGPU = cl.Buffer(self.GPUManager.context, mf.READ_WRITE, self.Vertices.nbytes)
 
-        
+        # Compute faces and vertices.
         self.GPUManager.programs['MarchingCubes'].MarchingCubes(self.GPUManager.queue, (self.Size[0]-1, self.Size[1]-1), None, \
                                 VolGPU, self.OffsetGPU, self.IndexGPU, self.VerticesGPU, self.FacesGPU, self.ParamGPU, self.Size_Volume).wait()
-        
+
+        # Read buffer array into numpy array
         cl.enqueue_read_buffer(self.GPUManager.queue, self.VerticesGPU, self.Vertices).wait()
         cl.enqueue_read_buffer(self.GPUManager.queue, self.FacesGPU, self.Faces).wait()
 
+        #Merge all duplicates. Done with a naif CPU algo because of memory issues with GPU
         self.MergeVtx()
 
 
 
 
-    def SaveToPly(self, name, save = 0):
-        '''
+    def SaveToPly(self, name, display = 0):
+        """
         Function to record the created mesh into a .ply file
-        '''
-        if save != 0:
+        Create file .ply with vertices and faces for vizualization in MeshLab
+        :param name: string, name of the file
+        :param times: 0 if you do not want to display the time
+        :return: none
+        """
+        if display != 0:
             start_time3 = time.time()
         path = './meshes/'
         f = open(path+name, 'wb')
@@ -105,16 +129,26 @@ class My_MarchingCube():
                      
         f.close()
 
-        if save != 0:
+        if display != 0:
             elapsed_time = time.time() - start_time3
             print "SaveToPly: %f" % (elapsed_time)
                     
 
-    def SaveToPlyExt(self, name,nb_vertices,nb_faces,Vertices,Faces,save = 0):
-        '''
-            Function to record an external created mesh into a .ply file
-        '''
-        if save != 0:
+    def SaveToPlyExt(self, name,nb_vertices,nb_faces,Vertices,Faces,display = 0):
+        """
+        Function to record an external created mesh into a .ply file
+        Create file .ply with vertices and faces for vizualization in MeshLab
+        :param name: string, name of the file
+        :param nb_vertices: int, number of vertices N*3
+        :param nb_faces: int, number of faces N
+        :param Vertices: array 3*N*3,
+        :param Faces: array N*3,
+        :param display: int, 0 if you do not want to display the time
+        :return: none
+        """
+
+
+        if display != 0:
             start_time3 = time.time()
         path = './meshes/'
         f = open(path+name, 'wb')
@@ -141,7 +175,7 @@ class My_MarchingCube():
                      
         f.close()
 
-        if save != 0:
+        if display != 0:
             elapsed_time = time.time() - start_time3
             print "SaveToPly: %f" % (elapsed_time)
         
@@ -150,6 +184,7 @@ class My_MarchingCube():
     def DrawMesh(self, Pose, intrinsic, Size, canvas):
         '''
             Function to draw the mesh using tkinter
+            NOT USED.
         '''
         #Draw all faces
         pix = np.array([0., 0., 1.])
@@ -180,6 +215,7 @@ class My_MarchingCube():
     def DrawPoints(self, Pose, intrinsic, Size,background,s=1):
         '''
             Function to draw the vertices of the mesh using tkinter
+            NOT USED.
         '''
         #result = np.zeros((Size[0], Size[1], 3), dtype = np.uint8)
         result = background.astype(np.uint8)
@@ -294,7 +330,9 @@ class My_MarchingCube():
         # Go through all faces
         pt = np.array([0., 0., 0., 1.])
         self.nbVtx = 0
+        # Go through all faces
         for i in range(self.nb_faces[0]):
+            # for each point of the faces
             for k in range(3):
                 pt[0] = self.Vertices[self.Faces[i,k],0]
                 pt[1] = self.Vertices[self.Faces[i,k],1]
@@ -304,9 +342,11 @@ class My_MarchingCube():
                         int(round(pt[2]*self.res[5]+self.res[4])))
                 if (VtxWeights[indx] == 0):
                     self.nbVtx += 1
+                # Weight for position on the edges
                 VtxArray_x[indx] = (VtxWeights[indx]*VtxArray_x[indx] + pt[0])/(VtxWeights[indx]+1)
                 VtxArray_y[indx] = (VtxWeights[indx]*VtxArray_y[indx] + pt[1])/(VtxWeights[indx]+1)
                 VtxArray_z[indx] = (VtxWeights[indx]*VtxArray_z[indx] + pt[2])/(VtxWeights[indx]+1)
+                # Weight to knew if the Vtx has already run through.
                 VtxWeights[indx] = VtxWeights[indx]+1
                 FacesIdx[i,k,0] = indx[0]
                 FacesIdx[i,k,1] = indx[1]
@@ -317,6 +357,7 @@ class My_MarchingCube():
         self.Vertices = np.zeros((self.nbVtx, 3), dtype = np.float32)
         self.Normales = np.zeros((self.nbVtx, 3), dtype = np.float32)
         index_count = 0
+        # compute vertices
         for i in range(self.Size[0]):
             #print i
             for j in range(self.Size[1]):
@@ -327,7 +368,8 @@ class My_MarchingCube():
                         self.Vertices[index_count, 1] = VtxArray_y[i,j,k]
                         self.Vertices[index_count, 2] = VtxArray_z[i,j,k]
                         index_count += 1 
-        
+
+        # Compute normales
         for i in range(self.nb_faces[0]):
             v = np.zeros((3, 3), dtype = np.float32)
             for k in range(3):
@@ -343,7 +385,7 @@ class My_MarchingCube():
             for k in range(3):
                 self.Normales[self.Faces[i,k], :] = self.Normales[self.Faces[i,k],:] + nmle
         
-        
+        # Normalized normales
         for i in range(self.nb_vertices[0]):
             mag = math.sqrt(self.Normales[i, 0]**2 + self.Normales[i, 1]**2 + self.Normales[i, 2]**2)
             if mag == 0.0:
@@ -368,7 +410,7 @@ class My_MarchingCube():
         pix = np.stack((pix[:,0],pix[:,1],stack_pix),axis = 1)
         pt = np.stack( (Vtx[ ::s,0],Vtx[ ::s,1],Vtx[ ::s,2],stack_pt),axis =1 )
         pt = np.dot(Pose,pt.T).T
-
+        # Transform normales in the camera pose
         nmle = np.zeros((Nmls.shape[0], Nmls.shape[1]), dtype = np.float32)
         nmle[ ::s,:] = np.dot(Pose[0:3,0:3],Nmls[ ::s,:].T).T
         
@@ -395,10 +437,12 @@ class My_MarchingCube():
         # print "line_index24 : %d" %(line_index[24])
         # print "column_index24 : %d" %(column_index[24])
 
+        #render color
         if (color == 1):
             result[line_index[:], column_index[:]]= np.dstack((RGBD.color_image[ ::s, ::s,2], \
                                                                     RGBD.color_image[ ::s, ::s,1]*cdt_line, \
                                                                     RGBD.color_image[ ::s, ::s,0]*cdt_column) )
+        # compute Nmls, Vtx and depth_image in a matrix instead of an array
         else:
             RGBD.Nmls[line_index[:], column_index[:]]= np.dstack( ( nmle[ :,0], nmle[ :,1], nmle[ :,2]) )
             RGBD.Vtx[line_index[:], column_index[:]] = np.dstack( ( pt[ :,0], pt[ :,1], pt[ :,2]) )

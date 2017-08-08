@@ -1,7 +1,9 @@
-# File created by Diego Thomas the 16-11-2016
-# improved by Inoe Andre from 02-2017
+"""
+ File created by Diego Thomas the 16-11-2016
+ improved by Inoe Andre from 02-2017
 
-# Define functions to manipulate RGB-D data
+ Define functions to manipulate RGB-D data
+"""
 import cv2
 import numpy as np
 from numpy import linalg as LA
@@ -18,17 +20,34 @@ segm = imp.load_source('segmentation', './lib/segmentation.py')
 General = imp.load_source('General', './lib/General.py')
 
 
-#Nurbs class to handle NURBS curves (Non-uniform rational B-spline)
-class RGBD():
 
-    # Constructor
+class RGBD():
+    """
+    Class to handle any processing on depth image and the image breed from the depth image
+    """
+
     def __init__(self, depthname, colorname, intrinsic, fact):
+        """
+        Constructor
+        :param depthname: path to a depth image
+        :param colorname: path to a RGBD image
+        :param intrinsic: matrix with calibration parameters
+        :param fact: factor for converting pixel value to meter or conversely
+        """
         self.depthname = depthname
         self.colorname = colorname
         self.intrinsic = intrinsic
         self.fact = fact
         
     def LoadMat(self, Images,Pos_2D,BodyConnection,binImage):
+        """
+        Load information in datasets into the RGBD object
+        :param Images: List of depth images put in function of time
+        :param Pos_2D: List of junctions position for each depth image
+        :param BodyConnection: list of doublons that contains the number of pose that represent adjacent body parts
+        :param binImage: Binary image with the body suppodly in white
+        :return:  none
+        """
         self.lImages = Images
         self.numbImages = len(self.lImages.transpose())
         self.Index = -1
@@ -36,7 +55,11 @@ class RGBD():
         self.connection = BodyConnection
         self.bw = binImage
         
-    def ReadFromDisk(self): #Read an RGB-D image from the disk
+    def ReadFromDisk(self):
+        """
+        Read an RGB-D image from the disk
+        :return: none
+        """
         print(self.depthname)
         self.depth_in = cv2.imread(self.depthname, -1)
         self.color_image = cv2.imread(self.colorname, -1)
@@ -48,6 +71,11 @@ class RGBD():
                 self.depth_image[i,j] = float(self.depth_in[i,j][0]) / self.fact
                                 
     def ReadFromMat(self, idx = -1):
+        """
+        Read an RGB-D image from matrix (dataset)
+        :param idx: number of the
+        :return:
+        """
         if (idx == -1):
             self.Index = self.Index + 1
         else:
@@ -61,12 +89,15 @@ class RGBD():
         self.depth_image = depth_in.astype(np.float32) / self.fact
         self.skel = self.depth_image.copy()
 
-
-    def rgb2gray(rgb):
-        return np.dot(rgb[...,:3], [0.299, 0.587, 0.114])
+    #####################################################################
+    ################### Map Conversion Functions #######################
+    #####################################################################
     
-    
-    def Vmap(self): # Create the vertex image from the depth image and intrinsic matrice
+    def Vmap(self):
+        """
+        Create the vertex image from the depth image and intrinsic matrice
+        :return: none
+        """
         self.Vtx = np.zeros(self.Size, np.float32)
         for i in range(self.Size[0]): # line index (i.e. vertical y axis)
             for j in range(self.Size[1]): # column index (i.e. horizontal x axis)
@@ -77,10 +108,16 @@ class RGBD():
                     self.Vtx[i,j] = (x, y, d)
         
     
-    def Vmap_optimize(self): # Create the vertex image from the depth image and intrinsic matrice
+    def Vmap_optimize(self):
+        """
+        Create the vertex image from the depth image and intrinsic matrice
+        :return: none
+        """
         #self.Vtx = np.zeros(self.Size, np.float32)
+        #matrix containing depth value of all pixel
         d = self.depth_image[0:self.Size[0]][0:self.Size[1]]
         d_pos = d * (d > 0.0)
+        # create matrix that contains index values
         x_raw = np.zeros([self.Size[0],self.Size[1]], np.float32)
         y_raw = np.zeros([self.Size[0],self.Size[1]], np.float32)
         # change the matrix so that the first row is on all rows for x respectively colunm for y.
@@ -92,24 +129,32 @@ class RGBD():
         self.Vtx = np.dstack((x, y,d))
         return self.Vtx
 
-
-                
-    ##### Compute normals
     def NMap(self):
+        """
+        Compute normal map
+        :return: none
+        """
         self.Nmls = np.zeros(self.Size, np.float32)
         for i in range(1,self.Size[0]-1):
             for j in range(1, self.Size[1]-1):
+                # normal for each direction
                 nmle1 = General.normalized_cross_prod(self.Vtx[i+1, j]-self.Vtx[i, j], self.Vtx[i, j+1]-self.Vtx[i, j])
                 nmle2 = General.normalized_cross_prod(self.Vtx[i, j+1]-self.Vtx[i, j], self.Vtx[i-1, j]-self.Vtx[i, j])
                 nmle3 = General.normalized_cross_prod(self.Vtx[i-1, j]-self.Vtx[i, j], self.Vtx[i, j-1]-self.Vtx[i, j])
                 nmle4 = General.normalized_cross_prod(self.Vtx[i, j-1]-self.Vtx[i, j], self.Vtx[i+1, j]-self.Vtx[i, j])
                 nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
+                # normalized
                 if (LA.norm(nmle) > 0.0):
                     nmle = nmle/LA.norm(nmle)
                 self.Nmls[i, j] = (nmle[0], nmle[1], nmle[2])
                 
     def NMap_optimize(self):
-        self.Nmls = np.zeros(self.Size, np.float32)        
+        """
+        Compute normal map, CPU optimize algo
+        :return: none
+        """
+        self.Nmls = np.zeros(self.Size, np.float32)
+        # matrix of normales for each direction
         nmle1 = General.normalized_cross_prod_optimize(self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[1:self.Size[0]-1][:,2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])        
         nmle2 = General.normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,2:self.Size[1]  ] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
@@ -119,6 +164,7 @@ class RGBD():
         nmle4 = General.normalized_cross_prod_optimize(self.Vtx[1:self.Size[0]-1][:,0:self.Size[1]-2] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1], \
                                                self.Vtx[2:self.Size[0]  ][:,1:self.Size[1]-1] - self.Vtx[1:self.Size[0]-1][:,1:self.Size[1]-1])
         nmle = (nmle1 + nmle2 + nmle3 + nmle4)/4.0
+        # normalized
         norm_mat_nmle = np.sqrt(np.sum(nmle*nmle,axis=2))
         norm_mat_nmle = General.in_mat_zero2one(norm_mat_nmle)
         #norm division 
@@ -126,8 +172,18 @@ class RGBD():
         self.Nmls[1:self.Size[0]-1][:,1:self.Size[1]-1] = nmle
         return self.Nmls
 
-                
+    #############################################################################
+    ################### Projection and transform Functions #######################
+    #############################################################################
+
     def Draw(self, Pose, s, color = 0) :
+        """
+        Project vertices and normales in 2D images
+        :param Pose: camera pose
+        :param s: subsampling the cloud of points
+        :param color: if there is a color image put color in the image
+        :return: scene projected in 2D space
+        """
         result = np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         line_index = 0
         column_index = 0
@@ -159,7 +215,15 @@ class RGBD():
         return result
 
 
-    def Draw_optimize(self, rendering,Pose, s, color = 0) :   
+    def Draw_optimize(self, rendering,Pose, s, color = 0) :
+        """
+        Project vertices and normales from an RGBD image in 2D images
+        :param rendering : 2D image for overlay purpose or black image
+        :param Pose: camera pose
+        :param s: subsampling the cloud of points
+        :param color: if there is a color image put color in the image
+        :return: scene projected in 2D space
+        """
         result = rendering#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)
         stack_pix = np.ones((self.Size[0], self.Size[1]), dtype = np.float32)
         stack_pt = np.ones((np.size(self.Vtx[ ::s, ::s,:],0), np.size(self.Vtx[ ::s, ::s,:],1)), dtype = np.float32)
@@ -195,7 +259,15 @@ class RGBD():
         return result
 
 
-    def DrawMesh(self, rendering,Vtx,Nmls,Pose, s, color = 0) :   
+    def DrawMesh(self, rendering,Vtx,Nmls,Pose, s, color = 0) :
+        """
+        Project vertices and normales from a mesh in 2D images
+        :param rendering : 2D image for overlay purpose or black image
+        :param Pose: camera pose
+        :param s: subsampling the cloud of points
+        :param color: if there is a color image put color in the image
+        :return: scene projected in 2D space
+        """
         result = rendering#np.zeros((self.Size[0], self.Size[1], 3), dtype = np.uint8)#
         stack_pix = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
         stack_pt = np.ones( (np.size(Vtx[ ::s,:],0)) , dtype = np.float32)
@@ -231,29 +303,39 @@ class RGBD():
                                                                        ((nmle[ :,1]+1.0)*(255./2.))*cdt_line, \
                                                                        ((nmle[ :,2]+1.0)*(255./2.))*cdt_column ) ).astype(int)
         return result  
-    
-##################################################################
-###################Bilateral Smooth Funtion#######################
-##################################################################
-    def BilateralFilter(self, d, sigma_color, sigma_space):
-        self.depth_image = (self.depth_image[:,:] > 0.0) * cv2.bilateralFilter(self.depth_image, d, sigma_color, sigma_space)
 
 
-##################################################################
-###################Transformation Funtion#######################
-##################################################################
     def Transform(self, Pose):
+        """
+        Transform Vertices and Normales with the Pose matrix (generally camera pose matrix)
+        :param Pose: 4*4 Transformation Matrix
+        :return: none
+        """
         stack_pt = np.ones((np.size(self.Vtx,0), np.size(self.Vtx,1)), dtype = np.float32)
         pt = np.dstack((self.Vtx, stack_pt))
         self.Vtx = np.dot(Pose,pt.transpose(0,2,1)).transpose(1,2,0)[:, :, 0:3]
         self.Nmls = np.dot(Pose[0:3,0:3],self.Nmls.transpose(0,2,1)).transpose(1,2,0)
+
+##################################################################
+###################Bilateral Smooth Funtion#######################
+##################################################################
+    def BilateralFilter(self, d, sigma_color, sigma_space):
+        """
+        Bilateral filtering the depth image
+        see cv2 documentation
+        """
+        self.depth_image = (self.depth_image[:,:] > 0.0) * cv2.bilateralFilter(self.depth_image, d, sigma_color, sigma_space)
         
 
 ##################################################################
 ################### Segmentation Function #######################
 ##################################################################
     def RemoveBG(self,binaryImage):
-        ''' This function delete all the little group unwanted from the binary image'''
+        """
+        Delete all the little group (connected component) unwanted from the binary image
+        :param binaryImage: a binary image containing several connected component
+        :return: A binary image containing only big connected component
+        """
         labeled, n = spm.label(binaryImage)
         size = np.bincount(labeled.ravel())
         #do not consider the background
@@ -265,8 +347,11 @@ class RGBD():
         filtered_labeled = keep_labels[labeled]
         return filtered_labeled
 
-    def Crop2Body(self):       
-        '''This will generate a new depthframe but focuses on the human body'''
+    def Crop2Body(self):
+        """
+        Generate a cropped depthframe from the previous one. The new frame focuses on the human body
+        :return: none
+        """
         pos2D = self.pos2d[0,self.Index].astype(np.int16)
         # extremes points of the bodies
         minV = np.min(pos2D[:,1])
@@ -288,7 +373,10 @@ class RGBD():
         self.Croppedbw = bwBox[lineStart:lineEnd,colStart:colEnd]
         
     def BdyThresh(self):
-        '''this function threshold the depth image in order to to get the whole body alone with the bounding box (BB)'''
+        """
+        Threshold the depth image in order to to get the whole body alone with the bounding box (BB)
+        :return: The connected component that contain the body
+        """
         pos2D = self.CroppedPos
         max_value = np.iinfo(np.uint16).max # = 65535 for uint16
         self.CroppedBox = self.CroppedBox.astype(np.uint16)
@@ -300,58 +388,63 @@ class RGBD():
         #print "mini: %u" % (mini)
         maxi = np.max(bdy)
         #print "max: %u" % (maxi)
+        # double threshold according to the value of the depth
         bwmin = (self.CroppedBox > mini-0.01*max_value) 
         bwmax = (self.CroppedBox < maxi+0.01*max_value)
         bw0 = bwmin*bwmax
         # Compare with the noised binary image given by the kinect
+        # to use this put res instead of bw0 as the return argument
         thresh2,tmp = cv2.threshold(self.Croppedbw,0,1,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
         res = tmp * bw0
         # Remove all stand alone object
         bw0 = ( self.RemoveBG(bw0)>0)
-
         return bw0#res
 
     def BodySegmentation(self):
-        '''this function calls the function in segmentation.py to process the segmentation of the body'''
-        #Bounding box version
+        """
+        Calls the function in segmentation.py to process the segmentation of the body
+        :return:  none
+        """
+        #Initialized segmentation with the cropped image
         self.segm = segm.Segmentation(self.CroppedBox,self.CroppedPos) 
-        #segmentation of the whole body 
+        # binary image without bqckground
         imageWBG = (self.BdyThresh()>0)
 
+        # Cropped image
         B = self.CroppedBox
 
         right = 0
         left = 1
+        # Process to segmentation algorithm
         armLeft = self.segm.armSeg(imageWBG,B,left)
         armRight = self.segm.armSeg(imageWBG,B,right)
         legRight = self.segm.legSeg(imageWBG,right)
         legLeft = self.segm.legSeg(imageWBG,left)
         head = self.segm.headSeg(imageWBG)
         
-        
+        # Retrieve every already segmentated part to the main body.
         tmp = armLeft[0]+armLeft[1]+armRight[0]+armRight[1]+legRight[0]+legRight[1]+legLeft[0]+legLeft[1]+head
         MidBdyImage =((imageWBG-(tmp>0))>0)
 
+        # display result
         # cv2.imshow('trunk' , MidBdyImage.astype(np.float))
         # cv2.waitKey(0)
 
-        #body = ( self.segm.GetBody( MidBdyImage)>0)
+        # continue segmentation for hands and feet
         handRight = ( self.segm.GetHand( MidBdyImage,right)>0)
         handLeft = ( self.segm.GetHand( MidBdyImage,left)>0)
         footRight = ( self.segm.GetFoot( MidBdyImage,right)>0)
         footLeft = ( self.segm.GetFoot( MidBdyImage,left)>0)
 
+        # display the trunck
         # cv2.imshow('trunk' , MidBdyImage.astype(np.float))
         # cv2.waitKey(0)
 
-
+        # Retrieve again every newly computed segmentated part to the main body.
         tmp2 = handRight+handLeft+footRight+footLeft
-
-        # cv2.imshow('tmp2' , tmp2.astype(np.float))
-        # cv2.waitKey(0)
-
         MidBdyImage2 =((MidBdyImage-(tmp2>0))>0)
 
+        # Display result
         # cv2.imshow('MidBdyImage2' , MidBdyImage2.astype(np.float))
         # cv2.waitKey(0)
         body = ( self.segm.GetBody( MidBdyImage2)>0)
@@ -360,9 +453,11 @@ class RGBD():
         # cv2.waitKey(0)
         #pdb.set_trace()
 
+        # list of each body parts
         self.bdyPart = np.array( [ armLeft[0], armLeft[1], armRight[0], armRight[1], \
                                    legRight[0], legRight[1], legLeft[0], legLeft[1], \
                                    head, body, handRight, handLeft, footLeft,footRight ]).astype(np.int)#]).astype(np.int)#]).astype(np.int)#
+        # list of color for each body parts
         self.bdyColor = np.array( [np.array([0,0,255]), np.array([200,200,255]), np.array([0,255,0]), np.array([200,255,200]),\
                                    np.array([255,0,255]), np.array([255,180,255]), np.array([255,255,0]), np.array([255,255,180]),\
                                    np.array([255,0,0]), np.array([255,255,255]),np.array([0,100,0]),np.array([0,191,255]),\
@@ -398,44 +493,67 @@ class RGBD():
         Txy = self.transCrop
         for i in range(self.bdyPart.shape[0]): 
             self.labels[Txy[1]:Txy[3],Txy[0]:Txy[2]] += (i+1)*self.bdyPart[i]
+            # if some parts overlay, the number of this part will bigger
             overlap = np.where(self.labels > (i+1) )
+            #put the overlapping part in the following body part
             self.labels[overlap] = i+1
 
     def RGBDSegmentation(self):
+        """
+        Call every method to have a complete segmentation
+        :return: none
+        """
         self.Crop2Body()
         self.BodySegmentation()
         self.BodyLabelling()
 
 
 
-    ###################################################################
+#######################################################################
 ################### Bounding boxes Function #######################
 ##################################################################             
 
     def GetCenter3D(self,i):
-        '''Compute the mean for one segmented part'''
+        """
+        Compute the mean for one segmented part
+        :param i: number of the body part
+        :return: none
+        """
         mean3D = np.mean(self.PtCloud[i],axis = 0)
         return mean3D
 
         
-    def SetTransfoMat3D(self,evecs,i):       
-        '''Generate the transformation matrix '''
+    def SetTransfoMat3D(self,evecs,i):
+        """
+        Generate the transformation matrix
+        :param evecs: eigen vectors
+        :param i: number of the body part
+        :return: none
+        """
         ctr = self.ctr3D[i]#self.coordsGbl[i][0]#[0.,0.,0.]#
         e1 = evecs[0]
         e2 = evecs[1]
         e3 = evecs[2]
+        # axis of coordinates system
         e1b = np.array( [e1[0],e1[1],e1[2],0])
         e2b = np.array( [e2[0],e2[1],e2[2],0])
         e3b = np.array( [e3[0],e3[1],e3[2],0])
+        #center of coordinates system
         origine = np.array( [ctr[0],self.ctr3D[i][1],ctr[2],1])
+        # concatenate it in the right order.
         Transfo = np.stack( (e1b,e2b,e3b,origine),axis = 0 )
         self.TransfoBB.append(Transfo.transpose())
+        #display
         #print "TransfoBB[%d]" %(i)
         #print self.TransfoBB[i]        
         
         
     def bdyPts3D(self, mask):
-        ''' create of cloud of point from part of the RGBD image '''
+        """
+        create of cloud of point from part of the RGBD image
+        :param mask: a matrix containing one only in the body parts indexes, 0 otherwise
+        :return:  list of vertices = cloud of points
+        """
         start_time2 = time.time()
         nbPts = sum(sum(mask))
         res = np.zeros((nbPts, 3), dtype = np.float32)
@@ -450,18 +568,25 @@ class RGBD():
         return res
 
     def bdyPts3D_optimize(self, mask):
-        ''' create of cloud of point from part of the RGBD image '''
+        """
+        create of cloud of point from part of the RGBD image
+        :param mask: a matrix containing one only in the body parts indexes, 0 otherwise
+        :return:  list of vertices = cloud of points
+        """
         #start_time2 = time.time()
         nbPts = sum(sum(mask))
-        
+
+        # threshold with the mask
         x = self.Vtx[:,:,0]*mask
         y = self.Vtx[:,:,1]*mask
         z = self.Vtx[:,:,2]*mask
-        
+
+        #keep only value that are different from 0 in the list
         x_res = x[~(x==0)]
         y_res = y[~(y==0)]
         z_res = z[~(z==0)]
 
+        #concatenate each axis
         res = np.dstack((x_res,y_res,z_res)).reshape(nbPts,3)
 
         #elapsed_time3 = time.time() - start_time2
@@ -473,7 +598,10 @@ class RGBD():
            
     def myPCA(self, dims_rescaled_data=3):
         """
-        returns: data transformed 
+        Compute the principal component analysis on a cloud of points
+        to get the coordinates system local to the cloud of points
+        :param dims_rescaled_data: 3 per default, number of dimension wanted
+        :return:  none
         """
         # list of center in the 3D space
         self.ctr3D = []
@@ -507,17 +635,22 @@ class RGBD():
             self.ctr3D.append(self.GetCenter3D(i))         
             #print "ctr3D indexes :"
             #print self.ctr3D[i]
-            
+
+            # eigen vectors
             self.vects3D.append(self.pca[i].components_)
+            #global to local transform of the cloud of point
             self.TVtxBB.append( self.pca[i].transform(self.PtCloud[i]))
-        
+
+            #Coordinates of the bounding boxes
             self.FindCoord3D(i)
+            #Create local to global transform
             self.SetTransfoMat3D(self.pca[i].components_,i)  
 
             
     def FindCoord3D(self,i):       
         '''
         draw the bounding boxes in 3D for each part of the human body
+        :param i : number of the body parts
         '''     
         # Adding a space so that the bounding boxes are wider
         VoxSize = 0.005
@@ -550,10 +683,14 @@ class RGBD():
         #print self.coordsGbl[i]
             
 
-    def GetProjPts2D(self, vects3D, Pose, s=1) :  
-        '''Project a list of vertexes in the image RGBD'''
-        line_index = 0
-        column_index = 0
+    def GetProjPts2D(self, vects3D, Pose, s=1) :
+        """
+        Project a list of vertexes in the image RGBD
+        :param vects3D: list of 3 elements vector
+        :param Pose: Transformation matrix
+        :param s: subsampling coefficient
+        :return: transformed list of 3D vector
+        """
         pix = np.array([0., 0., 1.])
         pt = np.array([0., 0., 0., 1.])
         drawVects = []
@@ -561,7 +698,9 @@ class RGBD():
             pt[0] = vects3D[i][0]
             pt[1] = vects3D[i][1]
             pt[2] = vects3D[i][2]
+            # transform list
             pt = np.dot(Pose, pt)
+            #Project it in the 2D space
             if (pt[2] != 0.0):
                 pix[0] = pt[0]/pt[2]
                 pix[1] = pt[1]/pt[2]
@@ -575,17 +714,23 @@ class RGBD():
             drawVects.append(np.array([column_index,line_index]))
         return drawVects
             
-    def GetProjPts2D_optimize(self, vects3D, Pose, s=1) :  
+    def GetProjPts2D_optimize(self, vects3D, Pose, s=1) :
+        """
+        Project a list of vertexes in the image RGBD. Optimize for CPU version.
+        :param vects3D: list of 3 elements vector
+        :param Pose: Transformation matrix
+        :param s: subsampling coefficient
+        :return: transformed list of 3D vector
+        """
         '''Project a list of vertexes in the image RGBD'''
-        line_index = 0
-        column_index = 0
         pix = np.array([0., 0., 1.])
         pt = np.array([0., 0., 0., 1.])
         pix = np.stack((pix for i in range(len(vects3D)) ))
         pt = np.stack((pt for i in range(len(vects3D)) ))
-        drawVects = np.zeros([len(vects3D),2])
         pt[:,0:3] = vects3D
+        # transform list
         pt = np.dot(pt,Pose.T)
+        # Project it in the 2D space
         pt[:,2] = General.in_mat_zero2one(pt[:,2])
         pix[:,0] = pt[:,0]/pt[:,2]
         pix[:,1] = pt[:,1]/pt[:,2]

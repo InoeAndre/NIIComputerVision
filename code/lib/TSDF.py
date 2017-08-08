@@ -80,44 +80,7 @@ class TSDFManager():
         '''
         cl.enqueue_read_buffer(self.GPUManager.queue, self.WeightGPU, self.Weight).wait()  
 
- 
 
-    # Fuse on the GPU
-    def FuseRGBD_GPUViz(self, Image, Pose, CldPtGPU,radius):
-        
-        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
-        cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, Image.depth_image)
-
-        print "Pose"
-        print Pose
-        print "self.Size"
-        print self.Size
-        print "self.res"
-        print self.res        
-        self.GPUManager.programs['FuseTSDFViz'] = cl.Program(self.GPUManager.context, KernelsOpenCL.Kernel_FuseTSDFViz).build()
-        self.GPUManager.programs['FuseTSDFViz'].FuseTSDFViz(self.GPUManager.queue, (self.Size[0], self.Size[1]), None, \
-                                self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-                                np.int32(Image.Size[0]), np.int32(Image.Size[1]),CldPtGPU,radius)#,self.PixelsGPU)
-    
-        
-        ptClouds =  np.zeros((self.Size[0]*self.Size[1]*self.Size[2],3),np.float32)
-        cl.enqueue_read_buffer(self.GPUManager.queue, CldPtGPU, ptClouds).wait()
-        return ptClouds
-
-       
-    # Reay tracing on the GPU
-    def RayTracing_GPU(self, Image, Pose):
-        result = np.zeros((Image.Size[0], Image.Size[1]), np.float32)
-        cl.enqueue_write_buffer(self.GPUManager.queue, self.DepthGPU, result)
-        cl.enqueue_write_buffer(self.GPUManager.queue, self.Pose_GPU, Pose)
-        
-        self.GPUManager.programs['RayTracing'].RayTracing(self.GPUManager.queue, (Image.Size[0], Image.Size[1]), None, \
-                                self.TSDFGPU, self.DepthGPU, self.Param, self.Size_Volume, self.Pose_GPU, self.Calib_GPU, \
-                                np.int32(Image.Size[0]), np.int32(Image.Size[1]))
-        
-        cl.enqueue_read_buffer(self.GPUManager.queue, self.DepthGPU, result).wait()
-        
-        return result
     
 #####
 #End GPU code
@@ -201,89 +164,7 @@ class TSDFManager():
                         self.Weight[x][y][z] = min(1000, self.Weight[x][y][z]+1)
         print "nb vert : %d, nb miss : %d" % (nb_vert,nb_miss)
         cl.enqueue_copy(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
-                        
-        
-    # Fuse a new RGBD image into the TSDF volume
-    def FuseRGBDCldPts(self, Image, Pose, CldPts,s = 1):
-        print self.c_x
-        print self.dim_x
-        print self.c_y
-        print self.dim_y
-        print self.c_z
-        print self.dim_z
-        Transform = Pose#LA.inv(Pose)
-        convVal = 32767.0
-        nu = 0.05
-        line_index = 0
-        column_index = 0
-        nb_vert = 0
-        nb_miss = 0
-        pix = np.array([0., 0., 1.])
-        pt = np.array([0., 0., 0., 1.])
-        for x in range(self.Size[0]/s): # line index (i.e. vertical y axis)
-            pt[0] = (x-self.c_x)/self.dim_x
-            print x
-            #print pt[0]
-            for y in range(self.Size[1]/s):
-                pt[1] = (y-self.c_y)/self.dim_y
-                x_T =  Transform[0,0]*pt[0] + Transform[0,1]*pt[1] + Transform[0,3]
-                y_T =  Transform[1,0]*pt[0] + Transform[1,1]*pt[1] + Transform[1,3]
-                z_T =  Transform[2,0]*pt[0] + Transform[2,1]*pt[1] + Transform[2,3] 
-                #print Transform
-                #print pt
-                for z in range(self.Size[2]/s):
-                    nb_vert +=1
-                    # Project each voxel into  the Image
-                    pt[2] = (z-self.c_z)/self.dim_z
-                    pt_Tx = x_T + Transform[0,2]*pt[2] 
-                    pt_Ty = y_T + Transform[1,2]*pt[2]
-                    pt_Tz = z_T + Transform[2,2]*pt[2]
-                    #pt = np.dot(Transform, pt)
-                    idx =x*self.Size[2]*self.Size[1]+y*self.Size[2]+z
-                    CldPts[idx][0] =pt_Tx
-                    CldPts[idx][1] =pt_Ty
-                    CldPts[idx][2] =pt_Tz
-                    # Project onto Image
-                    pix[0] = pt_Tx/pt_Tz
-                    pix[1] = pt_Ty/pt_Tz
-                    pix = np.dot(Image.intrinsic, pix)
-                    column_index = int(round(pix[0]))
-                    line_index = int(round(pix[1]))
-                    
-                    if (column_index < 0 or column_index > Image.Size[1]-1 or line_index < 0 or line_index > Image.Size[0]-1):
-                        print "column_index : %d , line_index : %d" %(column_index,line_index)
-                        nb_miss +=1
-                        if self.Weight[x][y][z]==0 : 
-                            self.TSDF[x][y][z] = int(convVal)
-                            continue
-                        
-                    depth = Image.Vtx[line_index][column_index][2]
 
-                    
-                    if depth == 0 :
-                        nb_miss +=1
-                        if self.Weight[x][y][z]==0 :
-                            self.TSDF[x][y][z] = int(convVal)
-                            continue
-                   
-                    # Listing 2
-                    dist = -(pt_Tz - depth)/nu
-                    dist = min(1.0, max(-1.0, dist))
-                    
-                    if (dist > 1.0):
-                        self.TSDF[x][y][z] = 1.0
-                        print "x %d, y %d, z %d" %(x,y,z)
-                    else:
-                        self.TSDF[x][y][z] = max(-1.0, dist)
-
-                    prev_tsdf = float(self.TSDF[x][y][z])/convVal
-                    prev_weight = float(self.Weight[x][y][z])
-                    
-                    self.TSDF[x][y][z] =  int(round(((prev_tsdf*prev_weight+dist)/(prev_weight+1.0))*convVal))
-                    if (dist < 1.0 and dist > -1.0):
-                        self.Weight[x][y][z] = min(1000, self.Weight[x][y][z]+1)
-        print "nb vert : %d, nb miss : %d" % (nb_vert,nb_miss)                    
-        cl.enqueue_copy(self.GPUManager.queue, self.TSDFGPU, self.TSDF).wait()
                 
     # Fuse a new RGBD image into the TSDF volume
     def FuseRGBD_optimized(self, Image, Pose, s = 1):
@@ -342,55 +223,3 @@ class TSDFManager():
             self.TSDF[:,:,z] = diff_Vtx/nu
             
     
-    def RayTracing(self, Image, Pose):
-        result = np.zeros((Image.Size[0], Image.Size[1]), np.float32)
-        print self.TSDF
-        print np.max(self.TSDF)
-        print np.min(self.TSDF)
-        print self.TSDF[431,430,500:512]
-        print self.dim_z
-        print self.c_z
-        for i in range(Image.Size[0]):
-            for j in range(Image.Size[1]):
-                # Shoot a ray for the current pixel
-                x = (j - Image.intrinsic[0,2])/Image.intrinsic[0,0]
-                y = (i - Image.intrinsic[1,2])/Image.intrinsic[1,1]
-                tmp = np.array([x, y, 1.0, 1.0])
-                tmp = np.dot(Pose, tmp)
-                ray = tmp[0:3]
-                ray = ray / LA.norm(ray)
-                
-                nu = 0.1
-                pt = 0.5*ray
-                #print pt
-
-                voxel = np.round(np.array([pt[0]*self.dim_x + self.c_x, pt[1]*self.dim_y + self.c_y, pt[2]*self.dim_z + self.c_z])).astype(int)
-                #print "voxel"
-                #print voxel
-                if (voxel[0] < 0 or voxel[0] > self.Size[0]-1 or voxel[1] < 0 or voxel[1] > self.Size[1]-1 or voxel[2] < 0 or voxel[2] > self.Size[2]-1):
-                    break
-                convVal = 32767.0
-                prev_TSDF = (self.TSDF[voxel[0],voxel[1],voxel[2]].astype(np.float32))/convVal
-                pt = pt + nu*ray
-                #print "LA.norm(pt) : %f " %(LA.norm(pt))
-                #print "prev_TSDF: %f " %(prev_TSDF)
-                while (LA.norm(pt) < 5.0 and prev_TSDF < 0.0):
-                    print "prev_TSDF: %f " %(prev_TSDF)
-                    voxel = np.round(np.array([pt[0]*self.dim_x + self.c_x, pt[1]*self.dim_y + self.c_y, pt[2]*self.dim_z + self.c_z])).astype(int)
-                    if (voxel[0] < 0 or voxel[0] > self.Size[0]-1 or voxel[1] < 0 or voxel[1] > self.Size[1]-1 or voxel[2] < 0 or voxel[2] > self.Size[2]-1):
-                        break
-                    new_TSDF = (self.TSDF[voxel[0],voxel[1],voxel[2]].astype(np.float32))/convVal
-                        
-                    if (sign(prev_TSDF*new_TSDF) == -1.0 and prev_TSDF > -1.0):
-                        result[i,j] = ((1.0-np.abs(prev_TSDF))*LA.norm(pt - nu*ray) + (1.0-new_TSDF)*LA.norm(pt)) / (2.0 - (np.abs(prev_TSDF) + new_TSDF))
-                        print "result[i,j] : %f " %(result[i,j])
-                        break
-                    
-                    if (new_TSDF > -1.0 and new_TSDF < 0.0):
-                        nu = 0.01
-                        
-                    prev_TSDF = new_TSDF
-                    pt = pt + nu*ray
-                    print "prev TSDF : %f " %(prev_TSDF)
-        
-        return result

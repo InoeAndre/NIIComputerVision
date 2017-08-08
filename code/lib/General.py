@@ -47,11 +47,14 @@ def normalized_cross_prod(a, b):
     res = np.zeros(3, dtype="float")
     if (LA.norm(a) == 0.0 or LA.norm(b) == 0.0):
         return res
+    # normalized a and b
     a = a / LA.norm(a)
     b = b / LA.norm(b)
+    # compute cross product
     res[0] = a[1] * b[2] - a[2] * b[1]
     res[1] = -a[0] * b[2] + a[2] * b[0]
     res[2] = a[0] * b[1] - a[1] * b[0]
+    # normalized result
     if (LA.norm(res) > 0.0):
         res = res / LA.norm(res)
     return res
