@@ -347,7 +347,7 @@ formerIdx = Index
 Tbbw = []
 for bp in range(nbBdyPart+1):
     Tbbw.append(Id4)
-for imgk in range(Index+1, nunImg):
+for imgk in range(Index+1-70, nunImg-70):
     print imgk
     if not lImages[0][imgk].any():
         print lImages[0][imgk]

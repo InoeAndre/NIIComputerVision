@@ -64,6 +64,7 @@ class Application(tk.Frame):
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
+            #self.DrawSkeleton2D(self.Pose)
             #self.DrawCenters2D(self.Pose)
             #self.DrawSys2D(self.Pose)
             #self.DrawOBBox2D(self.Pose)
@@ -128,7 +129,7 @@ class Application(tk.Frame):
             img = Image.fromarray(rendering, 'RGB')
             self.imgTk=ImageTk.PhotoImage(img)
             self.canvas.create_image(0, 0, anchor=tk.NW, image=self.imgTk)
-            self.DrawSkeleton2D(self.Pose)
+            #self.DrawSkeleton2D(self.Pose)
             #self.DrawCenters2D(self.Pose)
             #self.DrawSys2D(self.Pose)
             #self.DrawOBBox2D(self.Pose)
@@ -474,7 +475,7 @@ class Application(tk.Frame):
         self.DrawSkeleton2D(self.Pose)
         #self.DrawCenters2D(self.Pose)
         #self.DrawSys2D(self.Pose)
-        #self.DrawOBBox2D(self.Pose)
+        self.DrawOBBox2D(self.Pose)
 
         #enable keyboard and mouse monitoring
         self.root.bind("<Key>", self.key)

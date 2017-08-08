@@ -80,7 +80,7 @@ class Stitch():
         nmle = np.zeros((Nmls.shape[0], Nmls.shape[1]), dtype = np.float32)
         nmle[ ::s,:] = np.dot(Nmls[ ::s,:],Pose[0:3,0:3].T)
         return nmle[:,0:3]
-        
+
     def RArmsTransform(self, angle,bp, pos2d,RGBD,Tg):
         """
         Transform Pose matrix to move the model of the right arm
@@ -177,7 +177,6 @@ class Stitch():
         A = self.GetCoordSyst(PosPrev,pos,RGBD,bp)
         # Compute B
         B = self.GetCoordSyst(PosCur, pos, RGBD, bp)
-        Tg = RGBD.TransfoBB[bp]
         # Compute Tbb : skeleton tracking transfo
         Tbb = np.dot(B,General.InvPose(A))#B#np.identity(4)#A#
 
@@ -201,7 +200,7 @@ class Stitch():
         ctr = np.array([0.0, 0.0, 0.0], np.float)
         Tg = RGBD.TransfoBB[bp]
         z = Tg[2,3]
-        if bp < 9:
+        if bp < 9 or bp == 12:
             Xm = (pos2d[jt[0], 0] + pos2d[jt[1], 0]) / 2
             Ym = (pos2d[jt[0], 1] + pos2d[jt[1], 1]) / 2
             # print pos
@@ -220,18 +219,22 @@ class Stitch():
         pt1 = np.array([0.0, 0.0, 0.0], np.float)
         pt1[0] = z * (pos2d[jt[1], 0] - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
         pt1[1] = z * (pos2d[jt[1], 1] - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
-        pt1[2] = RGBD.Vtx[pos2d[jt[0], 0],pos2d[jt[0], 1]][2]#z#
+        pt1[2] = z#RGBD.Vtx[pos2d[jt[0], 0],pos2d[jt[0], 1]][2]#
         # Compute second junction points  of current frame
         pt2 = np.array([0.0, 0.0, 0.0], np.float)
         pt2[0] = z * (pos2d[jt[0], 0] - RGBD.intrinsic[0, 2]) / RGBD.intrinsic[0, 0]
         pt2[1] = z * (pos2d[jt[0], 1] - RGBD.intrinsic[1, 2]) / RGBD.intrinsic[1, 1]
-        pt2[2] = RGBD.Vtx[pos2d[jt[1], 0],pos2d[jt[1], 1]][2]#z#
+        pt2[2] = z#RGBD.Vtx[pos2d[jt[1], 0],pos2d[jt[1], 1]][2]#
         # Compute normalized axis of coordinates system
-        axeX = (pt1 - pt2)/LA.norm(pt1 - pt2)
-        signX = np.sign(axeX)
-        axeX = signX[1]*axeX
-        axeZ = np.array([0.0, 0.0, z], np.float)
+        axeX = (pt2 - pt1)/LA.norm(pt2 - pt1)
+        #signX = np.sign(axeX)
+        #axeX = signX[1]*axeX
+        axeZ = np.array([0.0, 0.0, 1.0], np.float)
         axeY = General.normalized_cross_prod(axeX, axeZ)
+        if bp == 12 :
+            axeX = (pt1 - pt2) / LA.norm(pt1 - pt2)
+            axeZ = np.array([0.0, 0.0, 1.0], np.float)
+            axeY = General.normalized_cross_prod(axeX, axeZ)
 
         # Bounding boxes tracking matrix
         e1b = np.array( [axeX[0],axeX[1],axeX[2],0])
@@ -288,14 +291,14 @@ class Stitch():
         elif bp == 12:
             pos1 = 7  # hand left
             pos2 = 6  # wrist left
-            mid == 7
+            #mid == 7
         elif bp == 13:
-            pos1 = 19 # foot right
-            pos2 = 18  # ankle right
-            mid = 19
-        elif bp == 14:
             pos1 = 15  # foot left
             pos2 = 14 # ankle left
             mid = 15
+        elif bp == 14:
+            pos1 = 19 # foot right
+            pos2 = 18  # ankle right
+            mid = 19
 
         return np.array([pos1,pos2,mid])
