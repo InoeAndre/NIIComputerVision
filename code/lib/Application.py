@@ -290,7 +290,7 @@ class Application(tk.Frame):
         
         # number of images in the sequence. Start and End
         self.Index = 0
-        nunImg = 2
+        nunImg = 10
 
         # Former Depth Image (i.e: i)
         self.RGBD = []
@@ -367,8 +367,10 @@ class Application(tk.Frame):
         #"""
         # initialize tracker for camera pose
         Tracker = TrackManager.Tracker(0.001, 0.5, 1, [10])
-
-
+        formerIdx = self.Index
+        Tbbw = []
+        for bp in range(nbBdyPart + 1):
+            Tbbw.append(Id4)
         for imgk in range(self.Index+1,nunImg):
             #Time counting
             start = time.time()
@@ -378,6 +380,9 @@ class Application(tk.Frame):
             '''
             # Current Depth Image (i.e: i+1)
             newRGBD = []
+            Tbb = []
+            Tbb.append(Id4)
+
             # separate  each body parts of the image into different object -> each object have just the body parts in its depth image
             for bp in range(nbBdyPart):
                 newRGBD.append(RGBD.RGBD(path + '/Depth.tiff', path + '/RGB.tiff', self.intrinsic, fact))
@@ -416,7 +421,13 @@ class Application(tk.Frame):
             # Updating mesh of each body part
             for bp in range(1,nbBdyPart):
                 # Transform in the current image
+                #Skeleton tracking
+                Tbb.append(StitchBdy.GetBBTransfo(self.pos2d, imgk, formerIdx, self.RGBD[0], bp))
+                Tbbw[bp] = np.dot(Tbb[bp], Tbbw[bp])
+                #update transform matrix with camera pose
                 Tg_new = np.dot(T_Pose,Tg[bp])
+                # update trnasform matrix with skeleton tracking matrix
+                Tg_new = np.dot(Tbbw[bp],Tg_new)
                 # Put the Global transfo in PoseBP so that the dtype entered in the GPU is correct
                 for i in range(4):
                     for j in range(4):
@@ -441,6 +452,7 @@ class Application(tk.Frame):
                     StitchBdy.StitchedFaces = Parts[bp].MC.Faces
                 else:
                     StitchBdy.NaiveStitch(Parts[bp].MC.Vertices,Parts[bp].MC.Normales,Parts[bp].MC.Faces,PoseBP)
+            formerIdx = imgk
             time_lapsed = time.time() - start
             print "number %d finished : %f" %(imgk,time_lapsed)
                     
