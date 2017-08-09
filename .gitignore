@@ -1,0 +1,12 @@
+code/*.pyc
+code/*.dae
+code/*.ply
+code/*.npy
+code/*~
+code/CloudsOfPointsCompare.py
+code/TEST*
+html/
+latex/
+man/
+code/Doxyfile
+__pycache__
