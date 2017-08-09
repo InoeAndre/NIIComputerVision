@@ -1,0 +1,503 @@
+\section{R\+G\+B\+D.\+R\+G\+BD Class Reference}
+\label{class_r_g_b_d_1_1_r_g_b_d}\index{R\+G\+B\+D.\+R\+G\+BD@{R\+G\+B\+D.\+R\+G\+BD}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \textbf{ \+\_\+\+\_\+init\+\_\+\+\_\+} (self, depthname, colorname, intrinsic, fact)
+\item 
+def \textbf{ Load\+Mat} (self, Images, Pos\+\_\+2D, Body\+Connection, bin\+Image)
+\item 
+def \textbf{ Read\+From\+Disk} (self)
+\item 
+def \textbf{ Read\+From\+Mat} (self, idx=-\/1)
+\item 
+def \textbf{ Vmap} (self)
+\begin{DoxyCompactList}\small\item\em Map Conversion Functions \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#. \end{DoxyCompactList}\item 
+def \textbf{ Vmap\+\_\+optimize} (self)
+\item 
+def \textbf{ N\+Map} (self)
+\item 
+def \textbf{ N\+Map\+\_\+optimize} (self)
+\item 
+def \textbf{ Draw} (self, Pose, s, color=0)
+\begin{DoxyCompactList}\small\item\em Projection and transform Functions \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#. \end{DoxyCompactList}\item 
+def \textbf{ Draw\+\_\+optimize} (self, rendering, Pose, s, color=0)
+\item 
+def \textbf{ Draw\+Mesh} (self, rendering, Vtx, Nmls, Pose, s, color=0)
+\item 
+def \textbf{ Transform} (self, Pose)
+\item 
+def \textbf{ Bilateral\+Filter} (self, d, sigma\+\_\+color, sigma\+\_\+space)
+\begin{DoxyCompactList}\small\item\em Bilateral Smooth Funtion\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#. \end{DoxyCompactList}\item 
+def \textbf{ Remove\+BG} (self, binary\+Image)
+\begin{DoxyCompactList}\small\item\em Segmentation Function \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#. \end{DoxyCompactList}\item 
+def \textbf{ Crop2\+Body} (self)
+\item 
+def \textbf{ Bdy\+Thresh} (self)
+\item 
+def \textbf{ Body\+Segmentation} (self)
+\item 
+def \textbf{ Body\+Labelling} (self)
+\item 
+def \textbf{ R\+G\+B\+D\+Segmentation} (self)
+\item 
+def \textbf{ Get\+Center3D} (self, i)
+\begin{DoxyCompactList}\small\item\em Bounding boxes Function \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#. \end{DoxyCompactList}\item 
+def \textbf{ Set\+Transfo\+Mat3D} (self, evecs, i)
+\item 
+def \textbf{ bdy\+Pts3D} (self, mask)
+\item 
+def \textbf{ bdy\+Pts3\+D\+\_\+optimize} (self, mask)
+\item 
+def \textbf{ my\+P\+CA} (self, dims\+\_\+rescaled\+\_\+data=3)
+\item 
+def \textbf{ Find\+Coord3D} (self, i)
+\item 
+def \textbf{ Get\+Proj\+Pts2D} (self, vects3D, Pose, s=1)
+\item 
+def \textbf{ Get\+Proj\+Pts2\+D\+\_\+optimize} (self, vects3D, Pose, s=1)
+\item 
+def \textbf{ Get\+New\+Sys} (self, Pose, ctr2D, nb\+Pix, s=1)
+\item 
+def \textbf{ Cvt2\+R\+G\+BA} (self, im\+\_\+im)
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ae0f6b526326cac02ef2c9d3552f7a800}} 
+{\bfseries depthname}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_aa562f60e3cf12d385afcf87558eede48}} 
+{\bfseries colorname}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ac210fa33491589196e210c8eb01247b6}} 
+{\bfseries intrinsic}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a68e02d73c0d94fa0cb095211fbf389e2}} 
+{\bfseries fact}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a43c9017b008f6e10bb97992527b21710}} 
+{\bfseries l\+Images}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_aac3bc14caf75edd0176e8fcf3d871487}} 
+{\bfseries numb\+Images}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a160afd7c2f0b82240d96d748b4dc952b}} 
+{\bfseries Index}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_aae980a4526fa9b63e7621fe7923e99f3}} 
+{\bfseries pos2d}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_adabfdc2652b9dd3fb1687928bc23b471}} 
+{\bfseries connection}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a8f148e536d8bc8fc223f33c163c4ebb2}} 
+{\bfseries bw}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a4f8dd1fbad2056bf30dc0bb16643560b}} 
+{\bfseries depth\+\_\+in}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a1e5163fcd76a2c95710ec20187a0acd8}} 
+{\bfseries color\+\_\+image}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ae1cfeac789474f32593196e41f6be6fa}} 
+{\bfseries Size}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a6462c5a17e18aee53b5379fb3a331444}} 
+{\bfseries depth\+\_\+image}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_aeecce03148f74fcdc0e7308924f2bcd5}} 
+{\bfseries skel}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_acf6e4ef08aeff1a0c492d8e761b1b8fc}} 
+{\bfseries Vtx}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a2926616892109cf5dc957cf88f44a82f}} 
+{\bfseries Nmls}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_aa675c35b936cca72cbf9859b397db76b}} 
+\textbf{ trans\+Crop}
+\begin{DoxyCompactList}\small\item\em Should check whether the value are in the frame \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#. \end{DoxyCompactList}\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ac83ddaecc4b781c06e501638a8d5354e}} 
+{\bfseries Cropped\+Box}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_abcef839070008867031f8ca1039017a2}} 
+{\bfseries Cropped\+Pos}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a3358964e5f345b88703dfc4833623e48}} 
+{\bfseries Croppedbw}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a25864624766632d42831177eeb6d8ed5}} 
+{\bfseries segm}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_afc60c70d8fb641cf14106cab38d0db8a}} 
+{\bfseries bdy\+Part}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a0046ee4e53365c5437a9ae049e6f8c92}} 
+{\bfseries bdy\+Color}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a9d435f5f404e13eec01d1305836207a2}} 
+{\bfseries label\+Color}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a28dbc577a55bf7a8d69e94f9f11574c7}} 
+{\bfseries labels}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a288cc636f8b11e821fc4477e2addd572}} 
+{\bfseries ctr3D}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ae2c5a82b192b0b63e1671ea17eed0dd8}} 
+{\bfseries T\+Vtx\+BB}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_aace80fcded2fa2291c6bfa46efedd40b}} 
+{\bfseries Transfo\+BB}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a8097d6f8e77316d19625661a2fd439b1}} 
+{\bfseries vects3D}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a2d582c01ef507af6a1c22fac8ea051ae}} 
+{\bfseries Pt\+Cloud}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a509311f3e4cb1ac019372350f14bd3c9}} 
+{\bfseries pca}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a6c7174b18612234c05db76fe08d3f073}} 
+{\bfseries coordsL}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a1bc1e11456ca2c5ded372591033d70b2}} 
+{\bfseries coords\+Gbl}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ae38af4e5847560201f47bd6c0855568c}} 
+{\bfseries mask}
+\item 
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a1e8ef3b0545ddf5839ef6ad08d2dfaaa}} 
+{\bfseries draw\+New\+Sys}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}Class to handle any processing on depth image and the image breed from the depth image
+\end{DoxyVerb}
+ 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_adf3e96f8b0620fd3f68b2399d29c3b12}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}}
+\index{\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{\+\_\+\+\_\+init\+\_\+\+\_\+()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{depthname,  }\item[{}]{colorname,  }\item[{}]{intrinsic,  }\item[{}]{fact }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Constructor
+:param depthname: path to a depth image
+:param colorname: path to a RGBD image
+:param intrinsic: matrix with calibration parameters
+:param fact: factor for converting pixel value to meter or conversely
+\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\mbox{\label{class_r_g_b_d_1_1_r_g_b_d_aa1f7a6e1fa3435e33b779f2b3cd983fd}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!bdy\+Pts3D@{bdy\+Pts3D}}
+\index{bdy\+Pts3D@{bdy\+Pts3D}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{bdy\+Pts3\+D()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+bdy\+Pts3D (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{mask }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}create of cloud of point from part of the RGBD image
+:param mask: a matrix containing one only in the body parts indexes, 0 otherwise
+:return:  list of vertices = cloud of points
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a7565e3c0d9929b23e94ce900df4af67a}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!bdy\+Pts3\+D\+\_\+optimize@{bdy\+Pts3\+D\+\_\+optimize}}
+\index{bdy\+Pts3\+D\+\_\+optimize@{bdy\+Pts3\+D\+\_\+optimize}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{bdy\+Pts3\+D\+\_\+optimize()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+bdy\+Pts3\+D\+\_\+optimize (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{mask }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}create of cloud of point from part of the RGBD image
+:param mask: a matrix containing one only in the body parts indexes, 0 otherwise
+:return:  list of vertices = cloud of points
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ad9c546e3a447805ff908cbc072efe6e5}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Bdy\+Thresh@{Bdy\+Thresh}}
+\index{Bdy\+Thresh@{Bdy\+Thresh}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Bdy\+Thresh()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Bdy\+Thresh (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Threshold the depth image in order to to get the whole body alone with the bounding box (BB)
+:return: The connected component that contain the body
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a8009d6498ed9607e5fb86d8085244d4f}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Bilateral\+Filter@{Bilateral\+Filter}}
+\index{Bilateral\+Filter@{Bilateral\+Filter}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Bilateral\+Filter()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Bilateral\+Filter (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{d,  }\item[{}]{sigma\+\_\+color,  }\item[{}]{sigma\+\_\+space }\end{DoxyParamCaption})}
+
+
+
+Bilateral Smooth Funtion\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#. 
+
+\begin{DoxyVerb}Bilateral filtering the depth image
+see cv2 documentation
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a752dd9b82235dce29c270462a8c38556}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Body\+Labelling@{Body\+Labelling}}
+\index{Body\+Labelling@{Body\+Labelling}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Body\+Labelling()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Body\+Labelling (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Create label for each body part in the depth_image\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_aeed6372b3733ba2f4291f2cf187c7455}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Body\+Segmentation@{Body\+Segmentation}}
+\index{Body\+Segmentation@{Body\+Segmentation}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Body\+Segmentation()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Body\+Segmentation (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Calls the function in segmentation.py to process the segmentation of the body
+:return:  none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a9581af6ebd3185db5b84b0851c7b431e}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Crop2\+Body@{Crop2\+Body}}
+\index{Crop2\+Body@{Crop2\+Body}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Crop2\+Body()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Crop2\+Body (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Generate a cropped depthframe from the previous one. The new frame focuses on the human body
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a5e84e29e01792dc088319af0130e201c}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Cvt2\+R\+G\+BA@{Cvt2\+R\+G\+BA}}
+\index{Cvt2\+R\+G\+BA@{Cvt2\+R\+G\+BA}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Cvt2\+R\+G\+B\+A()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Cvt2\+R\+G\+BA (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{im\+\_\+im }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}convert an RGB image in RGBA to put all zeros as transparent
+THIS FUNCTION IS NOT USED IN THE PROJECT
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ac3ebcc6ae06496726d76d73c5f83b735}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Draw@{Draw}}
+\index{Draw@{Draw}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Draw()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Draw (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Pose,  }\item[{}]{s,  }\item[{}]{color = {\ttfamily 0} }\end{DoxyParamCaption})}
+
+
+
+Projection and transform Functions \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#. 
+
+\begin{DoxyVerb}Project vertices and normales in 2D images
+:param Pose: camera pose
+:param s: subsampling the cloud of points
+:param color: if there is a color image put color in the image
+:return: scene projected in 2D space
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a6fa82c4fbe506f20bf54911c385be73f}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Draw\+\_\+optimize@{Draw\+\_\+optimize}}
+\index{Draw\+\_\+optimize@{Draw\+\_\+optimize}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Draw\+\_\+optimize()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Draw\+\_\+optimize (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{rendering,  }\item[{}]{Pose,  }\item[{}]{s,  }\item[{}]{color = {\ttfamily 0} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Project vertices and normales from an RGBD image in 2D images
+:param rendering : 2D image for overlay purpose or black image
+:param Pose: camera pose
+:param s: subsampling the cloud of points
+:param color: if there is a color image put color in the image
+:return: scene projected in 2D space
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a64b91c854c9de20090ad961f201fe026}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Draw\+Mesh@{Draw\+Mesh}}
+\index{Draw\+Mesh@{Draw\+Mesh}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Draw\+Mesh()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Draw\+Mesh (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{rendering,  }\item[{}]{Vtx,  }\item[{}]{Nmls,  }\item[{}]{Pose,  }\item[{}]{s,  }\item[{}]{color = {\ttfamily 0} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Project vertices and normales from a mesh in 2D images
+:param rendering : 2D image for overlay purpose or black image
+:param Pose: camera pose
+:param s: subsampling the cloud of points
+:param color: if there is a color image put color in the image
+:return: scene projected in 2D space
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a345e2077de5144592ad36c57885ba836}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Find\+Coord3D@{Find\+Coord3D}}
+\index{Find\+Coord3D@{Find\+Coord3D}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Find\+Coord3\+D()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Find\+Coord3D (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{i }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}draw the bounding boxes in 3D for each part of the human body
+:param i : number of the body parts
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ac25c17b6a7e89feffc914d4b12f0b22e}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Get\+Center3D@{Get\+Center3D}}
+\index{Get\+Center3D@{Get\+Center3D}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Get\+Center3\+D()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Get\+Center3D (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{i }\end{DoxyParamCaption})}
+
+
+
+Bounding boxes Function \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#. 
+
+\begin{DoxyVerb}Compute the mean for one segmented part
+:param i: number of the body part
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ae3ffd53a2aef9f3d955fe40887fe88c1}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Get\+New\+Sys@{Get\+New\+Sys}}
+\index{Get\+New\+Sys@{Get\+New\+Sys}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Get\+New\+Sys()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Get\+New\+Sys (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Pose,  }\item[{}]{ctr2D,  }\item[{}]{nb\+Pix,  }\item[{}]{s = {\ttfamily 1} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}compute the coordinates of the points that will create the coordinates system
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a58c29e9445dde3116abaf4ece69a5c71}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Get\+Proj\+Pts2D@{Get\+Proj\+Pts2D}}
+\index{Get\+Proj\+Pts2D@{Get\+Proj\+Pts2D}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Get\+Proj\+Pts2\+D()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Get\+Proj\+Pts2D (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{vects3D,  }\item[{}]{Pose,  }\item[{}]{s = {\ttfamily 1} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Project a list of vertexes in the image RGBD
+:param vects3D: list of 3 elements vector
+:param Pose: Transformation matrix
+:param s: subsampling coefficient
+:return: transformed list of 3D vector
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a9213368288cc80787b00a71927fc2ad1}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Get\+Proj\+Pts2\+D\+\_\+optimize@{Get\+Proj\+Pts2\+D\+\_\+optimize}}
+\index{Get\+Proj\+Pts2\+D\+\_\+optimize@{Get\+Proj\+Pts2\+D\+\_\+optimize}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Get\+Proj\+Pts2\+D\+\_\+optimize()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Get\+Proj\+Pts2\+D\+\_\+optimize (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{vects3D,  }\item[{}]{Pose,  }\item[{}]{s = {\ttfamily 1} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Project a list of vertexes in the image RGBD. Optimize for CPU version.
+:param vects3D: list of 3 elements vector
+:param Pose: Transformation matrix
+:param s: subsampling coefficient
+:return: transformed list of 3D vector
+\end{DoxyVerb}
+\begin{DoxyVerb}Project a list of vertexes in the image RGBD\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_accb9314bc9a43859adbcbb85283e3722}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Load\+Mat@{Load\+Mat}}
+\index{Load\+Mat@{Load\+Mat}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Load\+Mat()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Load\+Mat (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Images,  }\item[{}]{Pos\+\_\+2D,  }\item[{}]{Body\+Connection,  }\item[{}]{bin\+Image }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Load information in datasets into the RGBD object
+:param Images: List of depth images put in function of time
+:param Pos_2D: List of junctions position for each depth image
+:param BodyConnection: list of doublons that contains the number of pose that represent adjacent body parts
+:param binImage: Binary image with the body suppodly in white
+:return:  none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a62a33614ece39d6ddd215f9faae0bc4d}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!my\+P\+CA@{my\+P\+CA}}
+\index{my\+P\+CA@{my\+P\+CA}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{my\+P\+C\+A()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+my\+P\+CA (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{dims\+\_\+rescaled\+\_\+data = {\ttfamily 3} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Compute the principal component analysis on a cloud of points
+to get the coordinates system local to the cloud of points
+:param dims_rescaled_data: 3 per default, number of dimension wanted
+:return:  none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a9cba8018f1cdb3f5c73c863a49549061}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!N\+Map@{N\+Map}}
+\index{N\+Map@{N\+Map}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{N\+Map()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+N\+Map (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Compute normal map
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ae269b01a123ea0c10cd0317b510e7ef9}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!N\+Map\+\_\+optimize@{N\+Map\+\_\+optimize}}
+\index{N\+Map\+\_\+optimize@{N\+Map\+\_\+optimize}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{N\+Map\+\_\+optimize()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+N\+Map\+\_\+optimize (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Compute normal map, CPU optimize algo
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a65ca0d3759c2b9977b24c952b9057ac9}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Read\+From\+Disk@{Read\+From\+Disk}}
+\index{Read\+From\+Disk@{Read\+From\+Disk}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Read\+From\+Disk()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Read\+From\+Disk (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Read an RGB-D image from the disk
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ac7350dc76ae47fdd77c0ad93a74910db}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Read\+From\+Mat@{Read\+From\+Mat}}
+\index{Read\+From\+Mat@{Read\+From\+Mat}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Read\+From\+Mat()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Read\+From\+Mat (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{idx = {\ttfamily -\/1} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Read an RGB-D image from matrix (dataset)
+:param idx: number of the
+:return:
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_ad9260800129b014cc2b56acfe0f1bd0e}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Remove\+BG@{Remove\+BG}}
+\index{Remove\+BG@{Remove\+BG}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Remove\+B\+G()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Remove\+BG (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{binary\+Image }\end{DoxyParamCaption})}
+
+
+
+Segmentation Function \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#. 
+
+\begin{DoxyVerb}Delete all the little group (connected component) unwanted from the binary image
+:param binaryImage: a binary image containing several connected component
+:return: A binary image containing only big connected component
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a543187dff5889d3aab9f613d1bc95c8f}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!R\+G\+B\+D\+Segmentation@{R\+G\+B\+D\+Segmentation}}
+\index{R\+G\+B\+D\+Segmentation@{R\+G\+B\+D\+Segmentation}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{R\+G\+B\+D\+Segmentation()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+R\+G\+B\+D\+Segmentation (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Call every method to have a complete segmentation
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_aeac30c5f185a4e6637a63c882bd06d9e}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Set\+Transfo\+Mat3D@{Set\+Transfo\+Mat3D}}
+\index{Set\+Transfo\+Mat3D@{Set\+Transfo\+Mat3D}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Set\+Transfo\+Mat3\+D()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Set\+Transfo\+Mat3D (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{evecs,  }\item[{}]{i }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Generate the transformation matrix
+:param evecs: eigen vectors
+:param i: number of the body part
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a0ca12b764dab40af78e8a83a5b9f3011}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Transform@{Transform}}
+\index{Transform@{Transform}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Transform()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Transform (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Pose }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Transform Vertices and Normales with the Pose matrix (generally camera pose matrix)
+:param Pose: 4*4 Transformation Matrix
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a98624ce143f3ea4b766e337467faaf68}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Vmap@{Vmap}}
+\index{Vmap@{Vmap}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Vmap()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Vmap (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+
+
+Map Conversion Functions \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#. 
+
+\begin{DoxyVerb}Create the vertex image from the depth image and intrinsic matrice
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_r_g_b_d_1_1_r_g_b_d_a2686c0b37c9c4cf8a650656680402797}} 
+\index{R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}!Vmap\+\_\+optimize@{Vmap\+\_\+optimize}}
+\index{Vmap\+\_\+optimize@{Vmap\+\_\+optimize}!R\+G\+B\+D\+::\+R\+G\+BD@{R\+G\+B\+D\+::\+R\+G\+BD}}
+\subsubsection{Vmap\+\_\+optimize()}
+{\footnotesize\ttfamily def R\+G\+B\+D.\+R\+G\+B\+D.\+Vmap\+\_\+optimize (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Create the vertex image from the depth image and intrinsic matrice
+:return: none
+\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+lib/R\+G\+B\+D.\+py\end{DoxyCompactItemize}

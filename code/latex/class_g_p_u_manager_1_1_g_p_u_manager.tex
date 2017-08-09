@@ -1,0 +1,81 @@
+\section{G\+P\+U\+Manager.\+G\+P\+U\+Manager Class Reference}
+\label{class_g_p_u_manager_1_1_g_p_u_manager}\index{G\+P\+U\+Manager.\+G\+P\+U\+Manager@{G\+P\+U\+Manager.\+G\+P\+U\+Manager}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \textbf{ \+\_\+\+\_\+init\+\_\+\+\_\+} (self)
+\item 
+def \textbf{ print\+\_\+device\+\_\+info} (self)
+\item 
+def \textbf{ load\+\_\+kernels} (self)
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\label{class_g_p_u_manager_1_1_g_p_u_manager_ae95df47a91b17aa5a9f045efd0547416}} 
+{\bfseries platform}
+\item 
+\mbox{\label{class_g_p_u_manager_1_1_g_p_u_manager_aec4090621f66cd5d003c6c4d6a40ccaa}} 
+{\bfseries devices}
+\item 
+\mbox{\label{class_g_p_u_manager_1_1_g_p_u_manager_a6c40884972be2350ea61b03a11339354}} 
+{\bfseries context}
+\item 
+\mbox{\label{class_g_p_u_manager_1_1_g_p_u_manager_ad4d3c25e7aa7a1ecf7683d6c3a4a3350}} 
+{\bfseries queue}
+\item 
+\mbox{\label{class_g_p_u_manager_1_1_g_p_u_manager_ae25153bc81d73a1744fa80d8c994ee06}} 
+{\bfseries programs}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}GPUManager is the class that initialized GPU envirenment and functions
+
+Work-item: the basic unit of work on an OpenCL device
+Kernel: the code for a work-item (basically a C function)
+Program: Collection of kernels and other functions (analogous to a dynamic library)
+Context: The environment within which workitems execute; includes devices and their memories and command queues
+Command Queue: A queue used by the Host application to submit work to a Device (e.g., kernel execution instances)
+                Namely, it is control work order.
+   – Work is queued in-order, one queue per device
+   – Work can be executed in-order or out-of-order
+Platform: The host plus a collection of devices managed by the OpenCL framework that allow an application to share resources and execute kernels on devices in the platform.
+\end{DoxyVerb}
+ 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\label{class_g_p_u_manager_1_1_g_p_u_manager_aaa00d0d2f90d9cb6bab88f873d3e1261}} 
+\index{G\+P\+U\+Manager\+::\+G\+P\+U\+Manager@{G\+P\+U\+Manager\+::\+G\+P\+U\+Manager}!\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}}
+\index{\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}!G\+P\+U\+Manager\+::\+G\+P\+U\+Manager@{G\+P\+U\+Manager\+::\+G\+P\+U\+Manager}}
+\subsubsection{\+\_\+\+\_\+init\+\_\+\+\_\+()}
+{\footnotesize\ttfamily def G\+P\+U\+Manager.\+G\+P\+U\+Manager.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Constructor
+\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\mbox{\label{class_g_p_u_manager_1_1_g_p_u_manager_a95ccd16d4a81b00946d87f91bdca27e9}} 
+\index{G\+P\+U\+Manager\+::\+G\+P\+U\+Manager@{G\+P\+U\+Manager\+::\+G\+P\+U\+Manager}!load\+\_\+kernels@{load\+\_\+kernels}}
+\index{load\+\_\+kernels@{load\+\_\+kernels}!G\+P\+U\+Manager\+::\+G\+P\+U\+Manager@{G\+P\+U\+Manager\+::\+G\+P\+U\+Manager}}
+\subsubsection{load\+\_\+kernels()}
+{\footnotesize\ttfamily def G\+P\+U\+Manager.\+G\+P\+U\+Manager.\+load\+\_\+kernels (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Load programs with its kernels
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_g_p_u_manager_1_1_g_p_u_manager_a936c21f2d21ae94b581636e9255e71df}} 
+\index{G\+P\+U\+Manager\+::\+G\+P\+U\+Manager@{G\+P\+U\+Manager\+::\+G\+P\+U\+Manager}!print\+\_\+device\+\_\+info@{print\+\_\+device\+\_\+info}}
+\index{print\+\_\+device\+\_\+info@{print\+\_\+device\+\_\+info}!G\+P\+U\+Manager\+::\+G\+P\+U\+Manager@{G\+P\+U\+Manager\+::\+G\+P\+U\+Manager}}
+\subsubsection{print\+\_\+device\+\_\+info()}
+{\footnotesize\ttfamily def G\+P\+U\+Manager.\+G\+P\+U\+Manager.\+print\+\_\+device\+\_\+info (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Display information on selected devices
+:return:  none
+\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+lib/G\+P\+U\+Manager.\+py\end{DoxyCompactItemize}

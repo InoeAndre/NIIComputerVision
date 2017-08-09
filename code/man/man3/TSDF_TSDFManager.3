@@ -1,0 +1,104 @@
+.TH "TSDF.TSDFManager" 3 "Wed Aug 9 2017" "Version v0.7" "Segmented Fusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+TSDF.TSDFManager
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fB__init__\fP (self, Size, Image, GPUManager)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBSize\fP"
+.br
+.ti -1c
+.RI "\fBc_x\fP"
+.br
+.ti -1c
+.RI "\fBc_y\fP"
+.br
+.ti -1c
+.RI "\fBc_z\fP"
+.br
+.ti -1c
+.RI "\fBdim_x\fP"
+.br
+.ti -1c
+.RI "\fBdim_y\fP"
+.br
+.ti -1c
+.RI "\fBdim_z\fP"
+.br
+.ti -1c
+.RI "\fBres\fP"
+.br
+.ti -1c
+.RI "\fBGPUManager\fP"
+.br
+.ti -1c
+.RI "\fBSize_Volume\fP"
+.br
+.ti -1c
+.RI "\fBTSDF\fP"
+.br
+.ti -1c
+.RI "\fBTSDFGPU\fP"
+.br
+.ti -1c
+.RI "\fBWeight\fP"
+.br
+.ti -1c
+.RI "\fBWeightGPU\fP"
+.br
+.ti -1c
+.RI "\fBParam\fP"
+.br
+.ti -1c
+.RI "\fBPose\fP"
+.br
+.ti -1c
+.RI "\fBDepthGPU\fP"
+.br
+.ti -1c
+.RI "\fBCalib_GPU\fP"
+.br
+.ti -1c
+.RI "\fBPose_GPU\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+
+.PP
+.nf
+Manager Truncated Signed Distance Function.
+
+.fi
+.PP
+ 
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "def TSDF\&.TSDFManager\&.__init__ ( self,  Size,  Image,  GPUManager)"
+
+.PP
+.nf
+Constructor
+:param Size: dimension of each axis of the volume
+:param Image: RGBD image to compare
+:param GPUManager: GPU environment for GPU computation
+
+.fi
+.PP
+ 
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Segmented Fusion from the source code\&.

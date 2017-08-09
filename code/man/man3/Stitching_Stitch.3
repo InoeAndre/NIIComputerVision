@@ -1,0 +1,180 @@
+.TH "Stitching.Stitch" 3 "Wed Aug 9 2017" "Version v0.7" "Segmented Fusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Stitching.Stitch
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fB__init__\fP (self, number_bodyPart)"
+.br
+.ti -1c
+.RI "def \fBNaiveStitch\fP (self, PartVtx, PartNmls, PartFaces, PoseBP)"
+.br
+.ti -1c
+.RI "def \fBTransformVtx\fP (self, Vtx, Pose, s)"
+.br
+.ti -1c
+.RI "def \fBTransformNmls\fP (self, Nmls, Pose, s)"
+.br
+.ti -1c
+.RI "def \fBRArmsTransform\fP (self, angle, bp, pos2d, RGBD, Tg)"
+.br
+.ti -1c
+.RI "def \fBGetBBTransfo\fP (self, pos2d, cur, prev, RGBD, bp)"
+.br
+.ti -1c
+.RI "def \fBGetCoordSyst\fP (self, pos2d, jt, RGBD, bp)"
+.br
+.ti -1c
+.RI "def \fBGetPos\fP (self, bp)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBnb_bp\fP"
+.br
+.ti -1c
+.RI "\fBStitchedVertices\fP"
+.br
+.ti -1c
+.RI "\fBStitchedFaces\fP"
+.br
+.ti -1c
+.RI "\fBStitchedNormales\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+
+.PP
+.nf
+All method that concern linking or aligning body parts together are in Stitch
+
+.fi
+.PP
+ 
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "def Stitching\&.Stitch\&.__init__ ( self,  number_bodyPart)"
+
+.PP
+.nf
+Constructor
+:param number_bodyPart: number of body parts
+
+.fi
+.PP
+ 
+.SH "Member Function Documentation"
+.PP 
+.SS "def Stitching\&.Stitch\&.GetBBTransfo ( self,  pos2d,  cur,  prev,  RGBD,  bp)"
+
+.PP
+.nf
+Transform Pose matrix to move the model body parts according to the position of the skeleton
+For now just a rotation in the z axis
+:param bp : number of the body parts
+:param pos2d : position in 2D of the junctions
+:param cur : index for the current frame
+:param prev : index for the previous frame
+:param RGBD : an RGBD object containing the image
+:return The transform between two skeleton
+
+.fi
+.PP
+ 
+.SS "def Stitching\&.Stitch\&.GetCoordSyst ( self,  pos2d,  jt,  RGBD,  bp)"
+
+.PP
+.nf
+This function compute the coordinates system of a body part according to the camera pose
+:param pos2d: camera pose
+:param jt: junctions of the body parts
+:param RGBD: Image
+:param bp: number of body part
+:return: Matrix containing the coordinates systems
+
+.fi
+.PP
+ 
+.SS "def Stitching\&.Stitch\&.GetPos ( self,  bp)"
+
+.PP
+.nf
+According to the body parts, get the correct index of junctions
+mid is used to get the center while pos1 and pos2 give extremes junctions of the body parts
+:param bp: number of the body part
+:return: return the junctions corresponding to the body parts
+
+.fi
+.PP
+ 
+.SS "def Stitching\&.Stitch\&.NaiveStitch ( self,  PartVtx,  PartNmls,  PartFaces,  PoseBP)"
+
+.PP
+.nf
+Add the vertices and faces of each body parts
+together after transforming them in the global coordinates system
+:param PartVtx: List of vertices for a body parts
+:param PartNmls: List of normales for a body parts
+:param PartFaces:  List of faces for a body parts
+:param PoseBP: local to global transform
+:return: none
+
+.fi
+.PP
+ 
+.SS "def Stitching\&.Stitch\&.RArmsTransform ( self,  angle,  bp,  pos2d,  RGBD,  Tg)"
+
+.PP
+.nf
+Transform Pose matrix to move the model of the right arm
+For now just a rotation in the z axis
+:param bp : number of the body parts
+:param pos2d : position in 2D of the junctions
+:param RGBD : an RGBD object containing the image
+:param Tg : local to global transform
+TEST FUNCTION : TURN THE LEFT ARM OF THE SEGMENTED BODY.
+
+.fi
+.PP
+ 
+.SS "def Stitching\&.Stitch\&.TransformNmls ( self,  Nmls,  Pose,  s)"
+
+.PP
+.nf
+Transform the normales in a system to another system.
+Here it will be mostly used to transform from local system to global coordiantes system
+:param Nmls:  List of normales
+:param Pose: local to global transform
+:param s: subsampling factor
+:return: list of transformed normales
+
+.fi
+.PP
+ 
+.SS "def Stitching\&.Stitch\&.TransformVtx ( self,  Vtx,  Pose,  s)"
+
+.PP
+.nf
+Transform the vertices in a system to another system.
+Here it will be mostly used to transform from local system to global coordiantes system
+:param Vtx: List of vertices
+:param Pose:  local to global transform
+:param s: subsampling factor
+:return: list of transformed vertices
+
+.fi
+.PP
+ 
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Segmented Fusion from the source code\&.

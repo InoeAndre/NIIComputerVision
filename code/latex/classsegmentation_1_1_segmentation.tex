@@ -1,0 +1,253 @@
+\section{segmentation.\+Segmentation Class Reference}
+\label{classsegmentation_1_1_segmentation}\index{segmentation.\+Segmentation@{segmentation.\+Segmentation}}
+Inheritance diagram for segmentation.\+Segmentation\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classsegmentation_1_1_segmentation}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \textbf{ \+\_\+\+\_\+init\+\_\+\+\_\+} (self, depth\+Image, pos2D)
+\item 
+def \textbf{ find\+Slope} (self, A, B)
+\item 
+def \textbf{ infered\+Point} (self, A, a, b, c, point, T=100)
+\item 
+def \textbf{ polygon} (self, slopes, ref, limit)
+\item 
+def \textbf{ polygon\+\_\+optimize} (self, slopes, ref, limit)
+\item 
+def \textbf{ polygon\+Outline} (self, points)
+\item 
+def \textbf{ nearest\+Peak} (self, A, hip\+Left, hip\+Right, knee\+\_\+right)
+\item 
+def \textbf{ arm\+Seg} (self, A, B, side)
+\item 
+def \textbf{ leg\+Seg} (self, A, side)
+\item 
+def \textbf{ head\+Seg} (self, A)
+\item 
+def \textbf{ Get\+Body} (self, binary\+Image)
+\item 
+def \textbf{ Get\+Hand} (self, binary\+Image, side)
+\item 
+def \textbf{ Get\+Foot} (self, binary\+Image, side)
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\label{classsegmentation_1_1_segmentation_a36ea52b517559b5691e5bc72588b2701}} 
+{\bfseries depth\+Image}
+\item 
+\mbox{\label{classsegmentation_1_1_segmentation_a354e16a494df339af336594c1e1844f0}} 
+{\bfseries pos2D}
+\item 
+\mbox{\label{classsegmentation_1_1_segmentation_aacd82fcfebb0f0cd30f9e45c96f6394b}} 
+{\bfseries body\+Pts}
+\item 
+\mbox{\label{classsegmentation_1_1_segmentation_a7302304f2b0c3d89af45c50aa33a828c}} 
+{\bfseries fore\+Arm\+PtsR}
+\item 
+\mbox{\label{classsegmentation_1_1_segmentation_ad1a1f1e70672d02fff598618e147d0c8}} 
+{\bfseries fore\+Arm\+PtsL}
+\item 
+\mbox{\label{classsegmentation_1_1_segmentation_af82bbe5af405d55ecf4b95f9bf13f395}} 
+{\bfseries upper\+Arm\+PtsR}
+\item 
+\mbox{\label{classsegmentation_1_1_segmentation_acd5f5a3d2af4b3132a8c47a4f74464d7}} 
+{\bfseries upper\+Arm\+PtsL}
+\item 
+\mbox{\label{classsegmentation_1_1_segmentation_ab687d252753954c9d8a532e5b098e637}} 
+\textbf{ thigh\+PtsR}
+\begin{DoxyCompactList}\small\item\em Find the Thigh find the fifth point that can not be deduce simply with Slopes or intersection using the entire hip. \end{DoxyCompactList}\item 
+\mbox{\label{classsegmentation_1_1_segmentation_a32dde4e5585db094b44c3ab757f3ab9e}} 
+{\bfseries thigh\+PtsL}
+\item 
+\mbox{\label{classsegmentation_1_1_segmentation_aa926f14b37ee6275803ad15bbf417310}} 
+\textbf{ calf\+PtsR}
+\begin{DoxyCompactList}\small\item\em Find Calf Define slopes. \end{DoxyCompactList}\item 
+\mbox{\label{classsegmentation_1_1_segmentation_a31e43c1089bb4017d23601a86c13fba7}} 
+{\bfseries calf\+PtsL}
+\item 
+\mbox{\label{classsegmentation_1_1_segmentation_a560a42d6f83dfe01e32efb93fff9eecf}} 
+{\bfseries head\+Pts}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}Segmentation process concerning body parts
+\end{DoxyVerb}
+ 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\label{classsegmentation_1_1_segmentation_a1a50054187dc1e2eebe8685fdd208bf6}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}}
+\index{\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{\+\_\+\+\_\+init\+\_\+\+\_\+()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{depth\+Image,  }\item[{}]{pos2D }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Constructor
+:param depthImage: Cropped depth image of the current image
+:param pos2D: list of position of the junction
+\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\mbox{\label{classsegmentation_1_1_segmentation_acb6b057c22d3abbcc7de4e14453cfdc6}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!arm\+Seg@{arm\+Seg}}
+\index{arm\+Seg@{arm\+Seg}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{arm\+Seg()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+arm\+Seg (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{A,  }\item[{}]{B,  }\item[{}]{side }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Segment the left arm into two body parts
+:param A: depthImag
+:param B: depthImg after bilateral filtering
+:param side: if side = 0 the segmentation will be done for the right arm
+  otherwise it will be for the left arm
+:return: an array containing two body parts : an upper arm and a lower arm
+\end{DoxyVerb}
+ \mbox{\label{classsegmentation_1_1_segmentation_a9ceb7a7b25953d9b693ab9f6fa1e6e3a}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!find\+Slope@{find\+Slope}}
+\index{find\+Slope@{find\+Slope}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{find\+Slope()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+find\+Slope (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{A,  }\item[{}]{B }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Get the slope of a line made from two point A and B or the distance in one axes
+:param A: point 1
+:param B: point 2
+:return: an array of coefficient
+a is the normalized distance in the x axis
+b is the normalized distance in the y axis
+c is the slope between the two points
+\end{DoxyVerb}
+ \mbox{\label{classsegmentation_1_1_segmentation_a974ac6a7e245713d6f5f2b7531fe6d71}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!Get\+Body@{Get\+Body}}
+\index{Get\+Body@{Get\+Body}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{Get\+Body()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+Get\+Body (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{binary\+Image }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Delete all the unwanted connected component from the binary image
+It focuses on the group having the right pos2D, for now the body
+:param binaryImage: binary image of the body but all body part are substracted to the body leaving only the trunck and noise
+:return: trunk
+\end{DoxyVerb}
+ \mbox{\label{classsegmentation_1_1_segmentation_ad4a3e196437e4577129dc7c5aed2f559}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!Get\+Foot@{Get\+Foot}}
+\index{Get\+Foot@{Get\+Foot}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{Get\+Foot()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+Get\+Foot (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{binary\+Image,  }\item[{}]{side }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Delete all the little group unwanted from the binary image
+It focuses on the group having the right pos2D, here the feet
+:param binaryImage: binary image of the body without limbs
+:param side: if side = 0 the segmentation will be done for the right feet
+  otherwise it will be for the left feet
+:return: one feet
+\end{DoxyVerb}
+ \mbox{\label{classsegmentation_1_1_segmentation_ac40379d03b4adb8c368d7d7d12e0d321}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!Get\+Hand@{Get\+Hand}}
+\index{Get\+Hand@{Get\+Hand}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{Get\+Hand()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+Get\+Hand (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{binary\+Image,  }\item[{}]{side }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Delete all the little group unwanted from the binary image
+It focuses on the group having the right pos2D, here the hands
+:param binaryImage: binary image of the body without limbs
+:param side: if side = 0 the segmentation will be done for the right hand
+  otherwise it will be for the left hand
+:return: one hand
+\end{DoxyVerb}
+ \mbox{\label{classsegmentation_1_1_segmentation_a57bb91652be301652103fa04944fced9}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!head\+Seg@{head\+Seg}}
+\index{head\+Seg@{head\+Seg}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{head\+Seg()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+head\+Seg (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{A }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Segment the head
+:param A: binary depthImag
+:return: head body part
+\end{DoxyVerb}
+ \mbox{\label{classsegmentation_1_1_segmentation_abc300f2410a48845de0e9ae32df38241}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!infered\+Point@{infered\+Point}}
+\index{infered\+Point@{infered\+Point}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{infered\+Point()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+infered\+Point (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{A,  }\item[{}]{a,  }\item[{}]{b,  }\item[{}]{c,  }\item[{}]{point,  }\item[{}]{T = {\ttfamily 100} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Find two points that are the corners of the segmented part
+:param A: Depth Image
+:param a: dist x axe between two points
+:param b: dist y axe between two points
+:param c: slope between two points
+:param point: a junction
+:param T: max distance to find intersection
+:return: two intersection points between a slope and the edges of the body part
+\end{DoxyVerb}
+ \mbox{\label{classsegmentation_1_1_segmentation_a095a3b3205d784d6e7c3e072945ae7a5}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!leg\+Seg@{leg\+Seg}}
+\index{leg\+Seg@{leg\+Seg}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{leg\+Seg()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+leg\+Seg (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{A,  }\item[{}]{side }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Segment the leg into two body parts
+:param A: depthImag
+:param side: if side = 0 the segmentation will be done for the right leg
+  otherwise it will be for the left leg
+:return: an array containing two body parts : an upper leg and a lower leg
+\end{DoxyVerb}
+ \mbox{\label{classsegmentation_1_1_segmentation_a887e7665b0fc07dfb964223ef50dc295}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!nearest\+Peak@{nearest\+Peak}}
+\index{nearest\+Peak@{nearest\+Peak}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{nearest\+Peak()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+nearest\+Peak (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{A,  }\item[{}]{hip\+Left,  }\item[{}]{hip\+Right,  }\item[{}]{knee\+\_\+right }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}In the case of upper legs, find the point in between the two upper legs that is at a edge of the hip
+:param A: binary image
+:param hipLeft: left hip junctions
+:param hipRight:  right hip junctions
+:param knee_right: right knee junctions
+:return: return a point at the edge and between the two legs
+Make drawing will help to understand
+\end{DoxyVerb}
+ \mbox{\label{classsegmentation_1_1_segmentation_abbd3c1929edf660b23d908a99e2775ab}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!polygon@{polygon}}
+\index{polygon@{polygon}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{polygon()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+polygon (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{slopes,  }\item[{}]{ref,  }\item[{}]{limit }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Test the sign of alpha = (a[k]*j+b[k]*i+c[k])*ref[k]
+to know whether a point is within a polygon or not
+:param slopes: list of slopes defining a the border lines of the polygone
+:param ref:  a point inside the polygon
+:param limit: number of slopes
+:return: the body part filled with true.
+\end{DoxyVerb}
+ \mbox{\label{classsegmentation_1_1_segmentation_a3fe70a2d840350c65e39d2f3938826bf}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!polygon\+\_\+optimize@{polygon\+\_\+optimize}}
+\index{polygon\+\_\+optimize@{polygon\+\_\+optimize}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{polygon\+\_\+optimize()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+polygon\+\_\+optimize (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{slopes,  }\item[{}]{ref,  }\item[{}]{limit }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Test the sign of alpha = (a[k]*j+b[k]*i+c[k])*ref[k]
+to know whether a point is within a polygon or not
+:param slopes: list of slopes defining a the border lines of the polygone
+:param ref:  a point inside the polygon
+:param limit: number of slopes
+:return: the body part filled with true.
+\end{DoxyVerb}
+ \mbox{\label{classsegmentation_1_1_segmentation_a13657232294fa4956ad7426d18ebfab4}} 
+\index{segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}!polygon\+Outline@{polygon\+Outline}}
+\index{polygon\+Outline@{polygon\+Outline}!segmentation\+::\+Segmentation@{segmentation\+::\+Segmentation}}
+\subsubsection{polygon\+Outline()}
+{\footnotesize\ttfamily def segmentation.\+Segmentation.\+polygon\+Outline (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{points }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Find a polygon on the image through the points given in points
+:param points: array of points which are the corners of the polygon to find
+:return:  the body part filled with true.
+\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+lib/segmentation.\+py\end{DoxyCompactItemize}

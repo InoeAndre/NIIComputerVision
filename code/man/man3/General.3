@@ -1,0 +1,104 @@
+.TH "General" 3 "Wed Aug 9 2017" "Version v0.7" "Segmented Fusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+General
+.SH SYNOPSIS
+.br
+.PP
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fBin_mat_zero2one\fP (mat)"
+.br
+.ti -1c
+.RI "def \fBInvPose\fP (Pose)"
+.br
+.ti -1c
+.RI "def \fBnormalized_cross_prod\fP (a, b)"
+.br
+.ti -1c
+.RI "def \fBdivision_by_norm\fP (mat, norm)"
+.br
+.ti -1c
+.RI "def \fBnormalized_cross_prod_optimize\fP (a, b)"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+
+.PP
+.nf
+@Author Inoe ANDRE
+Cross module functions
+
+.fi
+.PP
+ 
+.SH "Function Documentation"
+.PP 
+.SS "def General\&.division_by_norm ( mat,  norm)"
+
+.PP
+.nf
+This fonction divide a n by m by p=3 matrix, point by point, by the norm made through the p dimension
+It ignores division that makes infinite values or overflow to replace it by the former mat values or by 0
+:param mat:
+:param norm:
+:return:
+
+.fi
+.PP
+ 
+.SS "def General\&.in_mat_zero2one ( mat)"
+
+.PP
+.nf
+Replace in the matrix all the 0 to 1
+:param mat: input matrix containing 0
+:return:  mat with 1 instead of 0
+
+.fi
+.PP
+ 
+.SS "def General\&.InvPose ( Pose)"
+
+.PP
+.nf
+Compute the inverse transform of Pose
+:param Pose: 4*4 Matrix of the camera pose
+:return: matrix containing the inverse transform of Pose
+y = R*x + T
+x = R^(-1)*y + R^(-1)*T
+
+.fi
+.PP
+ 
+.SS "def General\&.normalized_cross_prod ( a,  b)"
+
+.PP
+.nf
+Compute the cross product of 2 vectors and normalized it
+:param a: first 3 elements vector
+:param b: second 3 elements vector
+:return: the normalized cross product between 2 vector
+
+.fi
+.PP
+ 
+.SS "def General\&.normalized_cross_prod_optimize ( a,  b)"
+
+.PP
+.nf
+Compute the cross product of list of 2 vectors and normalized it
+:param a: first 3 elements vector
+:param b: second 3 elements vector
+:return: the normalized cross product between 2 vector
+
+.fi
+.PP
+ 
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Segmented Fusion from the source code\&.

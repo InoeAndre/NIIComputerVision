@@ -1,0 +1,237 @@
+.TH "My_MarchingCube.My_MarchingCube" 3 "Wed Aug 9 2017" "Version v0.7" "Segmented Fusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+My_MarchingCube.My_MarchingCube
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fB__init__\fP (self, Size, Res, Iso, GPUManager)"
+.br
+.ti -1c
+.RI "def \fBrunGPU\fP (self, VolGPU)"
+.br
+.ti -1c
+.RI "def \fBSaveToPly\fP (self, name, display=0)"
+.br
+.ti -1c
+.RI "def \fBSaveToPlyExt\fP (self, name, nb_vertices, nb_faces, Vertices, Faces, display=0)"
+.br
+.ti -1c
+.RI "def \fBDrawMesh\fP (self, Pose, intrinsic, Size, canvas)"
+.br
+.ti -1c
+.RI "def \fBDrawPoints\fP (self, Pose, intrinsic, Size, background, s=1)"
+.br
+.ti -1c
+.RI "def \fBTransformList\fP (self, Pose)"
+.br
+.ti -1c
+.RI "def \fBComputeMCNmls\fP (self)"
+.br
+.ti -1c
+.RI "def \fBComputeMCNmls_slow\fP (self)"
+.br
+.ti -1c
+.RI "def \fBMergeVtx\fP (self)"
+.br
+.ti -1c
+.RI "def \fBMC2RGBD\fP (self, RGBD, Vtx, Nmls, Pose, s, color=0)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBSize\fP"
+.br
+.ti -1c
+.RI "\fBres\fP"
+.br
+.ti -1c
+.RI "\fBiso\fP"
+.br
+.ti -1c
+.RI "\fBnb_faces\fP"
+.br
+.ti -1c
+.RI "\fBGPUManager\fP"
+.br
+.ti -1c
+.RI "\fBSize_Volume\fP"
+.br
+.ti -1c
+.RI "\fBOffsetGPU\fP"
+.br
+.ti -1c
+.RI "\fBIndexGPU\fP"
+.br
+.ti -1c
+.RI "\fBFaceCounterGPU\fP"
+.br
+.ti -1c
+.RI "\fBParamGPU\fP"
+.br
+.ti -1c
+.RI "\fBFaces\fP"
+.br
+.ti -1c
+.RI "\fBVertices\fP"
+.br
+.ti -1c
+.RI "\fBFacesGPU\fP"
+.br
+.ti -1c
+.RI "\fBVerticesGPU\fP"
+.br
+.ti -1c
+.RI "\fBNormales\fP"
+.br
+.ti -1c
+.RI "\fBNormals\fP"
+.br
+.ti -1c
+.RI "\fBnbVtx\fP"
+.br
+.ti -1c
+.RI "\fBnb_vertices\fP"
+.br
+.in -1c
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "def My_MarchingCube\&.My_MarchingCube\&.__init__ ( self,  Size,  Res,  Iso,  GPUManager)"
+
+.PP
+.nf
+Constructor
+:param Size: Size of the volume
+:param Res: resolution parameters
+:param Iso: isosurface to render
+:param GPUManager: GPU environment
+
+.fi
+.PP
+ 
+.SH "Member Function Documentation"
+.PP 
+.SS "def My_MarchingCube\&.My_MarchingCube\&.ComputeMCNmls ( self)"
+
+.PP
+.nf
+    Function to compute the normals of the mesh
+    NOT USED. (MergeVtx does the job)
+
+.fi
+.PP
+ 
+.SS "def My_MarchingCube\&.My_MarchingCube\&.ComputeMCNmls_slow ( self)"
+
+.PP
+.nf
+Non optimized version for understanding
+THIS FUNCTION IS NOT USED
+
+.fi
+.PP
+ 
+.SS "def My_MarchingCube\&.My_MarchingCube\&.DrawMesh ( self,  Pose,  intrinsic,  Size,  canvas)"
+
+.PP
+.nf
+    Function to draw the mesh using tkinter
+    NOT USED.
+
+.fi
+.PP
+ 
+.SS "def My_MarchingCube\&.My_MarchingCube\&.DrawPoints ( self,  Pose,  intrinsic,  Size,  background,  s = \fC1\fP)"
+
+.PP
+.nf
+    Function to draw the vertices of the mesh using tkinter
+    NOT USED.
+
+.fi
+.PP
+ 
+.SS "def My_MarchingCube\&.My_MarchingCube\&.MC2RGBD ( self,  RGBD,  Vtx,  Nmls,  Pose,  s,  color = \fC0\fP)"
+
+.PP
+.nf
+    Function to convert the list of normales and vertexes of the marching cubes' algorithm into
+    424*512*3 matrix.
+    This function is made just to test with the RegisterRGBD function if the data from the mesh are corrects.
+
+.fi
+.PP
+ 
+.SS "def My_MarchingCube\&.My_MarchingCube\&.MergeVtx ( self)"
+
+.PP
+.nf
+This function avoid having duplicate in the lists of vertexes or normales
+THIS METHOD HAVE A GPU VERSION BUT THE GPU HAVE NOT ENOUGH MEMORY TO RUN IT
+
+.fi
+.PP
+ 
+.SS "def My_MarchingCube\&.My_MarchingCube\&.runGPU ( self,  VolGPU)"
+
+.PP
+.nf
+First find all the edges that are crossed by the surface
+Second compute face and vertices according to the edges
+Third merge duplicate (need to be optimize)
+:param VolGPU: Volume given by the TSDF
+:return: none
+
+.fi
+.PP
+ 
+.SS "def My_MarchingCube\&.My_MarchingCube\&.SaveToPly ( self,  name,  display = \fC0\fP)"
+
+.PP
+.nf
+Function to record the created mesh into a .ply file
+Create file .ply with vertices and faces for vizualization in MeshLab
+:param name: string, name of the file
+:param times: 0 if you do not want to display the time
+:return: none
+
+.fi
+.PP
+ 
+.SS "def My_MarchingCube\&.My_MarchingCube\&.SaveToPlyExt ( self,  name,  nb_vertices,  nb_faces,  Vertices,  Faces,  display = \fC0\fP)"
+
+.PP
+.nf
+Function to record an external created mesh into a .ply file
+Create file .ply with vertices and faces for vizualization in MeshLab
+:param name: string, name of the file
+:param nb_vertices: int, number of vertices N*3
+:param nb_faces: int, number of faces N
+:param Vertices: array 3*N*3,
+:param Faces: array N*3,
+:param display: int, 0 if you do not want to display the time
+:return: none
+
+.fi
+.PP
+ 
+.SS "def My_MarchingCube\&.My_MarchingCube\&.TransformList ( self,  Pose)"
+
+.PP
+.nf
+    Function to transform normals and vertices of the mesh
+
+.fi
+.PP
+ 
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Segmented Fusion from the source code\&.

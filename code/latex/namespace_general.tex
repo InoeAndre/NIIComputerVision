@@ -1,0 +1,81 @@
+\section{General Namespace Reference}
+\label{namespace_general}\index{General@{General}}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \textbf{ in\+\_\+mat\+\_\+zero2one} (mat)
+\item 
+def \textbf{ Inv\+Pose} (Pose)
+\item 
+def \textbf{ normalized\+\_\+cross\+\_\+prod} (a, b)
+\item 
+def \textbf{ division\+\_\+by\+\_\+norm} (mat, norm)
+\item 
+def \textbf{ normalized\+\_\+cross\+\_\+prod\+\_\+optimize} (a, b)
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}@Author Inoe ANDRE
+Cross module functions
+\end{DoxyVerb}
+ 
+
+\subsection{Function Documentation}
+\mbox{\label{namespace_general_acbd88c2bfc6296ec9d5714f5fa7116f8}} 
+\index{General@{General}!division\+\_\+by\+\_\+norm@{division\+\_\+by\+\_\+norm}}
+\index{division\+\_\+by\+\_\+norm@{division\+\_\+by\+\_\+norm}!General@{General}}
+\subsubsection{division\+\_\+by\+\_\+norm()}
+{\footnotesize\ttfamily def General.\+division\+\_\+by\+\_\+norm (\begin{DoxyParamCaption}\item[{}]{mat,  }\item[{}]{norm }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}This fonction divide a n by m by p=3 matrix, point by point, by the norm made through the p dimension
+It ignores division that makes infinite values or overflow to replace it by the former mat values or by 0
+:param mat:
+:param norm:
+:return:
+\end{DoxyVerb}
+ \mbox{\label{namespace_general_a9fafbff15974c6b9a6032e6f5b568808}} 
+\index{General@{General}!in\+\_\+mat\+\_\+zero2one@{in\+\_\+mat\+\_\+zero2one}}
+\index{in\+\_\+mat\+\_\+zero2one@{in\+\_\+mat\+\_\+zero2one}!General@{General}}
+\subsubsection{in\+\_\+mat\+\_\+zero2one()}
+{\footnotesize\ttfamily def General.\+in\+\_\+mat\+\_\+zero2one (\begin{DoxyParamCaption}\item[{}]{mat }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Replace in the matrix all the 0 to 1
+:param mat: input matrix containing 0
+:return:  mat with 1 instead of 0
+\end{DoxyVerb}
+ \mbox{\label{namespace_general_a7fb8753b34ce7bd6133dda90add3aa73}} 
+\index{General@{General}!Inv\+Pose@{Inv\+Pose}}
+\index{Inv\+Pose@{Inv\+Pose}!General@{General}}
+\subsubsection{Inv\+Pose()}
+{\footnotesize\ttfamily def General.\+Inv\+Pose (\begin{DoxyParamCaption}\item[{}]{Pose }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Compute the inverse transform of Pose
+:param Pose: 4*4 Matrix of the camera pose
+:return: matrix containing the inverse transform of Pose
+y = R*x + T
+x = R^(-1)*y + R^(-1)*T
+\end{DoxyVerb}
+ \mbox{\label{namespace_general_aafcc697815eaa5f02073a65381657756}} 
+\index{General@{General}!normalized\+\_\+cross\+\_\+prod@{normalized\+\_\+cross\+\_\+prod}}
+\index{normalized\+\_\+cross\+\_\+prod@{normalized\+\_\+cross\+\_\+prod}!General@{General}}
+\subsubsection{normalized\+\_\+cross\+\_\+prod()}
+{\footnotesize\ttfamily def General.\+normalized\+\_\+cross\+\_\+prod (\begin{DoxyParamCaption}\item[{}]{a,  }\item[{}]{b }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Compute the cross product of 2 vectors and normalized it
+:param a: first 3 elements vector
+:param b: second 3 elements vector
+:return: the normalized cross product between 2 vector
+\end{DoxyVerb}
+ \mbox{\label{namespace_general_adfadd7bf376e5e61f7ff3814f92dea05}} 
+\index{General@{General}!normalized\+\_\+cross\+\_\+prod\+\_\+optimize@{normalized\+\_\+cross\+\_\+prod\+\_\+optimize}}
+\index{normalized\+\_\+cross\+\_\+prod\+\_\+optimize@{normalized\+\_\+cross\+\_\+prod\+\_\+optimize}!General@{General}}
+\subsubsection{normalized\+\_\+cross\+\_\+prod\+\_\+optimize()}
+{\footnotesize\ttfamily def General.\+normalized\+\_\+cross\+\_\+prod\+\_\+optimize (\begin{DoxyParamCaption}\item[{}]{a,  }\item[{}]{b }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Compute the cross product of list of 2 vectors and normalized it
+:param a: first 3 elements vector
+:param b: second 3 elements vector
+:return: the normalized cross product between 2 vector
+\end{DoxyVerb}
+ 

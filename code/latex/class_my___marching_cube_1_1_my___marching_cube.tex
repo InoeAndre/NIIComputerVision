@@ -1,0 +1,210 @@
+\section{My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube Class Reference}
+\label{class_my___marching_cube_1_1_my___marching_cube}\index{My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \textbf{ \+\_\+\+\_\+init\+\_\+\+\_\+} (self, Size, Res, Iso, G\+P\+U\+Manager)
+\item 
+def \textbf{ run\+G\+PU} (self, Vol\+G\+PU)
+\item 
+def \textbf{ Save\+To\+Ply} (self, name, display=0)
+\item 
+def \textbf{ Save\+To\+Ply\+Ext} (self, name, nb\+\_\+vertices, nb\+\_\+faces, Vertices, Faces, display=0)
+\item 
+def \textbf{ Draw\+Mesh} (self, Pose, intrinsic, Size, canvas)
+\item 
+def \textbf{ Draw\+Points} (self, Pose, intrinsic, Size, background, s=1)
+\item 
+def \textbf{ Transform\+List} (self, Pose)
+\item 
+def \textbf{ Compute\+M\+C\+Nmls} (self)
+\item 
+def \textbf{ Compute\+M\+C\+Nmls\+\_\+slow} (self)
+\item 
+def \textbf{ Merge\+Vtx} (self)
+\item 
+def \textbf{ M\+C2\+R\+G\+BD} (self, R\+G\+BD, Vtx, Nmls, Pose, s, color=0)
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_afe2f5faf0ce2a333474f9d1496192f14}} 
+{\bfseries Size}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a4ecd41f50f60bf712ad456a8fc941782}} 
+{\bfseries res}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a3dcab76028b44472b20e598b7532a217}} 
+{\bfseries iso}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a8a75f5324dfcfbd3fab050edd4006998}} 
+{\bfseries nb\+\_\+faces}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a908d5321153e2341f710c047d95ad01a}} 
+{\bfseries G\+P\+U\+Manager}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a328ca204253663c7dc82f6497796c63a}} 
+{\bfseries Size\+\_\+\+Volume}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a896f6c74b604e6b2135845e8d17d3977}} 
+{\bfseries Offset\+G\+PU}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a0fe61051ce01b62f304ae085ac9bfb3a}} 
+{\bfseries Index\+G\+PU}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_ab77b74495b2578c0a35c8ca3d3876de9}} 
+{\bfseries Face\+Counter\+G\+PU}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a52820bb2f10966fb592ec7d62c108d54}} 
+{\bfseries Param\+G\+PU}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_aceb2a4ed570e10e042a44a29cad5ea95}} 
+{\bfseries Faces}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a800426654b2cf0feb64d1bf212b34921}} 
+{\bfseries Vertices}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_afa52802741219118770c709e75446d5e}} 
+{\bfseries Faces\+G\+PU}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_ac3124bef4e245b03d3e66982aab263c9}} 
+{\bfseries Vertices\+G\+PU}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a9699fa7abe4cae11215828c4e55e2805}} 
+{\bfseries Normales}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a6470869842e5e29387ce307bde36c22c}} 
+{\bfseries Normals}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a03cbb9a458d30723be59caaecbc5310b}} 
+{\bfseries nb\+Vtx}
+\item 
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a81808a234dcc9b8a1d0f7fe737b747ec}} 
+{\bfseries nb\+\_\+vertices}
+\end{DoxyCompactItemize}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a7f2970f295285729918604008fc7809f}} 
+\index{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}!\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}}
+\index{\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}!My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}}
+\subsubsection{\+\_\+\+\_\+init\+\_\+\+\_\+()}
+{\footnotesize\ttfamily def My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Size,  }\item[{}]{Res,  }\item[{}]{Iso,  }\item[{}]{G\+P\+U\+Manager }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Constructor
+:param Size: Size of the volume
+:param Res: resolution parameters
+:param Iso: isosurface to render
+:param GPUManager: GPU environment
+\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a5a1e9c085022497596ba726002435603}} 
+\index{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}!Compute\+M\+C\+Nmls@{Compute\+M\+C\+Nmls}}
+\index{Compute\+M\+C\+Nmls@{Compute\+M\+C\+Nmls}!My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}}
+\subsubsection{Compute\+M\+C\+Nmls()}
+{\footnotesize\ttfamily def My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube.\+Compute\+M\+C\+Nmls (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}    Function to compute the normals of the mesh
+    NOT USED. (MergeVtx does the job)
+\end{DoxyVerb}
+ \mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a27d160262d57b10e11ec11978c4fa8ea}} 
+\index{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}!Compute\+M\+C\+Nmls\+\_\+slow@{Compute\+M\+C\+Nmls\+\_\+slow}}
+\index{Compute\+M\+C\+Nmls\+\_\+slow@{Compute\+M\+C\+Nmls\+\_\+slow}!My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}}
+\subsubsection{Compute\+M\+C\+Nmls\+\_\+slow()}
+{\footnotesize\ttfamily def My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube.\+Compute\+M\+C\+Nmls\+\_\+slow (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Non optimized version for understanding
+THIS FUNCTION IS NOT USED
+\end{DoxyVerb}
+ \mbox{\label{class_my___marching_cube_1_1_my___marching_cube_aa6b90ce7e02b9a41c824707630b64f07}} 
+\index{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}!Draw\+Mesh@{Draw\+Mesh}}
+\index{Draw\+Mesh@{Draw\+Mesh}!My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}}
+\subsubsection{Draw\+Mesh()}
+{\footnotesize\ttfamily def My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube.\+Draw\+Mesh (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Pose,  }\item[{}]{intrinsic,  }\item[{}]{Size,  }\item[{}]{canvas }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}    Function to draw the mesh using tkinter
+    NOT USED.
+\end{DoxyVerb}
+ \mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a4b28f492fb09edfca2a4814c86631720}} 
+\index{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}!Draw\+Points@{Draw\+Points}}
+\index{Draw\+Points@{Draw\+Points}!My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}}
+\subsubsection{Draw\+Points()}
+{\footnotesize\ttfamily def My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube.\+Draw\+Points (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Pose,  }\item[{}]{intrinsic,  }\item[{}]{Size,  }\item[{}]{background,  }\item[{}]{s = {\ttfamily 1} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}    Function to draw the vertices of the mesh using tkinter
+    NOT USED.
+\end{DoxyVerb}
+ \mbox{\label{class_my___marching_cube_1_1_my___marching_cube_aaf418aa2b8358d872fc53616408acdf6}} 
+\index{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}!M\+C2\+R\+G\+BD@{M\+C2\+R\+G\+BD}}
+\index{M\+C2\+R\+G\+BD@{M\+C2\+R\+G\+BD}!My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}}
+\subsubsection{M\+C2\+R\+G\+B\+D()}
+{\footnotesize\ttfamily def My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube.\+M\+C2\+R\+G\+BD (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{R\+G\+BD,  }\item[{}]{Vtx,  }\item[{}]{Nmls,  }\item[{}]{Pose,  }\item[{}]{s,  }\item[{}]{color = {\ttfamily 0} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}    Function to convert the list of normales and vertexes of the marching cubes' algorithm into
+    424*512*3 matrix.
+    This function is made just to test with the RegisterRGBD function if the data from the mesh are corrects.
+\end{DoxyVerb}
+ \mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a234beb0a06a023ee9d4571d569af755c}} 
+\index{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}!Merge\+Vtx@{Merge\+Vtx}}
+\index{Merge\+Vtx@{Merge\+Vtx}!My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}}
+\subsubsection{Merge\+Vtx()}
+{\footnotesize\ttfamily def My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube.\+Merge\+Vtx (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}This function avoid having duplicate in the lists of vertexes or normales
+THIS METHOD HAVE A GPU VERSION BUT THE GPU HAVE NOT ENOUGH MEMORY TO RUN IT
+\end{DoxyVerb}
+ \mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a820edf1a7b295d5e3fbe858bddc03423}} 
+\index{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}!run\+G\+PU@{run\+G\+PU}}
+\index{run\+G\+PU@{run\+G\+PU}!My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}}
+\subsubsection{run\+G\+P\+U()}
+{\footnotesize\ttfamily def My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube.\+run\+G\+PU (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Vol\+G\+PU }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}First find all the edges that are crossed by the surface
+Second compute face and vertices according to the edges
+Third merge duplicate (need to be optimize)
+:param VolGPU: Volume given by the TSDF
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a9ba8a5429eed6fbbe83798c4988e65f4}} 
+\index{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}!Save\+To\+Ply@{Save\+To\+Ply}}
+\index{Save\+To\+Ply@{Save\+To\+Ply}!My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}}
+\subsubsection{Save\+To\+Ply()}
+{\footnotesize\ttfamily def My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube.\+Save\+To\+Ply (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{name,  }\item[{}]{display = {\ttfamily 0} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Function to record the created mesh into a .ply file
+Create file .ply with vertices and faces for vizualization in MeshLab
+:param name: string, name of the file
+:param times: 0 if you do not want to display the time
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a9c250e7239f5e6a7f547ee18f0ad6e43}} 
+\index{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}!Save\+To\+Ply\+Ext@{Save\+To\+Ply\+Ext}}
+\index{Save\+To\+Ply\+Ext@{Save\+To\+Ply\+Ext}!My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}}
+\subsubsection{Save\+To\+Ply\+Ext()}
+{\footnotesize\ttfamily def My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube.\+Save\+To\+Ply\+Ext (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{name,  }\item[{}]{nb\+\_\+vertices,  }\item[{}]{nb\+\_\+faces,  }\item[{}]{Vertices,  }\item[{}]{Faces,  }\item[{}]{display = {\ttfamily 0} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Function to record an external created mesh into a .ply file
+Create file .ply with vertices and faces for vizualization in MeshLab
+:param name: string, name of the file
+:param nb_vertices: int, number of vertices N*3
+:param nb_faces: int, number of faces N
+:param Vertices: array 3*N*3,
+:param Faces: array N*3,
+:param display: int, 0 if you do not want to display the time
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_my___marching_cube_1_1_my___marching_cube_a063b11ec768a65b5b73159c6eed61e32}} 
+\index{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}!Transform\+List@{Transform\+List}}
+\index{Transform\+List@{Transform\+List}!My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube@{My\+\_\+\+Marching\+Cube\+::\+My\+\_\+\+Marching\+Cube}}
+\subsubsection{Transform\+List()}
+{\footnotesize\ttfamily def My\+\_\+\+Marching\+Cube.\+My\+\_\+\+Marching\+Cube.\+Transform\+List (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Pose }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}    Function to transform normals and vertices of the mesh
+\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+lib/My\+\_\+\+Marching\+Cube.\+py\end{DoxyCompactItemize}

@@ -1,0 +1,228 @@
+\section{Application.\+Application Class Reference}
+\label{class_application_1_1_application}\index{Application.\+Application@{Application.\+Application}}
+Inheritance diagram for Application.\+Application\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{class_application_1_1_application}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \textbf{ key} (self, event)
+\item 
+def \textbf{ mouse\+\_\+press} (self, event)
+\item 
+def \textbf{ mouse\+\_\+release} (self, event)
+\item 
+def \textbf{ mouse\+\_\+motion} (self, event)
+\item 
+def \textbf{ Draw\+Point2D} (self, point, radius, color)
+\item 
+def \textbf{ Draw\+Colors2D} (self, R\+G\+BD, img)
+\item 
+def \textbf{ Draw\+Skeleton2D} (self, Pose)
+\item 
+def \textbf{ Draw\+Centers2D} (self, Pose, s=1)
+\item 
+def \textbf{ Draw\+Sys2D} (self, Pose)
+\item 
+def \textbf{ Draw\+O\+B\+Box2D} (self, Pose)
+\item 
+def \textbf{ \+\_\+\+\_\+init\+\_\+\+\_\+} (self, path, G\+P\+U\+Manager, master=None)
+\begin{DoxyCompactList}\small\item\em Constructor function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\label{class_application_1_1_application_a643b31e93e0bc05341e57ba468b4f6f3}} 
+{\bfseries color\+\_\+tag}
+\item 
+\mbox{\label{class_application_1_1_application_ada6d6879848e900c1850c9392c4f470e}} 
+{\bfseries Pose}
+\item 
+\mbox{\label{class_application_1_1_application_aca0834aa1c44002fe610ebc80dec0ecc}} 
+{\bfseries img\+Tk}
+\item 
+\mbox{\label{class_application_1_1_application_a73a85463ff9f37fdf7b37c6a8ddfc6b9}} 
+{\bfseries x\+\_\+init}
+\item 
+\mbox{\label{class_application_1_1_application_a29a38708c2931c1bf01e083580d6cb65}} 
+{\bfseries y\+\_\+init}
+\item 
+\mbox{\label{class_application_1_1_application_a224f9ee994b50b04544ef4a672e63ed4}} 
+{\bfseries ctr2D}
+\item 
+\mbox{\label{class_application_1_1_application_a51bf1a1fd9739a8b1ac39ee6cab97f56}} 
+{\bfseries O\+B\+Bcoords2D}
+\item 
+\mbox{\label{class_application_1_1_application_af0ed58988ec61974ed3df13e0efadd48}} 
+{\bfseries root}
+\item 
+\mbox{\label{class_application_1_1_application_afdc18a45655b60e479c8e8abdff0d817}} 
+{\bfseries path}
+\item 
+\mbox{\label{class_application_1_1_application_a642089891b00ec772170b0cc4b71431d}} 
+{\bfseries G\+P\+U\+Manager}
+\item 
+\mbox{\label{class_application_1_1_application_ac0a98c12024e47d785358ef75fded13a}} 
+{\bfseries draw\+\_\+bump}
+\item 
+\mbox{\label{class_application_1_1_application_aa89a81a42a52f24b4c9816cabd80e303}} 
+{\bfseries draw\+\_\+spline}
+\item 
+\mbox{\label{class_application_1_1_application_a6b35840e9d7dda2ffb68b21f05f69825}} 
+{\bfseries Size}
+\item 
+\mbox{\label{class_application_1_1_application_ad9df94fccad5a2ab7c7289fd03e11cc8}} 
+{\bfseries intrinsic}
+\item 
+\mbox{\label{class_application_1_1_application_a5621b526d04bbb3e01c79aa2de0f6f70}} 
+{\bfseries pos2d}
+\item 
+\mbox{\label{class_application_1_1_application_a2f8ef7d7d559d8a1fc7cdb4ab7dfedb7}} 
+{\bfseries connection\+Mat}
+\item 
+\mbox{\label{class_application_1_1_application_a7b6a9840a20831ee3603358f862d8dac}} 
+{\bfseries connection}
+\item 
+\mbox{\label{class_application_1_1_application_a3e83156042a91a7ac51b43a212af1b15}} 
+{\bfseries Index}
+\item 
+\mbox{\label{class_application_1_1_application_af014bd8cb86e29f59612d916bf086776}} 
+{\bfseries R\+G\+BD}
+\item 
+\mbox{\label{class_application_1_1_application_ad24990f1b38142dd639d7bd895638de7}} 
+{\bfseries canvas}
+\item 
+\mbox{\label{class_application_1_1_application_a252c7894fa91a112d1238a760346d6b9}} 
+{\bfseries w}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}Class to apply the segmented fusion
+It also contains function to handle keyboard and mouse inputs
+\end{DoxyVerb}
+ 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\label{class_application_1_1_application_a0a1efa05f27e797bfc72d43dd12df6b5}} 
+\index{Application\+::\+Application@{Application\+::\+Application}!\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}}
+\index{\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}!Application\+::\+Application@{Application\+::\+Application}}
+\subsubsection{\+\_\+\+\_\+init\+\_\+\+\_\+()}
+{\footnotesize\ttfamily def Application.\+Application.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{path,  }\item[{}]{G\+P\+U\+Manager,  }\item[{}]{master = {\ttfamily None} }\end{DoxyParamCaption})}
+
+
+
+Constructor function. 
+
+\begin{DoxyVerb}Main function of the project
+:param path: path to search data
+:param GPUManager: GPU environment
+:param master: none
+\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\mbox{\label{class_application_1_1_application_a3280e6b8e4616a56567d0daf7f60ff23}} 
+\index{Application\+::\+Application@{Application\+::\+Application}!Draw\+Centers2D@{Draw\+Centers2D}}
+\index{Draw\+Centers2D@{Draw\+Centers2D}!Application\+::\+Application@{Application\+::\+Application}}
+\subsubsection{Draw\+Centers2\+D()}
+{\footnotesize\ttfamily def Application.\+Application.\+Draw\+Centers2D (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Pose,  }\item[{}]{s = {\ttfamily 1} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}this function draw the center of each oriented coordinates system for each body part\end{DoxyVerb}
+ \mbox{\label{class_application_1_1_application_a935ca95709286fee970c85727bf5bab4}} 
+\index{Application\+::\+Application@{Application\+::\+Application}!Draw\+Colors2D@{Draw\+Colors2D}}
+\index{Draw\+Colors2D@{Draw\+Colors2D}!Application\+::\+Application@{Application\+::\+Application}}
+\subsubsection{Draw\+Colors2\+D()}
+{\footnotesize\ttfamily def Application.\+Application.\+Draw\+Colors2D (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{R\+G\+BD,  }\item[{}]{img }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Draw the color of each segmented part of the body
+:param RGBD:
+:param img:
+:param Pose:
+:return:
+Adding an argument pose would enable to follow the transformation
+\end{DoxyVerb}
+ \mbox{\label{class_application_1_1_application_a766ac4121a3cd61ad34b957bced90427}} 
+\index{Application\+::\+Application@{Application\+::\+Application}!Draw\+O\+B\+Box2D@{Draw\+O\+B\+Box2D}}
+\index{Draw\+O\+B\+Box2D@{Draw\+O\+B\+Box2D}!Application\+::\+Application@{Application\+::\+Application}}
+\subsubsection{Draw\+O\+B\+Box2\+D()}
+{\footnotesize\ttfamily def Application.\+Application.\+Draw\+O\+B\+Box2D (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Pose }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Draw in the canvas the Oriented Bounding Boxes (OBB) for each body part
+\end{DoxyVerb}
+ \mbox{\label{class_application_1_1_application_a6564aeb78321ccf643be0b90fe2b388e}} 
+\index{Application\+::\+Application@{Application\+::\+Application}!Draw\+Point2D@{Draw\+Point2D}}
+\index{Draw\+Point2D@{Draw\+Point2D}!Application\+::\+Application@{Application\+::\+Application}}
+\subsubsection{Draw\+Point2\+D()}
+{\footnotesize\ttfamily def Application.\+Application.\+Draw\+Point2D (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{point,  }\item[{}]{radius,  }\item[{}]{color }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Draw a point in the image
+:param point: 2D coordinates
+:param radius: size of the point
+:param color: Color of the point
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_application_1_1_application_af36ed2ae19b0450de779306b410dee6f}} 
+\index{Application\+::\+Application@{Application\+::\+Application}!Draw\+Skeleton2D@{Draw\+Skeleton2D}}
+\index{Draw\+Skeleton2D@{Draw\+Skeleton2D}!Application\+::\+Application@{Application\+::\+Application}}
+\subsubsection{Draw\+Skeleton2\+D()}
+{\footnotesize\ttfamily def Application.\+Application.\+Draw\+Skeleton2D (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Pose }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Sraw the Skeleton of a human and make connections between each part
+:param Pose:
+:return:
+Adding an argument pose would enable to follow the transformation
+\end{DoxyVerb}
+ \mbox{\label{class_application_1_1_application_a24fadbdd7cf0f4318724996b626e8c66}} 
+\index{Application\+::\+Application@{Application\+::\+Application}!Draw\+Sys2D@{Draw\+Sys2D}}
+\index{Draw\+Sys2D@{Draw\+Sys2D}!Application\+::\+Application@{Application\+::\+Application}}
+\subsubsection{Draw\+Sys2\+D()}
+{\footnotesize\ttfamily def Application.\+Application.\+Draw\+Sys2D (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Pose }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}this function draw the sys of oriented coordinates system for each body part\end{DoxyVerb}
+ \mbox{\label{class_application_1_1_application_a7f10b75f569cab5769291c54ca1d3762}} 
+\index{Application\+::\+Application@{Application\+::\+Application}!key@{key}}
+\index{key@{key}!Application\+::\+Application@{Application\+::\+Application}}
+\subsubsection{key()}
+{\footnotesize\ttfamily def Application.\+Application.\+key (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{event }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Function to handle keyboard inputs
+:param event: press a button on the keyboard
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_application_1_1_application_a1a6c84b431acbb546e466eaab2141e51}} 
+\index{Application\+::\+Application@{Application\+::\+Application}!mouse\+\_\+motion@{mouse\+\_\+motion}}
+\index{mouse\+\_\+motion@{mouse\+\_\+motion}!Application\+::\+Application@{Application\+::\+Application}}
+\subsubsection{mouse\+\_\+motion()}
+{\footnotesize\ttfamily def Application.\+Application.\+mouse\+\_\+motion (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{event }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Function to handle mouse motion events. displacement related to the event
+:param event: moving mouse when a button is pressed
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_application_1_1_application_ab71deae47ac8b52b81ca833c5fdd3da0}} 
+\index{Application\+::\+Application@{Application\+::\+Application}!mouse\+\_\+press@{mouse\+\_\+press}}
+\index{mouse\+\_\+press@{mouse\+\_\+press}!Application\+::\+Application@{Application\+::\+Application}}
+\subsubsection{mouse\+\_\+press()}
+{\footnotesize\ttfamily def Application.\+Application.\+mouse\+\_\+press (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{event }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Function to handle mouse press event, displacement related to the event
+:param event: a click with the mouse
+:return: none\end{DoxyVerb}
+ \mbox{\label{class_application_1_1_application_a239b47672cfb2b3e71302d0536a54e82}} 
+\index{Application\+::\+Application@{Application\+::\+Application}!mouse\+\_\+release@{mouse\+\_\+release}}
+\index{mouse\+\_\+release@{mouse\+\_\+release}!Application\+::\+Application@{Application\+::\+Application}}
+\subsubsection{mouse\+\_\+release()}
+{\footnotesize\ttfamily def Application.\+Application.\+mouse\+\_\+release (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{event }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Function to handle mouse release events, displacement related to the event
+:param event: a click with the mouse
+:return: none
+\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+lib/Application.\+py\end{DoxyCompactItemize}

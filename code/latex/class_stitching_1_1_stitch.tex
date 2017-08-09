@@ -1,0 +1,154 @@
+\section{Stitching.\+Stitch Class Reference}
+\label{class_stitching_1_1_stitch}\index{Stitching.\+Stitch@{Stitching.\+Stitch}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \textbf{ \+\_\+\+\_\+init\+\_\+\+\_\+} (self, number\+\_\+body\+Part)
+\item 
+def \textbf{ Naive\+Stitch} (self, Part\+Vtx, Part\+Nmls, Part\+Faces, Pose\+BP)
+\item 
+def \textbf{ Transform\+Vtx} (self, Vtx, Pose, s)
+\item 
+def \textbf{ Transform\+Nmls} (self, Nmls, Pose, s)
+\item 
+def \textbf{ R\+Arms\+Transform} (self, angle, bp, pos2d, R\+G\+BD, Tg)
+\item 
+def \textbf{ Get\+B\+B\+Transfo} (self, pos2d, cur, prev, R\+G\+BD, bp)
+\item 
+def \textbf{ Get\+Coord\+Syst} (self, pos2d, jt, R\+G\+BD, bp)
+\item 
+def \textbf{ Get\+Pos} (self, bp)
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\label{class_stitching_1_1_stitch_a6984b78515332ecfd8c9bfd783f91e49}} 
+{\bfseries nb\+\_\+bp}
+\item 
+\mbox{\label{class_stitching_1_1_stitch_a4de61586c9c27338b95e1a0ccefc3c34}} 
+{\bfseries Stitched\+Vertices}
+\item 
+\mbox{\label{class_stitching_1_1_stitch_ad76a66008928b460d7c1b7e82972cbeb}} 
+{\bfseries Stitched\+Faces}
+\item 
+\mbox{\label{class_stitching_1_1_stitch_a4744a49d727d4966433272eb4f721560}} 
+{\bfseries Stitched\+Normales}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}All method that concern linking or aligning body parts together are in Stitch
+\end{DoxyVerb}
+ 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\label{class_stitching_1_1_stitch_ab891a54caf4e40cd3a6eacdfae3d08f2}} 
+\index{Stitching\+::\+Stitch@{Stitching\+::\+Stitch}!\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}}
+\index{\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}!Stitching\+::\+Stitch@{Stitching\+::\+Stitch}}
+\subsubsection{\+\_\+\+\_\+init\+\_\+\+\_\+()}
+{\footnotesize\ttfamily def Stitching.\+Stitch.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{number\+\_\+body\+Part }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Constructor
+:param number_bodyPart: number of body parts
+\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\mbox{\label{class_stitching_1_1_stitch_a24d4c32a258141cbdc3cfa3bae127fe7}} 
+\index{Stitching\+::\+Stitch@{Stitching\+::\+Stitch}!Get\+B\+B\+Transfo@{Get\+B\+B\+Transfo}}
+\index{Get\+B\+B\+Transfo@{Get\+B\+B\+Transfo}!Stitching\+::\+Stitch@{Stitching\+::\+Stitch}}
+\subsubsection{Get\+B\+B\+Transfo()}
+{\footnotesize\ttfamily def Stitching.\+Stitch.\+Get\+B\+B\+Transfo (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{pos2d,  }\item[{}]{cur,  }\item[{}]{prev,  }\item[{}]{R\+G\+BD,  }\item[{}]{bp }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Transform Pose matrix to move the model body parts according to the position of the skeleton
+For now just a rotation in the z axis
+:param bp : number of the body parts
+:param pos2d : position in 2D of the junctions
+:param cur : index for the current frame
+:param prev : index for the previous frame
+:param RGBD : an RGBD object containing the image
+:return The transform between two skeleton
+\end{DoxyVerb}
+ \mbox{\label{class_stitching_1_1_stitch_ae2a91306c029bcd2b6631a64d662cbff}} 
+\index{Stitching\+::\+Stitch@{Stitching\+::\+Stitch}!Get\+Coord\+Syst@{Get\+Coord\+Syst}}
+\index{Get\+Coord\+Syst@{Get\+Coord\+Syst}!Stitching\+::\+Stitch@{Stitching\+::\+Stitch}}
+\subsubsection{Get\+Coord\+Syst()}
+{\footnotesize\ttfamily def Stitching.\+Stitch.\+Get\+Coord\+Syst (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{pos2d,  }\item[{}]{jt,  }\item[{}]{R\+G\+BD,  }\item[{}]{bp }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}This function compute the coordinates system of a body part according to the camera pose
+:param pos2d: camera pose
+:param jt: junctions of the body parts
+:param RGBD: Image
+:param bp: number of body part
+:return: Matrix containing the coordinates systems
+\end{DoxyVerb}
+ \mbox{\label{class_stitching_1_1_stitch_a0ba4c013f984b9b0fa636a2d120094d2}} 
+\index{Stitching\+::\+Stitch@{Stitching\+::\+Stitch}!Get\+Pos@{Get\+Pos}}
+\index{Get\+Pos@{Get\+Pos}!Stitching\+::\+Stitch@{Stitching\+::\+Stitch}}
+\subsubsection{Get\+Pos()}
+{\footnotesize\ttfamily def Stitching.\+Stitch.\+Get\+Pos (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{bp }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}According to the body parts, get the correct index of junctions
+mid is used to get the center while pos1 and pos2 give extremes junctions of the body parts
+:param bp: number of the body part
+:return: return the junctions corresponding to the body parts
+\end{DoxyVerb}
+ \mbox{\label{class_stitching_1_1_stitch_ac88004e122bb16c19ef3038d856be04a}} 
+\index{Stitching\+::\+Stitch@{Stitching\+::\+Stitch}!Naive\+Stitch@{Naive\+Stitch}}
+\index{Naive\+Stitch@{Naive\+Stitch}!Stitching\+::\+Stitch@{Stitching\+::\+Stitch}}
+\subsubsection{Naive\+Stitch()}
+{\footnotesize\ttfamily def Stitching.\+Stitch.\+Naive\+Stitch (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Part\+Vtx,  }\item[{}]{Part\+Nmls,  }\item[{}]{Part\+Faces,  }\item[{}]{Pose\+BP }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Add the vertices and faces of each body parts
+together after transforming them in the global coordinates system
+:param PartVtx: List of vertices for a body parts
+:param PartNmls: List of normales for a body parts
+:param PartFaces:  List of faces for a body parts
+:param PoseBP: local to global transform
+:return: none
+\end{DoxyVerb}
+ \mbox{\label{class_stitching_1_1_stitch_a14624518ed5cbc4422762ff59d3c5bb8}} 
+\index{Stitching\+::\+Stitch@{Stitching\+::\+Stitch}!R\+Arms\+Transform@{R\+Arms\+Transform}}
+\index{R\+Arms\+Transform@{R\+Arms\+Transform}!Stitching\+::\+Stitch@{Stitching\+::\+Stitch}}
+\subsubsection{R\+Arms\+Transform()}
+{\footnotesize\ttfamily def Stitching.\+Stitch.\+R\+Arms\+Transform (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{angle,  }\item[{}]{bp,  }\item[{}]{pos2d,  }\item[{}]{R\+G\+BD,  }\item[{}]{Tg }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Transform Pose matrix to move the model of the right arm
+For now just a rotation in the z axis
+:param bp : number of the body parts
+:param pos2d : position in 2D of the junctions
+:param RGBD : an RGBD object containing the image
+:param Tg : local to global transform
+TEST FUNCTION : TURN THE LEFT ARM OF THE SEGMENTED BODY.
+\end{DoxyVerb}
+ \mbox{\label{class_stitching_1_1_stitch_a9df52cb70ec0a02cf93ac0ea9f09706c}} 
+\index{Stitching\+::\+Stitch@{Stitching\+::\+Stitch}!Transform\+Nmls@{Transform\+Nmls}}
+\index{Transform\+Nmls@{Transform\+Nmls}!Stitching\+::\+Stitch@{Stitching\+::\+Stitch}}
+\subsubsection{Transform\+Nmls()}
+{\footnotesize\ttfamily def Stitching.\+Stitch.\+Transform\+Nmls (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Nmls,  }\item[{}]{Pose,  }\item[{}]{s }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Transform the normales in a system to another system.
+Here it will be mostly used to transform from local system to global coordiantes system
+:param Nmls:  List of normales
+:param Pose: local to global transform
+:param s: subsampling factor
+:return: list of transformed normales
+\end{DoxyVerb}
+ \mbox{\label{class_stitching_1_1_stitch_addf2733c95c1a99895485f639989c971}} 
+\index{Stitching\+::\+Stitch@{Stitching\+::\+Stitch}!Transform\+Vtx@{Transform\+Vtx}}
+\index{Transform\+Vtx@{Transform\+Vtx}!Stitching\+::\+Stitch@{Stitching\+::\+Stitch}}
+\subsubsection{Transform\+Vtx()}
+{\footnotesize\ttfamily def Stitching.\+Stitch.\+Transform\+Vtx (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Vtx,  }\item[{}]{Pose,  }\item[{}]{s }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Transform the vertices in a system to another system.
+Here it will be mostly used to transform from local system to global coordiantes system
+:param Vtx: List of vertices
+:param Pose:  local to global transform
+:param s: subsampling factor
+:return: list of transformed vertices
+\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+lib/Stitching.\+py\end{DoxyCompactItemize}

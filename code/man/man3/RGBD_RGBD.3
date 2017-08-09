@@ -1,0 +1,570 @@
+.TH "RGBD.RGBD" 3 "Wed Aug 9 2017" "Version v0.7" "Segmented Fusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+RGBD.RGBD
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fB__init__\fP (self, depthname, colorname, intrinsic, fact)"
+.br
+.ti -1c
+.RI "def \fBLoadMat\fP (self, Images, Pos_2D, BodyConnection, binImage)"
+.br
+.ti -1c
+.RI "def \fBReadFromDisk\fP (self)"
+.br
+.ti -1c
+.RI "def \fBReadFromMat\fP (self, idx=\-1)"
+.br
+.ti -1c
+.RI "def \fBVmap\fP (self)"
+.br
+.RI "Map Conversion Functions #######################\&. "
+.ti -1c
+.RI "def \fBVmap_optimize\fP (self)"
+.br
+.ti -1c
+.RI "def \fBNMap\fP (self)"
+.br
+.ti -1c
+.RI "def \fBNMap_optimize\fP (self)"
+.br
+.ti -1c
+.RI "def \fBDraw\fP (self, Pose, s, color=0)"
+.br
+.RI "Projection and transform Functions #######################\&. "
+.ti -1c
+.RI "def \fBDraw_optimize\fP (self, rendering, Pose, s, color=0)"
+.br
+.ti -1c
+.RI "def \fBDrawMesh\fP (self, rendering, Vtx, Nmls, Pose, s, color=0)"
+.br
+.ti -1c
+.RI "def \fBTransform\fP (self, Pose)"
+.br
+.ti -1c
+.RI "def \fBBilateralFilter\fP (self, d, sigma_color, sigma_space)"
+.br
+.RI "Bilateral Smooth Funtion#######################\&. "
+.ti -1c
+.RI "def \fBRemoveBG\fP (self, binaryImage)"
+.br
+.RI "Segmentation Function #######################\&. "
+.ti -1c
+.RI "def \fBCrop2Body\fP (self)"
+.br
+.ti -1c
+.RI "def \fBBdyThresh\fP (self)"
+.br
+.ti -1c
+.RI "def \fBBodySegmentation\fP (self)"
+.br
+.ti -1c
+.RI "def \fBBodyLabelling\fP (self)"
+.br
+.ti -1c
+.RI "def \fBRGBDSegmentation\fP (self)"
+.br
+.ti -1c
+.RI "def \fBGetCenter3D\fP (self, i)"
+.br
+.RI "Bounding boxes Function #######################\&. "
+.ti -1c
+.RI "def \fBSetTransfoMat3D\fP (self, evecs, i)"
+.br
+.ti -1c
+.RI "def \fBbdyPts3D\fP (self, mask)"
+.br
+.ti -1c
+.RI "def \fBbdyPts3D_optimize\fP (self, mask)"
+.br
+.ti -1c
+.RI "def \fBmyPCA\fP (self, dims_rescaled_data=3)"
+.br
+.ti -1c
+.RI "def \fBFindCoord3D\fP (self, i)"
+.br
+.ti -1c
+.RI "def \fBGetProjPts2D\fP (self, vects3D, Pose, s=1)"
+.br
+.ti -1c
+.RI "def \fBGetProjPts2D_optimize\fP (self, vects3D, Pose, s=1)"
+.br
+.ti -1c
+.RI "def \fBGetNewSys\fP (self, Pose, ctr2D, nbPix, s=1)"
+.br
+.ti -1c
+.RI "def \fBCvt2RGBA\fP (self, im_im)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBdepthname\fP"
+.br
+.ti -1c
+.RI "\fBcolorname\fP"
+.br
+.ti -1c
+.RI "\fBintrinsic\fP"
+.br
+.ti -1c
+.RI "\fBfact\fP"
+.br
+.ti -1c
+.RI "\fBlImages\fP"
+.br
+.ti -1c
+.RI "\fBnumbImages\fP"
+.br
+.ti -1c
+.RI "\fBIndex\fP"
+.br
+.ti -1c
+.RI "\fBpos2d\fP"
+.br
+.ti -1c
+.RI "\fBconnection\fP"
+.br
+.ti -1c
+.RI "\fBbw\fP"
+.br
+.ti -1c
+.RI "\fBdepth_in\fP"
+.br
+.ti -1c
+.RI "\fBcolor_image\fP"
+.br
+.ti -1c
+.RI "\fBSize\fP"
+.br
+.ti -1c
+.RI "\fBdepth_image\fP"
+.br
+.ti -1c
+.RI "\fBskel\fP"
+.br
+.ti -1c
+.RI "\fBVtx\fP"
+.br
+.ti -1c
+.RI "\fBNmls\fP"
+.br
+.ti -1c
+.RI "\fBtransCrop\fP"
+.br
+.RI "Should check whether the value are in the frame #####################\&. "
+.ti -1c
+.RI "\fBCroppedBox\fP"
+.br
+.ti -1c
+.RI "\fBCroppedPos\fP"
+.br
+.ti -1c
+.RI "\fBCroppedbw\fP"
+.br
+.ti -1c
+.RI "\fBsegm\fP"
+.br
+.ti -1c
+.RI "\fBbdyPart\fP"
+.br
+.ti -1c
+.RI "\fBbdyColor\fP"
+.br
+.ti -1c
+.RI "\fBlabelColor\fP"
+.br
+.ti -1c
+.RI "\fBlabels\fP"
+.br
+.ti -1c
+.RI "\fBctr3D\fP"
+.br
+.ti -1c
+.RI "\fBTVtxBB\fP"
+.br
+.ti -1c
+.RI "\fBTransfoBB\fP"
+.br
+.ti -1c
+.RI "\fBvects3D\fP"
+.br
+.ti -1c
+.RI "\fBPtCloud\fP"
+.br
+.ti -1c
+.RI "\fBpca\fP"
+.br
+.ti -1c
+.RI "\fBcoordsL\fP"
+.br
+.ti -1c
+.RI "\fBcoordsGbl\fP"
+.br
+.ti -1c
+.RI "\fBmask\fP"
+.br
+.ti -1c
+.RI "\fBdrawNewSys\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+
+.PP
+.nf
+Class to handle any processing on depth image and the image breed from the depth image
+
+.fi
+.PP
+ 
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "def RGBD\&.RGBD\&.__init__ ( self,  depthname,  colorname,  intrinsic,  fact)"
+
+.PP
+.nf
+Constructor
+:param depthname: path to a depth image
+:param colorname: path to a RGBD image
+:param intrinsic: matrix with calibration parameters
+:param fact: factor for converting pixel value to meter or conversely
+
+.fi
+.PP
+ 
+.SH "Member Function Documentation"
+.PP 
+.SS "def RGBD\&.RGBD\&.bdyPts3D ( self,  mask)"
+
+.PP
+.nf
+create of cloud of point from part of the RGBD image
+:param mask: a matrix containing one only in the body parts indexes, 0 otherwise
+:return:  list of vertices = cloud of points
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.bdyPts3D_optimize ( self,  mask)"
+
+.PP
+.nf
+create of cloud of point from part of the RGBD image
+:param mask: a matrix containing one only in the body parts indexes, 0 otherwise
+:return:  list of vertices = cloud of points
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.BdyThresh ( self)"
+
+.PP
+.nf
+Threshold the depth image in order to to get the whole body alone with the bounding box (BB)
+:return: The connected component that contain the body
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.BilateralFilter ( self,  d,  sigma_color,  sigma_space)"
+
+.PP
+Bilateral Smooth Funtion#######################\&. 
+.PP
+.nf
+Bilateral filtering the depth image
+see cv2 documentation
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.BodyLabelling ( self)"
+
+.PP
+.nf
+Create label for each body part in the depth_image
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.BodySegmentation ( self)"
+
+.PP
+.nf
+Calls the function in segmentation.py to process the segmentation of the body
+:return:  none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.Crop2Body ( self)"
+
+.PP
+.nf
+Generate a cropped depthframe from the previous one. The new frame focuses on the human body
+:return: none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.Cvt2RGBA ( self,  im_im)"
+
+.PP
+.nf
+convert an RGB image in RGBA to put all zeros as transparent
+THIS FUNCTION IS NOT USED IN THE PROJECT
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.Draw ( self,  Pose,  s,  color = \fC0\fP)"
+
+.PP
+Projection and transform Functions #######################\&. 
+.PP
+.nf
+Project vertices and normales in 2D images
+:param Pose: camera pose
+:param s: subsampling the cloud of points
+:param color: if there is a color image put color in the image
+:return: scene projected in 2D space
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.Draw_optimize ( self,  rendering,  Pose,  s,  color = \fC0\fP)"
+
+.PP
+.nf
+Project vertices and normales from an RGBD image in 2D images
+:param rendering : 2D image for overlay purpose or black image
+:param Pose: camera pose
+:param s: subsampling the cloud of points
+:param color: if there is a color image put color in the image
+:return: scene projected in 2D space
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.DrawMesh ( self,  rendering,  Vtx,  Nmls,  Pose,  s,  color = \fC0\fP)"
+
+.PP
+.nf
+Project vertices and normales from a mesh in 2D images
+:param rendering : 2D image for overlay purpose or black image
+:param Pose: camera pose
+:param s: subsampling the cloud of points
+:param color: if there is a color image put color in the image
+:return: scene projected in 2D space
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.FindCoord3D ( self,  i)"
+
+.PP
+.nf
+draw the bounding boxes in 3D for each part of the human body
+:param i : number of the body parts
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.GetCenter3D ( self,  i)"
+
+.PP
+Bounding boxes Function #######################\&. 
+.PP
+.nf
+Compute the mean for one segmented part
+:param i: number of the body part
+:return: none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.GetNewSys ( self,  Pose,  ctr2D,  nbPix,  s = \fC1\fP)"
+
+.PP
+.nf
+compute the coordinates of the points that will create the coordinates system
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.GetProjPts2D ( self,  vects3D,  Pose,  s = \fC1\fP)"
+
+.PP
+.nf
+Project a list of vertexes in the image RGBD
+:param vects3D: list of 3 elements vector
+:param Pose: Transformation matrix
+:param s: subsampling coefficient
+:return: transformed list of 3D vector
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.GetProjPts2D_optimize ( self,  vects3D,  Pose,  s = \fC1\fP)"
+
+.PP
+.nf
+Project a list of vertexes in the image RGBD. Optimize for CPU version.
+:param vects3D: list of 3 elements vector
+:param Pose: Transformation matrix
+:param s: subsampling coefficient
+:return: transformed list of 3D vector
+
+.fi
+.PP
+.PP
+.nf
+Project a list of vertexes in the image RGBD.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.LoadMat ( self,  Images,  Pos_2D,  BodyConnection,  binImage)"
+
+.PP
+.nf
+Load information in datasets into the RGBD object
+:param Images: List of depth images put in function of time
+:param Pos_2D: List of junctions position for each depth image
+:param BodyConnection: list of doublons that contains the number of pose that represent adjacent body parts
+:param binImage: Binary image with the body suppodly in white
+:return:  none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.myPCA ( self,  dims_rescaled_data = \fC3\fP)"
+
+.PP
+.nf
+Compute the principal component analysis on a cloud of points
+to get the coordinates system local to the cloud of points
+:param dims_rescaled_data: 3 per default, number of dimension wanted
+:return:  none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.NMap ( self)"
+
+.PP
+.nf
+Compute normal map
+:return: none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.NMap_optimize ( self)"
+
+.PP
+.nf
+Compute normal map, CPU optimize algo
+:return: none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.ReadFromDisk ( self)"
+
+.PP
+.nf
+Read an RGB-D image from the disk
+:return: none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.ReadFromMat ( self,  idx = \fC\-1\fP)"
+
+.PP
+.nf
+Read an RGB-D image from matrix (dataset)
+:param idx: number of the
+:return:
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.RemoveBG ( self,  binaryImage)"
+
+.PP
+Segmentation Function #######################\&. 
+.PP
+.nf
+Delete all the little group (connected component) unwanted from the binary image
+:param binaryImage: a binary image containing several connected component
+:return: A binary image containing only big connected component
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.RGBDSegmentation ( self)"
+
+.PP
+.nf
+Call every method to have a complete segmentation
+:return: none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.SetTransfoMat3D ( self,  evecs,  i)"
+
+.PP
+.nf
+Generate the transformation matrix
+:param evecs: eigen vectors
+:param i: number of the body part
+:return: none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.Transform ( self,  Pose)"
+
+.PP
+.nf
+Transform Vertices and Normales with the Pose matrix (generally camera pose matrix)
+:param Pose: 4*4 Transformation Matrix
+:return: none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.Vmap ( self)"
+
+.PP
+Map Conversion Functions #######################\&. 
+.PP
+.nf
+Create the vertex image from the depth image and intrinsic matrice
+:return: none
+
+.fi
+.PP
+ 
+.SS "def RGBD\&.RGBD\&.Vmap_optimize ( self)"
+
+.PP
+.nf
+Create the vertex image from the depth image and intrinsic matrice
+:return: none
+
+.fi
+.PP
+ 
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Segmented Fusion from the source code\&.

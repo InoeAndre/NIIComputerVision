@@ -1,0 +1,126 @@
+.TH "tracking.Tracker" 3 "Wed Aug 9 2017" "Version v0.7" "Segmented Fusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+tracking.Tracker
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fB__init__\fP (self, thresh_dist, thresh_norm, lvl, max_iter)"
+.br
+.ti -1c
+.RI "def \fBRegisterRGBD\fP (self, Image1, Image2)"
+.br
+.ti -1c
+.RI "def \fBRegisterRGBD_optimize\fP (self, Image1, Image2)"
+.br
+.ti -1c
+.RI "def \fBRegisterRGBDMesh\fP (self, NewImage, MeshVtx, MeshNmls, Pose)"
+.br
+.ti -1c
+.RI "def \fBRegisterRGBDMesh_optimize\fP (self, NewImage, MeshVtx, MeshNmls, Pose)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBthresh_dist\fP"
+.br
+.ti -1c
+.RI "\fBthresh_norm\fP"
+.br
+.ti -1c
+.RI "\fBlvl\fP"
+.br
+.ti -1c
+.RI "\fBmax_iter\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+
+.PP
+.nf
+Tracking camera pose class
+
+.fi
+.PP
+ 
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "def tracking\&.Tracker\&.__init__ ( self,  thresh_dist,  thresh_norm,  lvl,  max_iter)"
+
+.PP
+.nf
+Constructor
+:param thresh_dist: threshold for distance between vertices
+:param thresh_norm: threshold for distance between normales
+:param lvl:
+:param max_iter: maximum number of iteration
+
+.fi
+.PP
+ 
+.SH "Member Function Documentation"
+.PP 
+.SS "def tracking\&.Tracker\&.RegisterRGBD ( self,  Image1,  Image2)"
+
+.PP
+.nf
+Function that estimate the relative rigid transformation between two input RGB-D images
+:param Image1: First RGBD images
+:param Image2:  Second RGBD images
+:return: Transform matrix between Image1 and Image2
+
+.fi
+.PP
+ 
+.SS "def tracking\&.Tracker\&.RegisterRGBD_optimize ( self,  Image1,  Image2)"
+
+.PP
+.nf
+Optimize version of  RegisterRGBD
+:param Image1: First RGBD images
+:param Image2:  Second RGBD images
+:return: Transform matrix between Image1 and Image2
+
+.fi
+.PP
+ 
+.SS "def tracking\&.Tracker\&.RegisterRGBDMesh ( self,  NewImage,  MeshVtx,  MeshNmls,  Pose)"
+
+.PP
+.nf
+Function that estimate the relative rigid transformation between an input RGB-D images and a mesh
+:param NewImage: RGBD image
+:param MeshVtx: list of vertices of the mesh
+:param MeshNmls: list of normales of the mesh
+:param Pose:  estimate of the pose of the current image
+:return: Transform matrix between Image1 and the mesh (transform from the first frame to the current frame)
+
+.fi
+.PP
+ 
+.SS "def tracking\&.Tracker\&.RegisterRGBDMesh_optimize ( self,  NewImage,  MeshVtx,  MeshNmls,  Pose)"
+
+.PP
+.nf
+Optimize version with CPU  of RegisterRGBDMesh
+:param NewImage: RGBD image
+:param MeshVtx: list of vertices of the mesh
+:param MeshNmls: list of normales of the mesh
+:param Pose:  estimate of the pose of the current image
+:return: Transform matrix between Image1 and the mesh (transform from the first frame to the current frame)
+
+.fi
+.PP
+ 
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Segmented Fusion from the source code\&.

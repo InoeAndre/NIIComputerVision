@@ -1,0 +1,85 @@
+.TH "BodyParts.BodyParts" 3 "Wed Aug 9 2017" "Version v0.7" "Segmented Fusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+BodyParts.BodyParts
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fB__init__\fP (self, GPUManager, RGBD, RGBD_BP, Tlg)"
+.br
+.ti -1c
+.RI "def \fBModel3D_init\fP (self, bp)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBGPUManager\fP"
+.br
+.ti -1c
+.RI "\fBRGBD\fP"
+.br
+.ti -1c
+.RI "\fBTlg\fP"
+.br
+.ti -1c
+.RI "\fBRGBD_BP\fP"
+.br
+.ti -1c
+.RI "\fBVoxSize\fP"
+.br
+.ti -1c
+.RI "\fBTSDFManager\fP"
+.br
+.ti -1c
+.RI "\fBMC\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+
+.PP
+.nf
+Body parts
+
+.fi
+.PP
+ 
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "def BodyParts\&.BodyParts\&.__init__ ( self,  GPUManager,  RGBD,  RGBD_BP,  Tlg)"
+
+.PP
+.nf
+Init a body parts
+:param GPUManager: GPU environment
+:param RGBD: Image having all the body
+:param RGBD_BP: Image containing just the body part
+:param Tlg: Transform local to global for the concerned body parts
+
+.fi
+.PP
+ 
+.SH "Member Function Documentation"
+.PP 
+.SS "def BodyParts\&.BodyParts\&.Model3D_init ( self,  bp)"
+
+.PP
+.nf
+Create a 3D model of the body parts
+:param bp: number of the body part
+:return:  none
+
+.fi
+.PP
+ 
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Segmented Fusion from the source code\&.

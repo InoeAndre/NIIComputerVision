@@ -1,0 +1,97 @@
+.TH "GPUManager.GPUManager" 3 "Wed Aug 9 2017" "Version v0.7" "Segmented Fusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+GPUManager.GPUManager
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fB__init__\fP (self)"
+.br
+.ti -1c
+.RI "def \fBprint_device_info\fP (self)"
+.br
+.ti -1c
+.RI "def \fBload_kernels\fP (self)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBplatform\fP"
+.br
+.ti -1c
+.RI "\fBdevices\fP"
+.br
+.ti -1c
+.RI "\fBcontext\fP"
+.br
+.ti -1c
+.RI "\fBqueue\fP"
+.br
+.ti -1c
+.RI "\fBprograms\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+
+.PP
+.nf
+GPUManager is the class that initialized GPU envirenment and functions
+
+Work-item: the basic unit of work on an OpenCL device
+Kernel: the code for a work-item (basically a C function)
+Program: Collection of kernels and other functions (analogous to a dynamic library)
+Context: The environment within which workitems execute; includes devices and their memories and command queues
+Command Queue: A queue used by the Host application to submit work to a Device (e.g., kernel execution instances)
+                Namely, it is control work order.
+   – Work is queued in-order, one queue per device
+   – Work can be executed in-order or out-of-order
+Platform: The host plus a collection of devices managed by the OpenCL framework that allow an application to share resources and execute kernels on devices in the platform.
+
+.fi
+.PP
+ 
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "def GPUManager\&.GPUManager\&.__init__ ( self)"
+
+.PP
+.nf
+Constructor
+
+.fi
+.PP
+ 
+.SH "Member Function Documentation"
+.PP 
+.SS "def GPUManager\&.GPUManager\&.load_kernels ( self)"
+
+.PP
+.nf
+Load programs with its kernels
+:return: none
+
+.fi
+.PP
+ 
+.SS "def GPUManager\&.GPUManager\&.print_device_info ( self)"
+
+.PP
+.nf
+Display information on selected devices
+:return:  none
+
+.fi
+.PP
+ 
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Segmented Fusion from the source code\&.

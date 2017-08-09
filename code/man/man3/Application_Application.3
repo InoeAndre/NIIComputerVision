@@ -1,0 +1,255 @@
+.TH "Application.Application" 3 "Wed Aug 9 2017" "Version v0.7" "Segmented Fusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Application.Application
+.SH SYNOPSIS
+.br
+.PP
+.PP
+Inherits Frame\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fBkey\fP (self, event)"
+.br
+.ti -1c
+.RI "def \fBmouse_press\fP (self, event)"
+.br
+.ti -1c
+.RI "def \fBmouse_release\fP (self, event)"
+.br
+.ti -1c
+.RI "def \fBmouse_motion\fP (self, event)"
+.br
+.ti -1c
+.RI "def \fBDrawPoint2D\fP (self, point, radius, color)"
+.br
+.ti -1c
+.RI "def \fBDrawColors2D\fP (self, RGBD, img)"
+.br
+.ti -1c
+.RI "def \fBDrawSkeleton2D\fP (self, Pose)"
+.br
+.ti -1c
+.RI "def \fBDrawCenters2D\fP (self, Pose, s=1)"
+.br
+.ti -1c
+.RI "def \fBDrawSys2D\fP (self, Pose)"
+.br
+.ti -1c
+.RI "def \fBDrawOBBox2D\fP (self, Pose)"
+.br
+.ti -1c
+.RI "def \fB__init__\fP (self, path, GPUManager, master=None)"
+.br
+.RI "Constructor function\&. "
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBcolor_tag\fP"
+.br
+.ti -1c
+.RI "\fBPose\fP"
+.br
+.ti -1c
+.RI "\fBimgTk\fP"
+.br
+.ti -1c
+.RI "\fBx_init\fP"
+.br
+.ti -1c
+.RI "\fBy_init\fP"
+.br
+.ti -1c
+.RI "\fBctr2D\fP"
+.br
+.ti -1c
+.RI "\fBOBBcoords2D\fP"
+.br
+.ti -1c
+.RI "\fBroot\fP"
+.br
+.ti -1c
+.RI "\fBpath\fP"
+.br
+.ti -1c
+.RI "\fBGPUManager\fP"
+.br
+.ti -1c
+.RI "\fBdraw_bump\fP"
+.br
+.ti -1c
+.RI "\fBdraw_spline\fP"
+.br
+.ti -1c
+.RI "\fBSize\fP"
+.br
+.ti -1c
+.RI "\fBintrinsic\fP"
+.br
+.ti -1c
+.RI "\fBpos2d\fP"
+.br
+.ti -1c
+.RI "\fBconnectionMat\fP"
+.br
+.ti -1c
+.RI "\fBconnection\fP"
+.br
+.ti -1c
+.RI "\fBIndex\fP"
+.br
+.ti -1c
+.RI "\fBRGBD\fP"
+.br
+.ti -1c
+.RI "\fBcanvas\fP"
+.br
+.ti -1c
+.RI "\fBw\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+
+.PP
+.nf
+Class to apply the segmented fusion
+It also contains function to handle keyboard and mouse inputs
+
+.fi
+.PP
+ 
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "def Application\&.Application\&.__init__ ( self,  path,  GPUManager,  master = \fCNone\fP)"
+
+.PP
+Constructor function\&. 
+.PP
+.nf
+Main function of the project
+:param path: path to search data
+:param GPUManager: GPU environment
+:param master: none
+
+.fi
+.PP
+ 
+.SH "Member Function Documentation"
+.PP 
+.SS "def Application\&.Application\&.DrawCenters2D ( self,  Pose,  s = \fC1\fP)"
+
+.PP
+.nf
+this function draw the center of each oriented coordinates system for each body part
+.fi
+.PP
+ 
+.SS "def Application\&.Application\&.DrawColors2D ( self,  RGBD,  img)"
+
+.PP
+.nf
+Draw the color of each segmented part of the body
+:param RGBD:
+:param img:
+:param Pose:
+:return:
+Adding an argument pose would enable to follow the transformation
+
+.fi
+.PP
+ 
+.SS "def Application\&.Application\&.DrawOBBox2D ( self,  Pose)"
+
+.PP
+.nf
+Draw in the canvas the Oriented Bounding Boxes (OBB) for each body part
+
+.fi
+.PP
+ 
+.SS "def Application\&.Application\&.DrawPoint2D ( self,  point,  radius,  color)"
+
+.PP
+.nf
+Draw a point in the image
+:param point: 2D coordinates
+:param radius: size of the point
+:param color: Color of the point
+:return: none
+
+.fi
+.PP
+ 
+.SS "def Application\&.Application\&.DrawSkeleton2D ( self,  Pose)"
+
+.PP
+.nf
+Sraw the Skeleton of a human and make connections between each part
+:param Pose:
+:return:
+Adding an argument pose would enable to follow the transformation
+
+.fi
+.PP
+ 
+.SS "def Application\&.Application\&.DrawSys2D ( self,  Pose)"
+
+.PP
+.nf
+this function draw the sys of oriented coordinates system for each body part
+.fi
+.PP
+ 
+.SS "def Application\&.Application\&.key ( self,  event)"
+
+.PP
+.nf
+Function to handle keyboard inputs
+:param event: press a button on the keyboard
+:return: none
+
+.fi
+.PP
+ 
+.SS "def Application\&.Application\&.mouse_motion ( self,  event)"
+
+.PP
+.nf
+Function to handle mouse motion events. displacement related to the event
+:param event: moving mouse when a button is pressed
+:return: none
+
+.fi
+.PP
+ 
+.SS "def Application\&.Application\&.mouse_press ( self,  event)"
+
+.PP
+.nf
+Function to handle mouse press event, displacement related to the event
+:param event: a click with the mouse
+:return: none
+.fi
+.PP
+ 
+.SS "def Application\&.Application\&.mouse_release ( self,  event)"
+
+.PP
+.nf
+Function to handle mouse release events, displacement related to the event
+:param event: a click with the mouse
+:return: none
+
+.fi
+.PP
+ 
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Segmented Fusion from the source code\&.

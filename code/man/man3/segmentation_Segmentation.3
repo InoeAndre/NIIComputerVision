@@ -1,0 +1,287 @@
+.TH "segmentation.Segmentation" 3 "Wed Aug 9 2017" "Version v0.7" "Segmented Fusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+segmentation.Segmentation
+.SH SYNOPSIS
+.br
+.PP
+.PP
+Inherits object\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fB__init__\fP (self, depthImage, pos2D)"
+.br
+.ti -1c
+.RI "def \fBfindSlope\fP (self, A, B)"
+.br
+.ti -1c
+.RI "def \fBinferedPoint\fP (self, A, a, b, c, point, T=100)"
+.br
+.ti -1c
+.RI "def \fBpolygon\fP (self, slopes, ref, limit)"
+.br
+.ti -1c
+.RI "def \fBpolygon_optimize\fP (self, slopes, ref, limit)"
+.br
+.ti -1c
+.RI "def \fBpolygonOutline\fP (self, points)"
+.br
+.ti -1c
+.RI "def \fBnearestPeak\fP (self, A, hipLeft, hipRight, knee_right)"
+.br
+.ti -1c
+.RI "def \fBarmSeg\fP (self, A, B, side)"
+.br
+.ti -1c
+.RI "def \fBlegSeg\fP (self, A, side)"
+.br
+.ti -1c
+.RI "def \fBheadSeg\fP (self, A)"
+.br
+.ti -1c
+.RI "def \fBGetBody\fP (self, binaryImage)"
+.br
+.ti -1c
+.RI "def \fBGetHand\fP (self, binaryImage, side)"
+.br
+.ti -1c
+.RI "def \fBGetFoot\fP (self, binaryImage, side)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBdepthImage\fP"
+.br
+.ti -1c
+.RI "\fBpos2D\fP"
+.br
+.ti -1c
+.RI "\fBbodyPts\fP"
+.br
+.ti -1c
+.RI "\fBforeArmPtsR\fP"
+.br
+.ti -1c
+.RI "\fBforeArmPtsL\fP"
+.br
+.ti -1c
+.RI "\fBupperArmPtsR\fP"
+.br
+.ti -1c
+.RI "\fBupperArmPtsL\fP"
+.br
+.ti -1c
+.RI "\fBthighPtsR\fP"
+.br
+.RI "Find the Thigh find the fifth point that can not be deduce simply with Slopes or intersection using the entire hip\&. "
+.ti -1c
+.RI "\fBthighPtsL\fP"
+.br
+.ti -1c
+.RI "\fBcalfPtsR\fP"
+.br
+.RI "Find Calf Define slopes\&. "
+.ti -1c
+.RI "\fBcalfPtsL\fP"
+.br
+.ti -1c
+.RI "\fBheadPts\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+
+.PP
+.nf
+Segmentation process concerning body parts
+
+.fi
+.PP
+ 
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "def segmentation\&.Segmentation\&.__init__ ( self,  depthImage,  pos2D)"
+
+.PP
+.nf
+Constructor
+:param depthImage: Cropped depth image of the current image
+:param pos2D: list of position of the junction
+
+.fi
+.PP
+ 
+.SH "Member Function Documentation"
+.PP 
+.SS "def segmentation\&.Segmentation\&.armSeg ( self,  A,  B,  side)"
+
+.PP
+.nf
+Segment the left arm into two body parts
+:param A: depthImag
+:param B: depthImg after bilateral filtering
+:param side: if side = 0 the segmentation will be done for the right arm
+  otherwise it will be for the left arm
+:return: an array containing two body parts : an upper arm and a lower arm
+
+.fi
+.PP
+ 
+.SS "def segmentation\&.Segmentation\&.findSlope ( self,  A,  B)"
+
+.PP
+.nf
+Get the slope of a line made from two point A and B or the distance in one axes
+:param A: point 1
+:param B: point 2
+:return: an array of coefficient
+a is the normalized distance in the x axis
+b is the normalized distance in the y axis
+c is the slope between the two points
+
+.fi
+.PP
+ 
+.SS "def segmentation\&.Segmentation\&.GetBody ( self,  binaryImage)"
+
+.PP
+.nf
+Delete all the unwanted connected component from the binary image
+It focuses on the group having the right pos2D, for now the body
+:param binaryImage: binary image of the body but all body part are substracted to the body leaving only the trunck and noise
+:return: trunk
+
+.fi
+.PP
+ 
+.SS "def segmentation\&.Segmentation\&.GetFoot ( self,  binaryImage,  side)"
+
+.PP
+.nf
+Delete all the little group unwanted from the binary image
+It focuses on the group having the right pos2D, here the feet
+:param binaryImage: binary image of the body without limbs
+:param side: if side = 0 the segmentation will be done for the right feet
+  otherwise it will be for the left feet
+:return: one feet
+
+.fi
+.PP
+ 
+.SS "def segmentation\&.Segmentation\&.GetHand ( self,  binaryImage,  side)"
+
+.PP
+.nf
+Delete all the little group unwanted from the binary image
+It focuses on the group having the right pos2D, here the hands
+:param binaryImage: binary image of the body without limbs
+:param side: if side = 0 the segmentation will be done for the right hand
+  otherwise it will be for the left hand
+:return: one hand
+
+.fi
+.PP
+ 
+.SS "def segmentation\&.Segmentation\&.headSeg ( self,  A)"
+
+.PP
+.nf
+Segment the head
+:param A: binary depthImag
+:return: head body part
+
+.fi
+.PP
+ 
+.SS "def segmentation\&.Segmentation\&.inferedPoint ( self,  A,  a,  b,  c,  point,  T = \fC100\fP)"
+
+.PP
+.nf
+Find two points that are the corners of the segmented part
+:param A: Depth Image
+:param a: dist x axe between two points
+:param b: dist y axe between two points
+:param c: slope between two points
+:param point: a junction
+:param T: max distance to find intersection
+:return: two intersection points between a slope and the edges of the body part
+
+.fi
+.PP
+ 
+.SS "def segmentation\&.Segmentation\&.legSeg ( self,  A,  side)"
+
+.PP
+.nf
+Segment the leg into two body parts
+:param A: depthImag
+:param side: if side = 0 the segmentation will be done for the right leg
+  otherwise it will be for the left leg
+:return: an array containing two body parts : an upper leg and a lower leg
+
+.fi
+.PP
+ 
+.SS "def segmentation\&.Segmentation\&.nearestPeak ( self,  A,  hipLeft,  hipRight,  knee_right)"
+
+.PP
+.nf
+In the case of upper legs, find the point in between the two upper legs that is at a edge of the hip
+:param A: binary image
+:param hipLeft: left hip junctions
+:param hipRight:  right hip junctions
+:param knee_right: right knee junctions
+:return: return a point at the edge and between the two legs
+Make drawing will help to understand
+
+.fi
+.PP
+ 
+.SS "def segmentation\&.Segmentation\&.polygon ( self,  slopes,  ref,  limit)"
+
+.PP
+.nf
+Test the sign of alpha = (a[k]*j+b[k]*i+c[k])*ref[k]
+to know whether a point is within a polygon or not
+:param slopes: list of slopes defining a the border lines of the polygone
+:param ref:  a point inside the polygon
+:param limit: number of slopes
+:return: the body part filled with true.
+
+.fi
+.PP
+ 
+.SS "def segmentation\&.Segmentation\&.polygon_optimize ( self,  slopes,  ref,  limit)"
+
+.PP
+.nf
+Test the sign of alpha = (a[k]*j+b[k]*i+c[k])*ref[k]
+to know whether a point is within a polygon or not
+:param slopes: list of slopes defining a the border lines of the polygone
+:param ref:  a point inside the polygon
+:param limit: number of slopes
+:return: the body part filled with true.
+
+.fi
+.PP
+ 
+.SS "def segmentation\&.Segmentation\&.polygonOutline ( self,  points)"
+
+.PP
+.nf
+Find a polygon on the image through the points given in points
+:param points: array of points which are the corners of the polygon to find
+:return:  the body part filled with true.
+
+.fi
+.PP
+ 
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Segmented Fusion from the source code\&.

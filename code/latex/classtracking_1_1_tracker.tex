@@ -1,0 +1,106 @@
+\section{tracking.\+Tracker Class Reference}
+\label{classtracking_1_1_tracker}\index{tracking.\+Tracker@{tracking.\+Tracker}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \textbf{ \+\_\+\+\_\+init\+\_\+\+\_\+} (self, thresh\+\_\+dist, thresh\+\_\+norm, lvl, max\+\_\+iter)
+\item 
+def \textbf{ Register\+R\+G\+BD} (self, Image1, Image2)
+\item 
+def \textbf{ Register\+R\+G\+B\+D\+\_\+optimize} (self, Image1, Image2)
+\item 
+def \textbf{ Register\+R\+G\+B\+D\+Mesh} (self, New\+Image, Mesh\+Vtx, Mesh\+Nmls, Pose)
+\item 
+def \textbf{ Register\+R\+G\+B\+D\+Mesh\+\_\+optimize} (self, New\+Image, Mesh\+Vtx, Mesh\+Nmls, Pose)
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\label{classtracking_1_1_tracker_a1f46d5b2dae7afdaa90a82c9c9105f44}} 
+{\bfseries thresh\+\_\+dist}
+\item 
+\mbox{\label{classtracking_1_1_tracker_acfd351ce92170c6fe1f5627412ca3a6b}} 
+{\bfseries thresh\+\_\+norm}
+\item 
+\mbox{\label{classtracking_1_1_tracker_a08950fc3a5d4f62953bb2c5ee5f8cb16}} 
+{\bfseries lvl}
+\item 
+\mbox{\label{classtracking_1_1_tracker_afa1bc9948ab57bffca4ea0fb99a324de}} 
+{\bfseries max\+\_\+iter}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}Tracking camera pose class
+\end{DoxyVerb}
+ 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\label{classtracking_1_1_tracker_af4ec0591320a6a3186198e4afa34aa4a}} 
+\index{tracking\+::\+Tracker@{tracking\+::\+Tracker}!\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}}
+\index{\+\_\+\+\_\+init\+\_\+\+\_\+@{\+\_\+\+\_\+init\+\_\+\+\_\+}!tracking\+::\+Tracker@{tracking\+::\+Tracker}}
+\subsubsection{\+\_\+\+\_\+init\+\_\+\+\_\+()}
+{\footnotesize\ttfamily def tracking.\+Tracker.\+\_\+\+\_\+init\+\_\+\+\_\+ (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{thresh\+\_\+dist,  }\item[{}]{thresh\+\_\+norm,  }\item[{}]{lvl,  }\item[{}]{max\+\_\+iter }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Constructor
+:param thresh_dist: threshold for distance between vertices
+:param thresh_norm: threshold for distance between normales
+:param lvl:
+:param max_iter: maximum number of iteration
+\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\mbox{\label{classtracking_1_1_tracker_a74ff598370a1334ee1cf35a1d8c3c5b8}} 
+\index{tracking\+::\+Tracker@{tracking\+::\+Tracker}!Register\+R\+G\+BD@{Register\+R\+G\+BD}}
+\index{Register\+R\+G\+BD@{Register\+R\+G\+BD}!tracking\+::\+Tracker@{tracking\+::\+Tracker}}
+\subsubsection{Register\+R\+G\+B\+D()}
+{\footnotesize\ttfamily def tracking.\+Tracker.\+Register\+R\+G\+BD (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Image1,  }\item[{}]{Image2 }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Function that estimate the relative rigid transformation between two input RGB-D images
+:param Image1: First RGBD images
+:param Image2:  Second RGBD images
+:return: Transform matrix between Image1 and Image2
+\end{DoxyVerb}
+ \mbox{\label{classtracking_1_1_tracker_a67305bad91e92f81957982b6b92556cc}} 
+\index{tracking\+::\+Tracker@{tracking\+::\+Tracker}!Register\+R\+G\+B\+D\+\_\+optimize@{Register\+R\+G\+B\+D\+\_\+optimize}}
+\index{Register\+R\+G\+B\+D\+\_\+optimize@{Register\+R\+G\+B\+D\+\_\+optimize}!tracking\+::\+Tracker@{tracking\+::\+Tracker}}
+\subsubsection{Register\+R\+G\+B\+D\+\_\+optimize()}
+{\footnotesize\ttfamily def tracking.\+Tracker.\+Register\+R\+G\+B\+D\+\_\+optimize (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{Image1,  }\item[{}]{Image2 }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Optimize version of  RegisterRGBD
+:param Image1: First RGBD images
+:param Image2:  Second RGBD images
+:return: Transform matrix between Image1 and Image2
+\end{DoxyVerb}
+ \mbox{\label{classtracking_1_1_tracker_a99da5721b34cdb54cf89534ab2a77f35}} 
+\index{tracking\+::\+Tracker@{tracking\+::\+Tracker}!Register\+R\+G\+B\+D\+Mesh@{Register\+R\+G\+B\+D\+Mesh}}
+\index{Register\+R\+G\+B\+D\+Mesh@{Register\+R\+G\+B\+D\+Mesh}!tracking\+::\+Tracker@{tracking\+::\+Tracker}}
+\subsubsection{Register\+R\+G\+B\+D\+Mesh()}
+{\footnotesize\ttfamily def tracking.\+Tracker.\+Register\+R\+G\+B\+D\+Mesh (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{New\+Image,  }\item[{}]{Mesh\+Vtx,  }\item[{}]{Mesh\+Nmls,  }\item[{}]{Pose }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Function that estimate the relative rigid transformation between an input RGB-D images and a mesh
+:param NewImage: RGBD image
+:param MeshVtx: list of vertices of the mesh
+:param MeshNmls: list of normales of the mesh
+:param Pose:  estimate of the pose of the current image
+:return: Transform matrix between Image1 and the mesh (transform from the first frame to the current frame)
+\end{DoxyVerb}
+ \mbox{\label{classtracking_1_1_tracker_a435754ca561996d43da1bd5d91b9ad36}} 
+\index{tracking\+::\+Tracker@{tracking\+::\+Tracker}!Register\+R\+G\+B\+D\+Mesh\+\_\+optimize@{Register\+R\+G\+B\+D\+Mesh\+\_\+optimize}}
+\index{Register\+R\+G\+B\+D\+Mesh\+\_\+optimize@{Register\+R\+G\+B\+D\+Mesh\+\_\+optimize}!tracking\+::\+Tracker@{tracking\+::\+Tracker}}
+\subsubsection{Register\+R\+G\+B\+D\+Mesh\+\_\+optimize()}
+{\footnotesize\ttfamily def tracking.\+Tracker.\+Register\+R\+G\+B\+D\+Mesh\+\_\+optimize (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{New\+Image,  }\item[{}]{Mesh\+Vtx,  }\item[{}]{Mesh\+Nmls,  }\item[{}]{Pose }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Optimize version with CPU  of RegisterRGBDMesh
+:param NewImage: RGBD image
+:param MeshVtx: list of vertices of the mesh
+:param MeshNmls: list of normales of the mesh
+:param Pose:  estimate of the pose of the current image
+:return: Transform matrix between Image1 and the mesh (transform from the first frame to the current frame)
+\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+lib/tracking.\+py\end{DoxyCompactItemize}
