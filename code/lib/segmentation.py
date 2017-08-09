@@ -67,6 +67,10 @@ class Segmentation(object):
         b is the normalized distance in the y axis
         c is the slope between the two points
         """
+        #Be sure A and B are different
+        if (A == B).all():
+            print "There is no slope between a point and itself"
+            return np.array([0.0,0.0,0.0])
         A = A.astype(np.float32)
         B = B.astype(np.float32)
         # distance in Y axis

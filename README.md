@@ -26,3 +26,6 @@ http://www.meshlab.net/
 mayavi (directly with the code but limited compare to MeshLab) :
 conda install mayavi
 
+./meshes contains all the .ply file that are created during the execution of the code
+./lib contains all the .pu file that are module of the project
+./images is used for displaying a menu.

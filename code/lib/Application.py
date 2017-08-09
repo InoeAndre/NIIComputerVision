@@ -322,6 +322,7 @@ class Application(tk.Frame):
         # Stock all Local to global Transform
         Tg = []
         Tg.append(Id4)
+        # bp = 0 is the background (only black) No need to process it.
         for bp in range(1,self.RGBD[0].bdyPart.shape[0]+1):
             # Get the tranform matrix from the local coordinates system to the global system 
             Tglo = self.RGBD[0].TransfoBB[bp]

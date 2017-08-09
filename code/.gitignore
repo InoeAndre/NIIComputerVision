@@ -5,4 +5,8 @@
 *~
 CloudsOfPointsCompare.py
 TEST*
+../html/
+../latex/
+../man/
+../Doxyfile
 __pycache__
