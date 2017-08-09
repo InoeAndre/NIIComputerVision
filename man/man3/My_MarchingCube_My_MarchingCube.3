@@ -1,0 +1,110 @@
+.TH "My_MarchingCube.My_MarchingCube" 3 "Mon Aug 7 2017" "Version v0.5" "SegmentedFusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+My_MarchingCube.My_MarchingCube
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fB__init__\fP (self, Size, Res, Iso, GPUManager)"
+.br
+.ti -1c
+.RI "def \fBrunGPU\fP (self, VolGPU)"
+.br
+.ti -1c
+.RI "def \fBSaveToPly\fP (self, name, save=0)"
+.br
+.ti -1c
+.RI "def \fBSaveToPlyExt\fP (self, name, nb_vertices, nb_faces, Vertices, Faces, save=0)"
+.br
+.ti -1c
+.RI "def \fBDrawMesh\fP (self, Pose, intrinsic, Size, canvas)"
+.br
+.ti -1c
+.RI "def \fBDrawPoints\fP (self, Pose, intrinsic, Size, background, s=1)"
+.br
+.ti -1c
+.RI "def \fBTransformList\fP (self, Pose)"
+.br
+.ti -1c
+.RI "def \fBComputeMCNmls\fP (self)"
+.br
+.ti -1c
+.RI "def \fBComputeMCNmls_slow\fP (self)"
+.br
+.ti -1c
+.RI "def \fBMergeVtx\fP (self)"
+.br
+.ti -1c
+.RI "def \fBMC2RGBD\fP (self, RGBD, Vtx, Nmls, Pose, s, color=0)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBSize\fP"
+.br
+.ti -1c
+.RI "\fBres\fP"
+.br
+.ti -1c
+.RI "\fBiso\fP"
+.br
+.ti -1c
+.RI "\fBnb_faces\fP"
+.br
+.ti -1c
+.RI "\fBGPUManager\fP"
+.br
+.ti -1c
+.RI "\fBSize_Volume\fP"
+.br
+.ti -1c
+.RI "\fBOffsetGPU\fP"
+.br
+.ti -1c
+.RI "\fBIndexGPU\fP"
+.br
+.ti -1c
+.RI "\fBFaceCounterGPU\fP"
+.br
+.ti -1c
+.RI "\fBParamGPU\fP"
+.br
+.ti -1c
+.RI "\fBFaces\fP"
+.br
+.ti -1c
+.RI "\fBVertices\fP"
+.br
+.ti -1c
+.RI "\fBFacesGPU\fP"
+.br
+.ti -1c
+.RI "\fBVerticesGPU\fP"
+.br
+.ti -1c
+.RI "\fBNormales\fP"
+.br
+.ti -1c
+.RI "\fBNormals\fP"
+.br
+.ti -1c
+.RI "\fBnbVtx\fP"
+.br
+.ti -1c
+.RI "\fBnb_vertices\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 22 of file My_MarchingCube\&.py\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SegmentedFusion from the source code\&.

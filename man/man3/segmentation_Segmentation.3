@@ -1,0 +1,228 @@
+.TH "segmentation.Segmentation" 3 "Mon Aug 7 2017" "Version v0.5" "SegmentedFusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+segmentation.Segmentation
+.SH SYNOPSIS
+.br
+.PP
+.PP
+Inherits object\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fB__init__\fP (self, depthImage, pos2D)"
+.br
+.ti -1c
+.RI "def \fBfindSlope\fP (self, A, B)"
+.br
+.ti -1c
+.RI "def \fBinferedPoint\fP (self, A, a, b, c, point, T=100)"
+.br
+.ti -1c
+.RI "def \fBpolygon\fP (self, slopes, ref, limit)"
+.br
+.ti -1c
+.RI "def \fBpolygon_optimize\fP (self, slopes, ref, limit)"
+.br
+.ti -1c
+.RI "def \fBpolygonOutline\fP (self, points)"
+.br
+.ti -1c
+.RI "def \fBnearestPeak\fP (self, A, hipLeft, hipRight, knee_right)"
+.br
+.ti -1c
+.RI "def \fBarmSeg\fP (self, A, B, side)"
+.br
+.ti -1c
+.RI "def \fBlegSeg\fP (self, A, side)"
+.br
+.ti -1c
+.RI "def \fBheadSeg\fP (self, A)"
+.br
+.ti -1c
+.RI "def \fBGetBody\fP (self, binaryImage)"
+.br
+.ti -1c
+.RI "def \fBGetHand\fP (self, binaryImage, side)"
+.br
+.ti -1c
+.RI "def \fBGetFoot\fP (self, binaryImage, side)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBdepthImage\fP"
+.br
+.ti -1c
+.RI "\fBpos2D\fP"
+.br
+.ti -1c
+.RI "\fBbodyPts\fP"
+.br
+.ti -1c
+.RI "\fBforeArmPtsR\fP"
+.br
+.ti -1c
+.RI "\fBforeArmPtsL\fP"
+.br
+.ti -1c
+.RI "\fBupperArmPtsR\fP"
+.br
+.ti -1c
+.RI "\fBupperArmPtsL\fP"
+.br
+.ti -1c
+.RI "\fBthighPtsR\fP"
+.br
+.RI "Find the Thigh find the fifth point that can not be deduce simply with Slopes or intersection using the entier hip\&. "
+.ti -1c
+.RI "\fBthighPtsL\fP"
+.br
+.ti -1c
+.RI "\fBcalfPtsR\fP"
+.br
+.RI "Find Calf Define slopes\&. "
+.ti -1c
+.RI "\fBcalfPtsL\fP"
+.br
+.ti -1c
+.RI "\fBheadPts\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 44 of file segmentation\&.py\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "def segmentation\&.Segmentation\&.armSeg ( self,  A,  B,  side)"
+
+.PP
+.nf
+this function segment the left arm
+/arg A is the depthImag
+/arg B is the depthImg after bilateral filtering
+/arg side if side = 0 the segmentation will be done for the right arm 
+  otherwise it will be for the left arm
+.fi
+.PP
+ 
+.PP
+Definition at line 273 of file segmentation\&.py\&.
+.SS "def segmentation\&.Segmentation\&.findSlope ( self,  A,  B)"
+
+.PP
+.nf
+Get the slope of a line made from two point A and B or the distance in one axes
+.fi
+.PP
+ 
+.PP
+Definition at line 53 of file segmentation\&.py\&.
+.SS "def segmentation\&.Segmentation\&.GetBody ( self,  binaryImage)"
+
+.PP
+.nf
+This function delete all the little group unwanted from the binary image
+It focuses on the group having the right pos2D, for now the body
+.fi
+.PP
+ 
+.PP
+Definition at line 526 of file segmentation\&.py\&.
+.SS "def segmentation\&.Segmentation\&.GetFoot ( self,  binaryImage,  side)"
+
+.PP
+.nf
+This function delete all the little group unwanted from the binary image
+It focuses on the group having the right pos2D, here the feet
+.fi
+.PP
+ 
+.PP
+Definition at line 567 of file segmentation\&.py\&.
+.SS "def segmentation\&.Segmentation\&.GetHand ( self,  binaryImage,  side)"
+
+.PP
+.nf
+This function delete all the little group unwanted from the binary image
+It focuses on the group having the right pos2D, here the hands
+.fi
+.PP
+ 
+.PP
+Definition at line 535 of file segmentation\&.py\&.
+.SS "def segmentation\&.Segmentation\&.headSeg ( self,  A)"
+
+.PP
+.nf
+this function segment the head
+/arg A is the depthImag
+.fi
+.PP
+ 
+.PP
+Definition at line 484 of file segmentation\&.py\&.
+.SS "def segmentation\&.Segmentation\&.inferedPoint ( self,  A,  a,  b,  c,  point,  T = \fC100\fP)"
+
+.PP
+.nf
+Find points that are the corners of the segmented part
+.fi
+.PP
+ 
+.PP
+Definition at line 65 of file segmentation\&.py\&.
+.SS "def segmentation\&.Segmentation\&.legSeg ( self,  A,  side)"
+
+.PP
+.nf
+this function segment the right leg
+/arg A is the depthImag
+/arg side if side = 0 the segmentation will be done for the right leg 
+  otherwise it will be for the left leg
+.fi
+.PP
+ 
+.PP
+Definition at line 414 of file segmentation\&.py\&.
+.SS "def segmentation\&.Segmentation\&.polygon ( self,  slopes,  ref,  limit)"
+
+.PP
+.nf
+This function test the sign of alpha = (a[k]*j+b[k]*i+c[k])*ref[k] 
+ to know whether a point is within a polygon or not
+.fi
+.PP
+ 
+.PP
+Definition at line 154 of file segmentation\&.py\&.
+.SS "def segmentation\&.Segmentation\&.polygon_optimize ( self,  slopes,  ref,  limit)"
+
+.PP
+.nf
+This function test the sign of alpha = (a[k]*j+b[k]*i+c[k])*ref[k] 
+to know whether a point is within a polygon or not
+.fi
+.PP
+ 
+.PP
+Definition at line 173 of file segmentation\&.py\&.
+.SS "def segmentation\&.Segmentation\&.polygonOutline ( self,  points)"
+
+.PP
+.nf
+Find a polygon on the image through the points given in points
+/arg points : array of points which are the corners of the polygon to find
+.fi
+.PP
+ 
+.PP
+Definition at line 200 of file segmentation\&.py\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SegmentedFusion from the source code\&.

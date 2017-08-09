@@ -1,0 +1,63 @@
+.TH "RGBDimg.RGBD" 3 "Mon Aug 7 2017" "Version v0.5" "SegmentedFusion" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+RGBDimg.RGBD
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "def \fB__init__\fP (self, depth_image, intrinsic, fact, Size)"
+.br
+.ti -1c
+.RI "def \fBVmap_optimize\fP (self)"
+.br
+.ti -1c
+.RI "def \fBNMap_optimize\fP (self)"
+.br
+.ti -1c
+.RI "def \fBDraw_optimize\fP (self, rendering, Pose, s, color=0)"
+.br
+.ti -1c
+.RI "def \fBDrawMesh\fP (self, rendering, Vtx, Nmls, Pose, s, color=0)"
+.br
+.ti -1c
+.RI "def \fBBilateralFilter\fP (self, d, sigma_color, sigma_space)"
+.br
+.RI "Bilateral Smooth Funtion#######################\&. "
+.ti -1c
+.RI "def \fBVtxToPly\fP (self, name, Vertices, Normales)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBdepth_image\fP"
+.br
+.ti -1c
+.RI "\fBintrinsic\fP"
+.br
+.ti -1c
+.RI "\fBfact\fP"
+.br
+.ti -1c
+.RI "\fBSize\fP"
+.br
+.ti -1c
+.RI "\fBVtx\fP"
+.br
+.ti -1c
+.RI "\fBNmls\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 19 of file RGBDimg\&.py\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for SegmentedFusion from the source code\&.
